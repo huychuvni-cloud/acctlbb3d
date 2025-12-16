@@ -33,7 +33,7 @@
     </div>
 
     <script>
-        // Dữ liệu tài khoản được trích xuất từ file CSV/Excel của bạn
+        // Dữ liệu tài khoản đã được cập nhật đầy đủ 17 dòng
         const accountData = [
             { id: 't26113', pass: '123456aa', name: 'zNgũYên', faction: 'NgaMy' },
             { id: 't26115', pass: '123456aa', name: 'zVôKỵ', faction: 'MinhGiáo' },
@@ -50,6 +50,9 @@
             { id: 'vankhanh', pass: '123456', name: 'ThiênVũ', faction: 'VD' },
             { id: 'vankhanh4', pass: '123123 (or 123456 check lại)', name: 'NữYTá', faction: 'NM' },
             { id: 'vankhanh5', pass: '123123', name: 'BácSĩGià', faction: 'NM' },
+            { id: 'otao1989', pass: 'otao1989', name: 'Bà Tổ Cô', faction: 'TD' }, 
+            // Dòng thứ 17 đã được cập nhật theo yêu cầu
+            { id: 'metao1989', pass: 'metao1989', name: 'MẹTao', faction: 'MD' },
         ];
 
         const tableContainer = document.getElementById('account-table-container');
@@ -88,11 +91,13 @@
                     showNotification();
                 } else {
                     console.error('Sao chép thất bại (execCommand).');
-                    alert('Sao chép thất bại. Vui lòng thử lại.'); // Dùng alert tạm thời cho trường hợp lỗi
+                    // Không dùng alert(), chỉ log lỗi
+                    console.error('Lỗi: Sao chép thất bại. Vui lòng thử lại.');
                 }
             } catch (err) {
                 console.error('Không thể thực hiện sao chép:', err);
-                alert('Không thể thực hiện sao chép. Trình duyệt không hỗ trợ.');
+                // Không dùng alert(), chỉ log lỗi
+                console.error('Lỗi: Không thể thực hiện sao chép. Trình duyệt không hỗ trợ.');
             }
             
             // Xóa textarea khỏi DOM
@@ -120,6 +125,7 @@
 
             accountData.forEach((item, index) => {
                 const stt = index + 1;
+                // Loại bỏ lớp màu vàng cho dòng giữ chỗ vì bây giờ đã có dữ liệu
                 html += `
                     <tr class="hover:bg-gray-50 transition duration-150">
                         <!-- STT -->
