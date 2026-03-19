@@ -26,18 +26,21 @@
                 <label class="block text-gray-700 text-sm font-bold mb-2" for="username">
                     Tên đăng nhập
                 </label>
-                <input class="shadow appearance-none border rounded w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" id="username" type="text" placeholder="Nhập admin">
+                <input class="shadow appearance-none border rounded w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" id="username" type="text" placeholder="Nhập tên đăng nhập">
             </div>
             <div class="mb-6">
                 <label class="block text-gray-700 text-sm font-bold mb-2" for="password">
                     Mật khẩu
                 </label>
-                <input class="shadow appearance-none border rounded w-full py-3 px-4 text-gray-700 mb-2 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" id="password" type="password" placeholder="Nhập admin">
+                <input class="shadow appearance-none border rounded w-full py-3 px-4 text-gray-700 mb-2 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" id="password" type="password" placeholder="Nhập mật khẩu">
                 <p id="errorMessage" class="text-red-500 text-sm italic hidden">Tên đăng nhập hoặc mật khẩu không đúng!</p>
             </div>
-            <div class="flex items-center justify-between">
+            <div class="flex flex-col gap-3">
                 <button id="loginBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline transition-colors" type="button">
                     Đăng Nhập
+                </button>
+                <button id="guestBtn" class="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline transition-colors" type="button">
+                    Xem dưới dạng Khách (Chỉ xem tên)
                 </button>
             </div>
         </form>
@@ -48,9 +51,12 @@
         
         <!-- Header & Controls -->
         <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-            <h1 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                Danh Sách Tài Khoản Hệ Thống
-            </h1>
+            <div>
+                <h1 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                    Danh Sách Tài Khoản Hệ Thống
+                </h1>
+                <p id="viewModeText" class="text-sm font-medium mt-1 text-blue-600">Chế độ: Quản trị viên</p>
+            </div>
             
             <button id="toggleBtn" class="flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium transition-all shadow-sm active:scale-95 bg-blue-600 text-white hover:bg-blue-700">
                 <span id="toggleIcon">
@@ -88,39 +94,78 @@
     </div>
 
     <script>
-        // --- LOGIC ĐĂNG NHẬP ---
+        // --- LOGIC ĐĂNG NHẬP VÀ PHÂN QUYỀN ---
         const loginScreen = document.getElementById('loginScreen');
         const mainApp = document.getElementById('mainApp');
         const loginBtn = document.getElementById('loginBtn');
+        const guestBtn = document.getElementById('guestBtn');
         const logoutBtn = document.getElementById('logoutBtn');
         const usernameInput = document.getElementById('username');
         const passwordInput = document.getElementById('password');
         const errorMessage = document.getElementById('errorMessage');
+        const viewModeText = document.getElementById('viewModeText');
+
+        let currentUser = null; // Lưu thông tin người dùng hiện tại
+        let isLoggedIn = false; // Trạng thái đăng nhập (true: User/Admin, false: Guest)
+
+        // Cấu hình danh sách tài khoản và phân quyền xem STT
+        const userAccounts = [
+            { username: 'admin', password: 'admin', allowedIds: 'all' },
+            { username: 'buiquangmien', password: 'buiquangmien1', allowedIds: [1, 2, 3, 4, 5, 6, 41] },
+            { username: 'trannam', password: 'trannam2', allowedIds: [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17] },
+            { username: 'phamthao', password: 'phamthao3', allowedIds: [18, 19, 20, 21, 22, 23, 36, 37, 38, 39, 40, 43] },
+            { username: 'huychu', password: 'huychu4', allowedIds: [24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 43] },
+            { username: 'buivandau', password: 'buivandau 5', allowedIds: [35] }
+        ];
+
+        function showApp(userObj) {
+            currentUser = userObj;
+            isLoggedIn = !userObj.isGuest;
+            
+            // Cập nhật text trạng thái
+            if (userObj.isGuest) {
+                viewModeText.innerText = "Chế độ: Khách (Đã ẩn thông tin nhạy cảm)";
+                viewModeText.className = "text-sm font-medium mt-1 text-orange-600";
+            } else if (userObj.username === 'admin') {
+                viewModeText.innerText = "Chế độ: Quản trị viên (Xem tất cả)";
+                viewModeText.className = "text-sm font-medium mt-1 text-green-600";
+            } else {
+                viewModeText.innerText = `Chế độ: Nhân viên (${userObj.username}) - STT giới hạn`;
+                viewModeText.className = "text-sm font-medium mt-1 text-blue-600";
+            }
+
+            // Chuyển màn hình
+            loginScreen.classList.add('hidden');
+            mainApp.classList.remove('hidden');
+            document.body.classList.remove('justify-center'); // Cho phép cuộn khi hiện bảng
+            errorMessage.classList.add('hidden');
+            
+            // Clear input
+            usernameInput.value = '';
+            passwordInput.value = '';
+            
+            // Hiển thị bảng
+            renderTable();
+        }
 
         function handleLogin() {
             const user = usernameInput.value.trim();
             const pass = passwordInput.value.trim();
 
-            if (user === 'admin' && pass === 'admin') {
-                // Đăng nhập thành công
-                loginScreen.classList.add('hidden');
-                mainApp.classList.remove('hidden');
-                document.body.classList.remove('justify-center'); // Cho phép cuộn khi hiện bảng
-                errorMessage.classList.add('hidden');
-                
-                // Clear input để bảo mật nhẹ
-                usernameInput.value = '';
-                passwordInput.value = '';
-                
-                // Hiển thị bảng sau khi đăng nhập thành công
-                renderTable();
+            const matchedUser = userAccounts.find(u => u.username === user && u.password === pass);
+
+            if (matchedUser) {
+                showApp(matchedUser); // Đăng nhập thành công
             } else {
-                // Sai thông tin
                 errorMessage.classList.remove('hidden');
             }
         }
 
         loginBtn.addEventListener('click', handleLogin);
+        
+        guestBtn.addEventListener('click', () => {
+            showApp({ username: 'Khách', allowedIds: 'all', isGuest: true }); // Đăng nhập Khách
+        });
         
         // Hỗ trợ nhấn phím Enter để đăng nhập
         passwordInput.addEventListener('keypress', function (e) {
@@ -136,6 +181,8 @@
 
         // Nút đăng xuất
         logoutBtn.addEventListener('click', () => {
+            currentUser = null;
+            isLoggedIn = false;
             mainApp.classList.add('hidden');
             loginScreen.classList.remove('hidden');
             document.body.classList.add('justify-center');
@@ -206,8 +253,6 @@
 
         let isGrouped = true;
 
-        document.getElementById('footerInfo').innerText = `Tổng cộng: ${rawData.length} tài khoản`;
-
         function handleCopy(text, buttonElement) {
             const textArea = document.createElement("textarea");
             textArea.value = text;
@@ -250,6 +295,13 @@
             tableBody.innerHTML = '';
 
             let displayData = [...rawData];
+
+            // 1. Lọc dữ liệu theo quyền của User đang đăng nhập
+            if (currentUser && currentUser.allowedIds !== 'all') {
+                displayData = displayData.filter(row => currentUser.allowedIds.includes(row.id));
+            }
+
+            // 2. Sắp xếp nếu chế độ "Gom Nhóm Màu" đang bật
             if (isGrouped) {
                 displayData.sort((a, b) => {
                     if (colorWeight[a.color] !== colorWeight[b.color]) {
@@ -259,26 +311,35 @@
                 });
             }
 
+            // Cập nhật số lượng đếm hiển thị
+            document.getElementById('footerInfo').innerText = `Tổng cộng: ${displayData.length} tài khoản`;
+
             displayData.forEach((row, index) => {
                 const tr = document.createElement('tr');
                 tr.className = `${colorClasses[row.color]} hover:brightness-95 transition-all duration-150`;
 
+                // Nếu là Khách (isLoggedIn = false), ẩn dữ liệu và bỏ nút copy
+                const displayUserTnt = isLoggedIn ? createCopyableCell(row.userTnt, 'left') : '<span class="text-gray-600 font-mono tracking-widest text-lg">*****</span>';
+                const displayPassTnt = isLoggedIn ? createCopyableCell(row.passTnt, 'center') : '<span class="text-gray-600 font-mono tracking-widest text-lg">*****</span>';
+                const displayUserTc = isLoggedIn ? createCopyableCell(row.userTc, 'left') : '<span class="text-gray-600 font-mono tracking-widest text-lg">*****</span>';
+                const displayPassTc = isLoggedIn ? createCopyableCell(row.passTc, 'center') : '<span class="text-gray-600 font-mono tracking-widest text-lg">*****</span>';
+
                 tr.innerHTML = `
                     <td class="border border-black px-3 py-1 text-center font-medium">
-                        ${isGrouped ? index + 1 : row.id}
+                        ${row.id}
                     </td>
-                    <td class="border border-black px-3 py-1 whitespace-nowrap">
-                        ${createCopyableCell(row.userTnt, 'left')}
+                    <td class="border border-black px-3 py-1 whitespace-nowrap ${!isLoggedIn ? 'text-center' : ''}">
+                        ${displayUserTnt}
                     </td>
                     <td class="border border-black px-3 py-1 text-center">
-                        ${createCopyableCell(row.passTnt, 'center')}
+                        ${displayPassTnt}
                     </td>
                     <td class="border border-black px-3 py-1 font-medium">${row.name}</td>
-                    <td class="border border-black px-3 py-1 whitespace-nowrap">
-                        ${createCopyableCell(row.userTc, 'left')}
+                    <td class="border border-black px-3 py-1 whitespace-nowrap ${!isLoggedIn ? 'text-center' : ''}">
+                        ${displayUserTc}
                     </td>
                     <td class="border border-black px-3 py-1 text-center">
-                        ${createCopyableCell(row.passTc, 'center')}
+                        ${displayPassTc}
                     </td>
                 `;
                 tableBody.appendChild(tr);
