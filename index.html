@@ -119,6 +119,11 @@
                 <div class="flex items-center gap-2">
                     <label for="logDateFilter" class="text-sm font-medium text-gray-700">Chọn ngày:</label>
                     <input type="date" id="logDateFilter" class="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700">
+                    
+                    <!-- Nút Làm Mới -->
+                    <button onclick="window.forceRefresh()" class="p-1.5 ml-1 bg-blue-100 text-blue-600 rounded hover:bg-blue-200 transition-colors shadow-sm" title="Làm mới đồng bộ">
+                        <svg id="refreshLogIcon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                    </button>
                 </div>
             </div>
             <div id="activityLogContainer" class="bg-gray-50 border border-gray-300 rounded-lg p-4 h-56 overflow-y-auto font-mono text-sm space-y-2 shadow-inner">
@@ -134,7 +139,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, doc, setDoc, onSnapshot, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, doc, setDoc, onSnapshot, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // Khởi tạo Firebase an toàn (Có Try-Catch để tránh lỗi sập trang khi mất kết nối Cloud)
         let app, auth, db;
@@ -273,6 +278,46 @@
                 container.appendChild(div);
             });
         }
+
+        // Chủ động làm mới (Refresh thủ công)
+        window.forceRefresh = async function() {
+            const icon = document.getElementById('refreshLogIcon');
+            if (icon) icon.classList.add('animate-spin');
+
+            if (!useFirebase) {
+                // Làm mới với LocalStorage
+                doneItems = JSON.parse(localStorage.getItem('doneAccounts')) || {};
+                activityLogs = JSON.parse(localStorage.getItem('activityLogs')) || [];
+            } else if (firebaseUser) {
+                // Fetch thủ công dữ liệu từ DB để đảm bảo lấy bản mới nhất
+                try {
+                    const statusRef = collection(db, 'artifacts', appId, 'public', 'data', 'account_status');
+                    const statusSnap = await getDocs(statusRef);
+                    statusSnap.forEach(doc => {
+                        doneItems[doc.id] = doc.data().isDone;
+                    });
+                    
+                    const logRef = collection(db, 'artifacts', appId, 'public', 'data', 'activity_log');
+                    const logSnap = await getDocs(logRef);
+                    activityLogs = [];
+                    logSnap.forEach(doc => {
+                        activityLogs.push({ id: doc.id, ...doc.data() });
+                    });
+                    activityLogs.sort((a, b) => b.timestamp - a.timestamp);
+                } catch(e) {
+                    console.error("Lỗi khi Refresh dữ liệu:", e);
+                }
+            }
+
+            // Gọi render lại giao diện
+            renderTable();
+            renderLogs();
+
+            // Hiệu ứng quay 0.6s
+            setTimeout(() => {
+                if (icon) icon.classList.remove('animate-spin');
+            }, 600);
+        };
 
         // Đẩy logic toggleDone lên Cloud Database hoặc LocalStorage
         window.toggleDone = async (id) => {
