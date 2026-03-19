@@ -70,7 +70,15 @@
                 <h1 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
                     Danh Sách Tài Khoản Hệ Thống
                 </h1>
-                <p id="viewModeText" class="text-sm font-medium mt-1 text-blue-600">Chế độ: Quản trị viên</p>
+                <div class="flex items-center gap-3 mt-1.5">
+                    <p id="viewModeText" class="text-sm font-medium text-blue-600">Chế độ: Quản trị viên</p>
+                    <span class="text-gray-300">|</span>
+                    <!-- Hiển thị trạng thái kết nối mạng thời gian thực -->
+                    <div id="networkStatus" class="flex items-center gap-1.5 text-xs font-bold text-gray-500 bg-gray-100 px-2.5 py-0.5 rounded-full border border-gray-200">
+                        <span class="w-2 h-2 rounded-full bg-gray-400"></span>
+                        Đang kết nối...
+                    </div>
+                </div>
             </div>
             
             <button id="toggleBtn" class="flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium transition-all shadow-sm active:scale-95 bg-blue-600 text-white hover:bg-blue-700">
@@ -141,22 +149,67 @@
         import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, doc, setDoc, onSnapshot, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Khởi tạo Firebase an toàn (Có Try-Catch để tránh lỗi sập trang khi mất kết nối Cloud)
+        // =========================================================================
+        // CẤU HÌNH ĐỒNG BỘ ĐÁM MÂY (CLOUD SYNC) - ĐỂ CHẠY TRÊN NHIỀU THIẾT BỊ/IP
+        // =========================================================================
+        // Mặc định hệ thống dùng Cloud nội bộ. Nhưng nếu bạn tải file này về máy tính
+        // và muốn dữ liệu đồng bộ chéo giữa các IP/Wifi khác nhau, hãy tạo 1 Project 
+        // Firebase Miễn phí và dán cấu hình vào biến bên dưới.
+        const MY_FIREBASE_CONFIG = {
+            // apiKey: "AIzaSy_YOUR_API_KEY",
+            // authDomain: "your-project.firebaseapp.com",
+            // projectId: "your-project",
+            // storageBucket: "your-project.appspot.com",
+            // messagingSenderId: "1234567890",
+            // appId: "1:1234567890:web:abc123def456"
+        };
+
+        // Khởi tạo Firebase an toàn
         let app, auth, db;
         let useFirebase = false;
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-account-app';
         
         try {
-            const configStr = typeof __firebase_config !== 'undefined' ? __firebase_config : null;
-            if (configStr && configStr.trim() !== '' && configStr !== '{}') {
-                const firebaseConfig = JSON.parse(configStr);
-                app = initializeApp(firebaseConfig);
+            let configToUse = null;
+            // 1. Dùng config của hệ thống Canvas (nếu có)
+            if (typeof __firebase_config !== 'undefined' && __firebase_config && __firebase_config !== '{}') {
+                configToUse = JSON.parse(__firebase_config);
+            } 
+            // 2. Dùng config do người dùng tự điền (nếu có)
+            else if (Object.keys(MY_FIREBASE_CONFIG).length > 0) {
+                configToUse = MY_FIREBASE_CONFIG;
+            }
+
+            if (configToUse) {
+                app = initializeApp(configToUse);
                 auth = getAuth(app);
                 db = getFirestore(app);
                 useFirebase = true;
             }
         } catch (error) {
-            console.warn("Không thể kết nối Firebase Cloud, tự động chuyển sang chế độ Ngoại tuyến (Local).", error);
+            console.warn("Không thể kết nối Firebase Cloud.", error);
+        }
+
+        // --- Cập nhật giao diện trạng thái mạng ---
+        function setNetworkStatus(isOnline) {
+            const el = document.getElementById('networkStatus');
+            if (!el) return;
+            if (isOnline) {
+                el.innerHTML = `
+                    <span class="relative flex h-2 w-2">
+                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                      <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                    </span>
+                    <span class="text-green-700">Đã đồng bộ Cloud</span>
+                `;
+                el.className = "flex items-center gap-1.5 text-xs font-bold bg-green-50 px-2.5 py-0.5 rounded-full border border-green-200";
+            } else {
+                el.innerHTML = `
+                    <span class="w-2 h-2 rounded-full bg-orange-400"></span>
+                    <span class="text-orange-700">Lưu Ngoại tuyến (Local)</span>
+                `;
+                el.className = "flex items-center gap-1.5 text-xs font-bold bg-orange-50 px-2.5 py-0.5 rounded-full border border-orange-200";
+            }
         }
 
         // Biến lưu trạng thái kết nối và Cloud data
@@ -169,9 +222,10 @@
         
         // Nếu không dùng Firebase, tải dữ liệu từ LocalStorage
         if (!useFirebase) {
+            setNetworkStatus(false);
             doneItems = JSON.parse(localStorage.getItem('doneAccounts')) || {};
             activityLogs = JSON.parse(localStorage.getItem('activityLogs')) || [];
-            document.getElementById('activityLogContainer').innerHTML = '<div class="text-gray-500 italic p-2">Hệ thống đang chạy ở chế độ ngoại tuyến (Local Storage). Dữ liệu chỉ lưu trên máy này.</div>';
+            document.getElementById('activityLogContainer').innerHTML = '<div class="text-gray-500 italic p-2">Hệ thống đang chạy ở chế độ ngoại tuyến (Local Storage). Hãy thêm MY_FIREBASE_CONFIG trong mã nguồn để đồng bộ giữa các thiết bị.</div>';
         }
 
         // Helper định dạng YYYY-MM-DD để so sánh với thẻ <input type="date">
@@ -211,7 +265,6 @@
                 if (user) {
                     setupRealtimeListeners();
                 } else {
-                    // Hủy nghe dữ liệu khi thoát
                     if (unsubStatus) unsubStatus();
                     if (unsubLogs) unsubLogs();
                 }
@@ -219,7 +272,8 @@
         }
 
         function setupRealtimeListeners() {
-            // Nghe thay đổi trạng thái tick Xong
+            setNetworkStatus(true); // Hiển thị màu xanh lá cây (Đã đồng bộ)
+
             const statusRef = collection(db, 'artifacts', appId, 'public', 'data', 'account_status');
             unsubStatus = onSnapshot(statusRef, (snapshot) => {
                 snapshot.docChanges().forEach((change) => {
@@ -229,7 +283,6 @@
                 renderTable(); // Vẽ lại bảng khi có người khác tick
             }, (error) => console.error("Lỗi đồng bộ trạng thái:", error));
 
-            // Nghe thay đổi của Nhật ký
             const logRef = collection(db, 'artifacts', appId, 'public', 'data', 'activity_log');
             unsubLogs = onSnapshot(logRef, (snapshot) => {
                 activityLogs = [];
@@ -237,7 +290,6 @@
                     activityLogs.push({ id: doc.id, ...doc.data() });
                 });
                 
-                // Sắp xếp nhật ký mới nhất lên đầu
                 activityLogs.sort((a, b) => b.timestamp - a.timestamp);
                 renderLogs();
             }, (error) => console.error("Lỗi đồng bộ nhật ký:", error));
@@ -247,7 +299,6 @@
             const container = document.getElementById('activityLogContainer');
             container.innerHTML = '';
 
-            // Lọc log theo ngày đã chọn
             const filteredLogs = activityLogs.filter(log => getYYYYMMDD(log.timestamp) === selectedLogDate);
             
             if (filteredLogs.length === 0) {
@@ -259,7 +310,6 @@
                 const dateObj = new Date(log.timestamp);
                 const timeString = dateObj.toLocaleTimeString('vi-VN', { hour12: false });
                 
-                // Màu sắc của hành động
                 const isCheck = log.action === 'XONG';
                 const actionBadge = isCheck 
                     ? `<span class="bg-green-100 text-green-700 px-2 py-0.5 rounded font-bold text-xs uppercase border border-green-200">${log.action}</span>` 
@@ -279,17 +329,14 @@
             });
         }
 
-        // Chủ động làm mới (Refresh thủ công)
         window.forceRefresh = async function() {
             const icon = document.getElementById('refreshLogIcon');
             if (icon) icon.classList.add('animate-spin');
 
             if (!useFirebase) {
-                // Làm mới với LocalStorage
                 doneItems = JSON.parse(localStorage.getItem('doneAccounts')) || {};
                 activityLogs = JSON.parse(localStorage.getItem('activityLogs')) || [];
             } else if (firebaseUser) {
-                // Fetch thủ công dữ liệu từ DB để đảm bảo lấy bản mới nhất
                 try {
                     const statusRef = collection(db, 'artifacts', appId, 'public', 'data', 'account_status');
                     const statusSnap = await getDocs(statusRef);
@@ -309,32 +356,27 @@
                 }
             }
 
-            // Gọi render lại giao diện
             renderTable();
             renderLogs();
 
-            // Hiệu ứng quay 0.6s
             setTimeout(() => {
                 if (icon) icon.classList.remove('animate-spin');
             }, 600);
         };
 
-        // Đẩy logic toggleDone lên Cloud Database hoặc LocalStorage
         window.toggleDone = async (id) => {
-            // Fix: Sử dụng isLoggedIn thay vì firebaseUser để vẫn check được khi Offline
             if (!isLoggedIn || !currentUser || currentUser.isGuest) return;
 
             const isCurrentlyDone = !!doneItems[id];
             const newState = !isCurrentlyDone;
-            const displayStt = groupedIndexMap[id] || id; // Lấy STT chuẩn hiển thị cho user
+            const displayStt = groupedIndexMap[id] || id; 
 
-            // Cập nhật giao diện lập tức (Optimistic UI)
+            // Cập nhật giao diện lập tức 
             doneItems[id] = newState;
             renderTable();
 
             if (useFirebase && firebaseUser) {
                 try {
-                    // Đẩy trạng thái ô check lên server
                     const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'account_status', id.toString());
                     await setDoc(docRef, {
                         isDone: newState,
@@ -342,7 +384,6 @@
                         updatedAt: Date.now()
                     });
 
-                    // Ghi nhận dòng nhật ký
                     const logRef = collection(db, 'artifacts', appId, 'public', 'data', 'activity_log');
                     await addDoc(logRef, {
                         timestamp: Date.now(),
@@ -353,15 +394,12 @@
                     });
                 } catch (error) {
                     console.error("Lỗi cập nhật server: ", error);
-                    // Hoàn tác nếu lỗi
                     doneItems[id] = isCurrentlyDone;
                     renderTable();
                 }
             } else {
-                // Chế độ LocalStorage (Dự phòng)
                 localStorage.setItem('doneAccounts', JSON.stringify(doneItems));
                 
-                // Ghi log Local
                 const newLog = {
                     id: Date.now().toString(),
                     timestamp: Date.now(),
@@ -370,13 +408,13 @@
                     accountId: id,
                     displayStt: displayStt
                 };
-                activityLogs.unshift(newLog); // Thêm vào đầu
+                activityLogs.unshift(newLog);
                 localStorage.setItem('activityLogs', JSON.stringify(activityLogs));
                 renderLogs();
             }
         };
 
-        // --- CÁC THÀNH PHẦN LOGIC GIAO DIỆN HIỆN TẠI ĐƯỢC GIỮ NGUYÊN BÊN DƯỚI ---
+        // --- CÁC THÀNH PHẦN LOGIC GIAO DIỆN ---
         const loginScreen = document.getElementById('loginScreen');
         const mainApp = document.getElementById('mainApp');
         const loginBtn = document.getElementById('loginBtn');
@@ -414,11 +452,11 @@
             
             if (userObj.isGuest) {
                 viewModeText.innerText = "Chế độ: Khách (Đã ẩn thông tin nhạy cảm)";
-                viewModeText.className = "text-sm font-medium mt-1 text-orange-600";
+                viewModeText.className = "text-sm font-medium text-orange-600";
                 activityLogSection.classList.add('hidden'); // Ẩn nhật ký với Khách
             } else if (userObj.allowedIndices === 'all') {
                 viewModeText.innerText = "Chế độ: Quản trị viên (Xem tất cả)";
-                viewModeText.className = "text-sm font-medium mt-1 text-green-600";
+                viewModeText.className = "text-sm font-medium text-green-600";
                 // CHỈ cho phép tài khoản 'admin' xem nhật ký
                 if (userObj.username === 'admin') {
                     activityLogSection.classList.remove('hidden'); // HIỆN nhật ký
@@ -427,7 +465,7 @@
                 }
             } else {
                 viewModeText.innerText = `Chế độ: Nhân viên (${userObj.username}) - STT giới hạn`;
-                viewModeText.className = "text-sm font-medium mt-1 text-blue-600";
+                viewModeText.className = "text-sm font-medium text-blue-600";
                 activityLogSection.classList.add('hidden'); // Ẩn nhật ký với Nhân viên thường
             }
 
@@ -443,7 +481,6 @@
         }
 
         function handleLogin() {
-            // Chuyển username thành chữ thường để không bị lỗi viết hoa viết thường (vd: Admin = admin)
             const user = usernameInput.value.trim().toLowerCase();
             const pass = passwordInput.value.trim();
             const matchedUser = userAccounts.find(u => u.username === user && u.password === pass);
@@ -486,23 +523,18 @@
         logoutBtn.addEventListener('click', handleLogout);
 
         // --- TÍNH NĂNG KIỂM TRA SESSION VÀ TIMEOUT TỰ ĐỘNG ---
-
         function checkSession() {
             const savedUserStr = localStorage.getItem('app_currentUser');
             if (savedUserStr) {
                 try {
                     const savedUser = JSON.parse(savedUserStr);
-                    
-                    // Admin không bao giờ bị giới hạn thời gian (Timeout)
                     if (savedUser.username === 'admin') {
-                        showApp(savedUser, true); // true = Đang khôi phục session, không cần set lại
+                        showApp(savedUser, true); 
                     } else {
-                        // Các tài khoản khác kiểm tra nếu quá 5 phút
                         const lastActivity = parseInt(localStorage.getItem('app_lastActivity') || '0', 10);
-                        if (Date.now() - lastActivity > 5 * 60 * 1000) { // 5 phút = 300000ms
+                        if (Date.now() - lastActivity > 5 * 60 * 1000) { 
                             handleLogout();
                         } else {
-                            // Còn hạn, tự động đăng nhập và làm mới thời gian
                             localStorage.setItem('app_lastActivity', Date.now().toString());
                             showApp(savedUser, true);
                         }
@@ -513,7 +545,6 @@
             }
         }
 
-        // Làm mới bộ đếm thời gian khi có thao tác chuột, phím... (ngăn bị đăng xuất nếu đang sử dụng)
         function resetInactivityTimer() {
             if (currentUser && currentUser.username !== 'admin') {
                 localStorage.setItem('app_lastActivity', Date.now().toString());
@@ -525,7 +556,6 @@
         window.addEventListener('click', resetInactivityTimer);
         window.addEventListener('scroll', resetInactivityTimer);
 
-        // Chạy ngầm kiểm tra timeout mỗi 10 giây
         setInterval(() => {
             if (currentUser && currentUser.username !== 'admin') {
                 const lastActivity = parseInt(localStorage.getItem('app_lastActivity') || '0', 10);
@@ -536,7 +566,6 @@
             }
         }, 10000);
 
-        // Gọi hàm kiểm tra ngay khi mở trang (Giúp F5 không bị mất đăng nhập)
         checkSession();
 
         // Dữ liệu bảng
