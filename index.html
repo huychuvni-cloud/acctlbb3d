@@ -109,12 +109,18 @@
             <span id="footerInfo">Tổng cộng: 0 tài khoản</span>
         </div>
 
-        <!-- Nhật ký hoạt động (MỚI) -->
-        <div class="mt-8 border-t border-gray-200 pt-6">
-            <h2 class="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-600"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>
-                Nhật Ký Hoạt Động (Real-time)
-            </h2>
+        <!-- Nhật ký hoạt động (MỚI) - Ẩn mặc định, chỉ Admin mới thấy -->
+        <div id="activityLogSection" class="hidden mt-8 border-t border-gray-200 pt-6">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-3 gap-2">
+                <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-600"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>
+                    Nhật Ký Hoạt Động (Real-time)
+                </h2>
+                <div class="flex items-center gap-2">
+                    <label for="logDateFilter" class="text-sm font-medium text-gray-700">Chọn ngày:</label>
+                    <input type="date" id="logDateFilter" class="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700">
+                </div>
+            </div>
             <div id="activityLogContainer" class="bg-gray-50 border border-gray-300 rounded-lg p-4 h-56 overflow-y-auto font-mono text-sm space-y-2 shadow-inner">
                 <div class="text-gray-500 italic flex items-center gap-2">
                     <svg class="animate-spin h-4 w-4 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
@@ -130,13 +136,23 @@
         import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, doc, setDoc, onSnapshot, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Khởi tạo Firebase từ config hệ thống Canvas cung cấp
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        // Khởi tạo Firebase an toàn (Có Try-Catch để tránh lỗi sập trang khi mất kết nối Cloud)
+        let app, auth, db;
+        let useFirebase = false;
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
         
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+        try {
+            const configStr = typeof __firebase_config !== 'undefined' ? __firebase_config : null;
+            if (configStr && configStr.trim() !== '' && configStr !== '{}') {
+                const firebaseConfig = JSON.parse(configStr);
+                app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+                useFirebase = true;
+            }
+        } catch (error) {
+            console.warn("Không thể kết nối Firebase Cloud, tự động chuyển sang chế độ Ngoại tuyến (Local).", error);
+        }
 
         // Biến lưu trạng thái kết nối và Cloud data
         let firebaseUser = null;
@@ -146,26 +162,56 @@
         let doneItems = {}; // Dữ liệu real-time Xong/Chưa
         let activityLogs = []; // Dữ liệu nhật ký
         
-        // Xác thực kết nối DB ẩn danh ban đầu để mở khoá Listeners
-        const initAuth = async () => {
-            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                await signInWithCustomToken(auth, __initial_auth_token);
-            } else {
-                await signInAnonymously(auth);
-            }
-        };
-        initAuth();
+        // Nếu không dùng Firebase, tải dữ liệu từ LocalStorage
+        if (!useFirebase) {
+            doneItems = JSON.parse(localStorage.getItem('doneAccounts')) || {};
+            activityLogs = JSON.parse(localStorage.getItem('activityLogs')) || [];
+            document.getElementById('activityLogContainer').innerHTML = '<div class="text-gray-500 italic p-2">Hệ thống đang chạy ở chế độ ngoại tuyến (Local Storage). Dữ liệu chỉ lưu trên máy này.</div>';
+        }
 
-        onAuthStateChanged(auth, (user) => {
-            firebaseUser = user;
-            if (user) {
-                setupRealtimeListeners();
-            } else {
-                // Hủy nghe dữ liệu khi thoát
-                if (unsubStatus) unsubStatus();
-                if (unsubLogs) unsubLogs();
-            }
+        // Helper định dạng YYYY-MM-DD để so sánh với thẻ <input type="date">
+        function getYYYYMMDD(timestamp) {
+            const d = new Date(timestamp);
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        // Logic Date Filter
+        const logDateFilter = document.getElementById('logDateFilter');
+        let selectedLogDate = getYYYYMMDD(Date.now()); // Mặc định là ngày hôm nay
+        logDateFilter.value = selectedLogDate;
+
+        logDateFilter.addEventListener('change', (e) => {
+            selectedLogDate = e.target.value;
+            renderLogs();
         });
+        
+        // Xác thực kết nối DB ẩn danh ban đầu để mở khoá Listeners (Chỉ chạy nếu có Firebase)
+        if (useFirebase) {
+            const initAuth = async () => {
+                try {
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                } catch(e) { console.error("Firebase Auth Error:", e); }
+            };
+            initAuth();
+
+            onAuthStateChanged(auth, (user) => {
+                firebaseUser = user;
+                if (user) {
+                    setupRealtimeListeners();
+                } else {
+                    // Hủy nghe dữ liệu khi thoát
+                    if (unsubStatus) unsubStatus();
+                    if (unsubLogs) unsubLogs();
+                }
+            });
+        }
 
         function setupRealtimeListeners() {
             // Nghe thay đổi trạng thái tick Xong
@@ -195,16 +241,18 @@
         function renderLogs() {
             const container = document.getElementById('activityLogContainer');
             container.innerHTML = '';
+
+            // Lọc log theo ngày đã chọn
+            const filteredLogs = activityLogs.filter(log => getYYYYMMDD(log.timestamp) === selectedLogDate);
             
-            if (activityLogs.length === 0) {
-                container.innerHTML = '<div class="text-gray-500 italic p-2">Chưa có hoạt động nào được ghi lại. Bắt đầu tick để tạo nhật ký...</div>';
+            if (filteredLogs.length === 0) {
+                container.innerHTML = `<div class="text-gray-500 italic p-2">Chưa có hoạt động nào được ghi lại trong ngày ${selectedLogDate.split('-').reverse().join('/')}.</div>`;
                 return;
             }
 
-            activityLogs.forEach(log => {
+            filteredLogs.forEach(log => {
                 const dateObj = new Date(log.timestamp);
                 const timeString = dateObj.toLocaleTimeString('vi-VN', { hour12: false });
-                const dateString = dateObj.toLocaleDateString('vi-VN');
                 
                 // Màu sắc của hành động
                 const isCheck = log.action === 'XONG';
@@ -215,7 +263,7 @@
                 const div = document.createElement('div');
                 div.className = "flex items-center gap-2 border-b border-gray-200 pb-2 mb-2 last:border-0 hover:bg-white p-1 rounded transition-colors";
                 div.innerHTML = `
-                    <span class="text-gray-400 text-xs w-36 shrink-0">[${timeString} ${dateString}]</span>
+                    <span class="text-gray-400 text-xs w-20 shrink-0">[${timeString}]</span>
                     <span class="font-bold text-blue-700 w-24 shrink-0 truncate" title="${log.username}">${log.username}</span>
                     <span class="text-gray-600">đã đánh dấu</span>
                     ${actionBadge}
@@ -226,9 +274,10 @@
             });
         }
 
-        // Đẩy logic toggleDone lên Cloud Database
+        // Đẩy logic toggleDone lên Cloud Database hoặc LocalStorage
         window.toggleDone = async (id) => {
-            if (!firebaseUser || !currentUser || currentUser.isGuest) return;
+            // Fix: Sử dụng isLoggedIn thay vì firebaseUser để vẫn check được khi Offline
+            if (!isLoggedIn || !currentUser || currentUser.isGuest) return;
 
             const isCurrentlyDone = !!doneItems[id];
             const newState = !isCurrentlyDone;
@@ -238,29 +287,47 @@
             doneItems[id] = newState;
             renderTable();
 
-            try {
-                // Đẩy trạng thái ô check lên server
-                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'account_status', id.toString());
-                await setDoc(docRef, {
-                    isDone: newState,
-                    updatedBy: currentUser.username,
-                    updatedAt: Date.now()
-                });
+            if (useFirebase && firebaseUser) {
+                try {
+                    // Đẩy trạng thái ô check lên server
+                    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'account_status', id.toString());
+                    await setDoc(docRef, {
+                        isDone: newState,
+                        updatedBy: currentUser.username,
+                        updatedAt: Date.now()
+                    });
 
-                // Ghi nhận dòng nhật ký
-                const logRef = collection(db, 'artifacts', appId, 'public', 'data', 'activity_log');
-                await addDoc(logRef, {
+                    // Ghi nhận dòng nhật ký
+                    const logRef = collection(db, 'artifacts', appId, 'public', 'data', 'activity_log');
+                    await addDoc(logRef, {
+                        timestamp: Date.now(),
+                        username: currentUser.username,
+                        action: newState ? 'XONG' : 'BỎ',
+                        accountId: id,
+                        displayStt: displayStt
+                    });
+                } catch (error) {
+                    console.error("Lỗi cập nhật server: ", error);
+                    // Hoàn tác nếu lỗi
+                    doneItems[id] = isCurrentlyDone;
+                    renderTable();
+                }
+            } else {
+                // Chế độ LocalStorage (Dự phòng)
+                localStorage.setItem('doneAccounts', JSON.stringify(doneItems));
+                
+                // Ghi log Local
+                const newLog = {
+                    id: Date.now().toString(),
                     timestamp: Date.now(),
                     username: currentUser.username,
                     action: newState ? 'XONG' : 'BỎ',
                     accountId: id,
                     displayStt: displayStt
-                });
-            } catch (error) {
-                console.error("Lỗi cập nhật server: ", error);
-                // Hoàn tác nếu lỗi
-                doneItems[id] = isCurrentlyDone;
-                renderTable();
+                };
+                activityLogs.unshift(newLog); // Thêm vào đầu
+                localStorage.setItem('activityLogs', JSON.stringify(activityLogs));
+                renderLogs();
             }
         };
 
@@ -274,6 +341,7 @@
         const passwordInput = document.getElementById('password');
         const errorMessage = document.getElementById('errorMessage');
         const viewModeText = document.getElementById('viewModeText');
+        const activityLogSection = document.getElementById('activityLogSection');
 
         let currentUser = null; 
         let isLoggedIn = false; 
@@ -296,12 +364,20 @@
             if (userObj.isGuest) {
                 viewModeText.innerText = "Chế độ: Khách (Đã ẩn thông tin nhạy cảm)";
                 viewModeText.className = "text-sm font-medium mt-1 text-orange-600";
+                activityLogSection.classList.add('hidden'); // Ẩn nhật ký với Khách
             } else if (userObj.allowedIndices === 'all') {
                 viewModeText.innerText = "Chế độ: Quản trị viên (Xem tất cả)";
                 viewModeText.className = "text-sm font-medium mt-1 text-green-600";
+                // CHỈ cho phép tài khoản 'admin' xem nhật ký
+                if (userObj.username === 'admin') {
+                    activityLogSection.classList.remove('hidden'); // HIỆN nhật ký
+                } else {
+                    activityLogSection.classList.add('hidden'); // ẨN nhật ký với admin1
+                }
             } else {
                 viewModeText.innerText = `Chế độ: Nhân viên (${userObj.username}) - STT giới hạn`;
                 viewModeText.className = "text-sm font-medium mt-1 text-blue-600";
+                activityLogSection.classList.add('hidden'); // Ẩn nhật ký với Nhân viên thường
             }
 
             loginScreen.classList.add('hidden');
@@ -316,7 +392,8 @@
         }
 
         function handleLogin() {
-            const user = usernameInput.value.trim();
+            // Chuyển username thành chữ thường để không bị lỗi viết hoa viết thường (vd: Admin = admin)
+            const user = usernameInput.value.trim().toLowerCase();
             const pass = passwordInput.value.trim();
             const matchedUser = userAccounts.find(u => u.username === user && u.password === pass);
 
@@ -347,6 +424,7 @@
             loginScreen.classList.remove('hidden');
             document.body.classList.add('justify-center');
             errorMessage.classList.add('hidden');
+            activityLogSection.classList.add('hidden');
         });
 
         // Dữ liệu bảng
