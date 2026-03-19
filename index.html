@@ -74,7 +74,7 @@
                     <p id="viewModeText" class="text-sm font-medium text-blue-600">Chế độ: Quản trị viên</p>
                     <span class="text-gray-300">|</span>
                     <!-- Hiển thị trạng thái kết nối mạng thời gian thực -->
-                    <div id="networkStatus" class="flex items-center gap-1.5 text-xs font-bold text-gray-500 bg-gray-100 px-2.5 py-0.5 rounded-full border border-gray-200">
+                    <div id="networkStatus" class="flex items-center gap-1.5 text-xs font-bold text-gray-500 bg-gray-100 px-2.5 py-0.5 rounded-full border border-gray-200 cursor-pointer hover:bg-gray-200 transition-colors" title="Nhấn để thiết lập Đồng bộ Server">
                         <span class="w-2 h-2 rounded-full bg-gray-400"></span>
                         Đang kết nối...
                     </div>
@@ -143,41 +143,79 @@
         </div>
     </div>
 
+    <!-- Modal cấu hình Firebase (Gắn Server cho file HTML tĩnh) -->
+    <div id="firebaseConfigModal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-xl shadow-2xl max-w-lg w-full p-6 border border-gray-200">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-gray-800 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-600"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>
+                    Cài đặt Đồng bộ Đám mây
+                </h3>
+            </div>
+            <p class="text-sm text-gray-600 mb-3">
+                Nếu bạn tải file HTML này chạy trên máy tính cá nhân, dữ liệu chỉ lưu nội bộ máy đó (Offline). Để đồng bộ trạng thái tick XONG và Nhật ký trên <b>tất cả thiết bị của nhân viên</b>, bạn hãy:
+            </p>
+            <ul class="text-xs text-gray-600 list-disc pl-5 mb-4 space-y-1">
+                <li>Tạo miễn phí 1 DB tại <a href="https://console.firebase.google.com" target="_blank" class="text-blue-600 underline">Firebase Google</a></li>
+                <li>Bật <b>Authentication &gt; Sign-in method &gt; Anonymous</b></li>
+                <li>Bật <b>Firestore Database</b>, trong thẻ Rules chỉnh sửa thành: <br><code>match /{document=**} { allow read, write: if true; }</code></li>
+                <li>Copy mã <b>firebaseConfig</b> dán vào khung dưới đây:</li>
+            </ul>
+            <textarea id="firebaseConfigInput" rows="6" class="w-full border border-gray-300 rounded-lg p-3 text-xs font-mono focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50 shadow-inner" placeholder='{\n  "apiKey": "AIzaSy...",\n  "authDomain": "...",\n  "projectId": "...",\n  "storageBucket": "...",\n  "messagingSenderId": "...",\n  "appId": "..."\n}'></textarea>
+            <div class="mt-5 flex justify-end gap-3">
+                <button onclick="document.getElementById('firebaseConfigModal').classList.add('hidden')" class="px-5 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors font-medium">Đóng</button>
+                <button onclick="window.saveFirebaseConfig()" class="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-sm active:scale-95">Lưu & Khởi động lại</button>
+            </div>
+        </div>
+    </div>
+
     <!-- KHỐI SCRIPT MODULE ĐỂ HỖ TRỢ REAL-TIME CLOUD FIREBASE -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, doc, setDoc, onSnapshot, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // =========================================================================
-        // CẤU HÌNH ĐỒNG BỘ ĐÁM MÂY (CLOUD SYNC) - ĐỂ CHẠY TRÊN NHIỀU THIẾT BỊ/IP
-        // =========================================================================
-        // Mặc định hệ thống dùng Cloud nội bộ. Nhưng nếu bạn tải file này về máy tính
-        // và muốn dữ liệu đồng bộ chéo giữa các IP/Wifi khác nhau, hãy tạo 1 Project 
-        // Firebase Miễn phí và dán cấu hình vào biến bên dưới.
-        const MY_FIREBASE_CONFIG = {
-            // apiKey: "AIzaSy_YOUR_API_KEY",
-            // authDomain: "your-project.firebaseapp.com",
-            // projectId: "your-project",
-            // storageBucket: "your-project.appspot.com",
-            // messagingSenderId: "1234567890",
-            // appId: "1:1234567890:web:abc123def456"
-        };
-
         // Khởi tạo Firebase an toàn
         let app, auth, db;
         let useFirebase = false;
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-account-app';
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'shared-account-manager-v1';
         
+        // Tải config firebase đã lưu từ máy (Nếu admin đã dán config)
+        document.addEventListener('DOMContentLoaded', () => {
+            const customConfig = localStorage.getItem('custom_firebase_config');
+            if (customConfig) {
+                document.getElementById('firebaseConfigInput').value = customConfig;
+            }
+        });
+
+        // Hàm Lưu Cấu Hình Database
+        window.saveFirebaseConfig = function() {
+            const val = document.getElementById('firebaseConfigInput').value.trim();
+            if(!val) {
+                localStorage.removeItem('custom_firebase_config');
+            } else {
+                try {
+                    JSON.parse(val); 
+                    localStorage.setItem('custom_firebase_config', val);
+                } catch(e) {
+                    alert("Cấu hình không hợp lệ. Vui lòng nhập đúng định dạng JSON chuẩn.");
+                    return;
+                }
+            }
+            window.location.reload();
+        }
+
         try {
             let configToUse = null;
-            // 1. Dùng config của hệ thống Canvas (nếu có)
+            const customConfigStr = localStorage.getItem('custom_firebase_config');
+            
+            // Ưu tiên 1: Cấu hình của hệ thống Canvas
             if (typeof __firebase_config !== 'undefined' && __firebase_config && __firebase_config !== '{}') {
                 configToUse = JSON.parse(__firebase_config);
             } 
-            // 2. Dùng config do người dùng tự điền (nếu có)
-            else if (Object.keys(MY_FIREBASE_CONFIG).length > 0) {
-                configToUse = MY_FIREBASE_CONFIG;
+            // Ưu tiên 2: Cấu hình do Quản trị viên tự dán vào Modal
+            else if (customConfigStr) {
+                configToUse = JSON.parse(customConfigStr);
             }
 
             if (configToUse) {
@@ -202,14 +240,16 @@
                     </span>
                     <span class="text-green-700">Đã đồng bộ Cloud</span>
                 `;
-                el.className = "flex items-center gap-1.5 text-xs font-bold bg-green-50 px-2.5 py-0.5 rounded-full border border-green-200";
+                el.className = "flex items-center gap-1.5 text-xs font-bold bg-green-50 px-2.5 py-0.5 rounded-full border border-green-200 cursor-pointer hover:bg-green-100 transition-colors";
             } else {
                 el.innerHTML = `
                     <span class="w-2 h-2 rounded-full bg-orange-400"></span>
                     <span class="text-orange-700">Lưu Ngoại tuyến (Local)</span>
                 `;
-                el.className = "flex items-center gap-1.5 text-xs font-bold bg-orange-50 px-2.5 py-0.5 rounded-full border border-orange-200";
+                el.className = "flex items-center gap-1.5 text-xs font-bold bg-orange-50 px-2.5 py-0.5 rounded-full border border-orange-200 cursor-pointer hover:bg-orange-100 transition-colors hover:shadow-sm";
             }
+            // Bấm vào để mở modal cài đặt
+            el.onclick = () => document.getElementById('firebaseConfigModal').classList.remove('hidden');
         }
 
         // Biến lưu trạng thái kết nối và Cloud data
@@ -225,7 +265,11 @@
             setNetworkStatus(false);
             doneItems = JSON.parse(localStorage.getItem('doneAccounts')) || {};
             activityLogs = JSON.parse(localStorage.getItem('activityLogs')) || [];
-            document.getElementById('activityLogContainer').innerHTML = '<div class="text-gray-500 italic p-2">Hệ thống đang chạy ở chế độ ngoại tuyến (Local Storage). Hãy thêm MY_FIREBASE_CONFIG trong mã nguồn để đồng bộ giữa các thiết bị.</div>';
+            document.getElementById('activityLogContainer').innerHTML = `
+                <div class="text-gray-600 bg-orange-50 border border-orange-200 p-3 rounded-lg text-sm">
+                    ⚠️ <b>Cảnh báo: Bảng đang chạy ở chế độ Ngoại Tuyến (Offline).</b><br> Dữ liệu tick XONG sẽ chỉ được lưu trên máy tính này và máy tính khác sẽ không nhìn thấy.<br><br>👉 Vui lòng bấm vào trạng thái <b>"Lưu Ngoại Tuyến"</b> ở phía trên góc phải màn hình để xem hướng dẫn đồng bộ Internet!
+                </div>
+            `;
         }
 
         // Helper định dạng YYYY-MM-DD để so sánh với thẻ <input type="date">
@@ -256,7 +300,10 @@
                     } else {
                         await signInAnonymously(auth);
                     }
-                } catch(e) { console.error("Firebase Auth Error:", e); }
+                } catch(e) { 
+                    console.error("Firebase Auth Error:", e); 
+                    alert("Không thể kết nối đến Server Đồng bộ. Hãy chắc chắn bạn đã Bật 'Anonymous Auth' trong Firebase của bạn.");
+                }
             };
             initAuth();
 
@@ -302,6 +349,7 @@
             const filteredLogs = activityLogs.filter(log => getYYYYMMDD(log.timestamp) === selectedLogDate);
             
             if (filteredLogs.length === 0) {
+                if(!useFirebase) return; // Nếu offline thì giữ nguyên warning
                 container.innerHTML = `<div class="text-gray-500 italic p-2">Chưa có hoạt động nào được ghi lại trong ngày ${selectedLogDate.split('-').reverse().join('/')}.</div>`;
                 return;
             }
