@@ -402,9 +402,15 @@
             { username: 'congtuan', password: 'congtuan6', allowedIndices: [36, 37, 38, 39, 40, 43] }
         ];
 
-        function showApp(userObj) {
+        function showApp(userObj, isRestoring = false) {
             currentUser = userObj;
             isLoggedIn = !userObj.isGuest;
+            
+            // Lưu trạng thái đăng nhập (Session) vào máy
+            if (!isRestoring) {
+                localStorage.setItem('app_currentUser', JSON.stringify(userObj));
+                localStorage.setItem('app_lastActivity', Date.now().toString());
+            }
             
             if (userObj.isGuest) {
                 viewModeText.innerText = "Chế độ: Khách (Đã ẩn thông tin nhạy cảm)";
@@ -462,15 +468,76 @@
             if (e.key === 'Enter') passwordInput.focus();
         });
 
-        logoutBtn.addEventListener('click', () => {
+        function handleLogout() {
             currentUser = null;
             isLoggedIn = false;
+            
+            // Xóa session lưu trữ
+            localStorage.removeItem('app_currentUser');
+            localStorage.removeItem('app_lastActivity');
+            
             mainApp.classList.add('hidden');
             loginScreen.classList.remove('hidden');
             document.body.classList.add('justify-center');
             errorMessage.classList.add('hidden');
             activityLogSection.classList.add('hidden');
-        });
+        }
+
+        logoutBtn.addEventListener('click', handleLogout);
+
+        // --- TÍNH NĂNG KIỂM TRA SESSION VÀ TIMEOUT TỰ ĐỘNG ---
+
+        function checkSession() {
+            const savedUserStr = localStorage.getItem('app_currentUser');
+            if (savedUserStr) {
+                try {
+                    const savedUser = JSON.parse(savedUserStr);
+                    
+                    // Admin không bao giờ bị giới hạn thời gian (Timeout)
+                    if (savedUser.username === 'admin') {
+                        showApp(savedUser, true); // true = Đang khôi phục session, không cần set lại
+                    } else {
+                        // Các tài khoản khác kiểm tra nếu quá 5 phút
+                        const lastActivity = parseInt(localStorage.getItem('app_lastActivity') || '0', 10);
+                        if (Date.now() - lastActivity > 5 * 60 * 1000) { // 5 phút = 300000ms
+                            handleLogout();
+                        } else {
+                            // Còn hạn, tự động đăng nhập và làm mới thời gian
+                            localStorage.setItem('app_lastActivity', Date.now().toString());
+                            showApp(savedUser, true);
+                        }
+                    }
+                } catch (e) {
+                    handleLogout();
+                }
+            }
+        }
+
+        // Làm mới bộ đếm thời gian khi có thao tác chuột, phím... (ngăn bị đăng xuất nếu đang sử dụng)
+        function resetInactivityTimer() {
+            if (currentUser && currentUser.username !== 'admin') {
+                localStorage.setItem('app_lastActivity', Date.now().toString());
+            }
+        }
+
+        window.addEventListener('mousemove', resetInactivityTimer);
+        window.addEventListener('keydown', resetInactivityTimer);
+        window.addEventListener('click', resetInactivityTimer);
+        window.addEventListener('scroll', resetInactivityTimer);
+
+        // Chạy ngầm kiểm tra timeout mỗi 10 giây
+        setInterval(() => {
+            if (currentUser && currentUser.username !== 'admin') {
+                const lastActivity = parseInt(localStorage.getItem('app_lastActivity') || '0', 10);
+                if (Date.now() - lastActivity > 5 * 60 * 1000) {
+                    alert("Phiên đăng nhập đã hết hạn do không hoạt động (5 phút). Vui lòng đăng nhập lại.");
+                    handleLogout();
+                }
+            }
+        }, 10000);
+
+        // Gọi hàm kiểm tra ngay khi mở trang (Giúp F5 không bị mất đăng nhập)
+        checkSession();
 
         // Dữ liệu bảng
         const rawData = [
