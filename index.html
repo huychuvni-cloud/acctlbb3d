@@ -73,9 +73,11 @@
                 <thead>
                     <tr class="bg-white">
                         <th class="border border-black px-3 py-2 text-center font-bold w-12">STT</th>
+                        <th class="border border-black px-3 py-2 text-center font-bold w-16">Xong</th>
                         <th class="border border-black px-3 py-2 text-left font-bold w-48">Username TNT</th>
                         <th class="border border-black px-3 py-2 text-center font-bold w-64">Passwords TNT</th>
-                        <th class="border border-black px-3 py-2 text-left font-bold w-40">Tên NV</th>
+                        <th class="border border-black px-3 py-2 text-left font-bold w-24">Tên NV (Cũ)</th>
+                        <th class="border border-black px-3 py-2 text-left font-bold w-32">Tên NV (Mới)</th>
                         <th class="border border-black px-3 py-2 text-left font-bold w-48">Username TC</th>
                         <th class="border border-black px-3 py-2 text-center font-bold w-40">Passwords TC</th>
                     </tr>
@@ -190,52 +192,61 @@
             errorMessage.classList.add('hidden');
         });
 
+        // --- TRẠNG THÁI HOÀN THÀNH TÀI KHOẢN ---
+        let doneItems = JSON.parse(localStorage.getItem('doneAccounts')) || {};
+
+        function toggleDone(id) {
+            doneItems[id] = !doneItems[id];
+            localStorage.setItem('doneAccounts', JSON.stringify(doneItems));
+            renderTable();
+        }
 
         // --- LOGIC BẢNG DỮ LIỆU ---
+        // Đã cập nhật Tên NV thành chuẩn 2 chữ kiếm hiệp
         const rawData = [
-            { id: 1, userTnt: 'vankhanh4', passTnt: '123123 (or 123456 check lại)', name: 'NữYTá', userTc: 'tcvankhanh4', passTc: 'a123123a', color: 'orange' },
-            { id: 2, userTnt: 'vankhanh5', passTnt: '123123', name: 'BácSỹGià', userTc: 'tcvankhanh5', passTc: 'a123123a', color: 'orange' },
-            { id: 3, userTnt: 'baolamka21', passTnt: 'baolamka2021', name: 'ZzCakezZ', userTc: 'tcbaolamka21', passTc: 'a123123a', color: 'orange' },
-            { id: 4, userTnt: 'botao1989', passTnt: 'botao1989', name: 'BốTạo', userTc: 'tcbotao1989', passTc: 'a123123a', color: 'orange' },
-            { id: 5, userTnt: 't26115', passTnt: '123456aa', name: 'zVôKỵ', userTc: 'tct26115', passTc: 'a123123a', color: 'pink' },
-            { id: 6, userTnt: 't26113', passTnt: '123456aa', name: 'zNgữYên', userTc: 'tct26113', passTc: 'a123123a', color: 'pink' },
-            { id: 7, userTnt: 't26120', passTnt: '123456aa', name: 'zTiêuPhong', userTc: 'tct26120', passTc: 'a123123a', color: 'pink' },
-            { id: 8, userTnt: 't26121', passTnt: '123456aa', name: 'TiểuLongNữ', userTc: 'tct26121', passTc: 'a123123a', color: 'pink' },
-            { id: 9, userTnt: 'thienlong05', passTnt: '123456aa', name: 'ThanhLong', userTc: 'tcthienlong05', passTc: 'a123123a', color: 'pink' },
-            { id: 10, userTnt: 'thienlong06', passTnt: '123456aa', name: 'ThầnLong', userTc: 'tcthienlong06', passTc: 'a123123a', color: 'pink' },
-            { id: 11, userTnt: 'ongtao1989', passTnt: 'ongtao1989', name: 'TônMỹMỹ', userTc: 'tcongtao1989', passTc: 'a123123a', color: 'orange' },
-            { id: 12, userTnt: 'vankhanh3', passTnt: '25251325', name: 'TiểuNạiHà', userTc: 'tcvankhanh3', passTc: 'a123123a', color: 'orange' },
-            { id: 13, userTnt: 'cchtp06', passTnt: 'a123123', name: 'San', userTc: 'tccchtp06', passTc: 'a123123a', color: 'yellow' },
-            { id: 14, userTnt: 'admin0', passTnt: 'admin123', name: 'ICBM', userTc: 'tcadmin0', passTc: 'a123123a', color: 'blue' },
-            { id: 15, userTnt: 'admin1', passTnt: 'admin123', name: 'iskander', userTc: 'tcadmin1', passTc: 'a123123a', color: 'blue' },
-            { id: 16, userTnt: 'admin2', passTnt: 'admin123', name: 'Tomahawk', userTc: 'tcadmin2', passTc: 'a123123a', color: 'blue' },
-            { id: 17, userTnt: 'admin3', passTnt: 'admin123', name: 'Oreshnik', userTc: 'tcadmin3', passTc: 'a123123a', color: 'blue' },
-            { id: 18, userTnt: 'admin4', passTnt: 'admin123', name: 'Kinzhal', userTc: 'tcadmin4', passTc: 'a123123a', color: 'blue' },
-            { id: 19, userTnt: 'admin5', passTnt: 'admin123', name: 'Rs28Sarmat', userTc: 'tcadmin5', passTc: 'a123123a', color: 'blue' },
-            { id: 20, userTnt: 'Tuanbmt002', passTnt: '123456a', name: 'Cronos', userTc: 'tctuanbmt002', passTc: 'a123123a', color: 'white' },
-            { id: 21, userTnt: 'huychu7297', passTnt: 'huychu7290', name: 'Hera', userTc: 'tchuychu7297', passTc: 'a123123a', color: 'yellow' },
-            { id: 22, userTnt: 'vankhanh', passTnt: '123456', name: 'ThiênVũ', userTc: 'tcvankhanh', passTc: 'a123123a', color: 'orange' },
-            { id: 23, userTnt: 'Tuanbmt003', passTnt: '123456a', name: 'Hades', userTc: 'tctuanbmt003', passTc: 'a123123a', color: 'white' },
-            { id: 24, userTnt: 'binhhang44', passTnt: 'congvan1', name: 'MáTạo', userTc: 'tcbinhhang44', passTc: 'a123123a', color: 'orange' },
-            { id: 25, userTnt: 'otao1989', passTnt: 'otao1989', name: 'BàTổCô', userTc: 'tcotao1989', passTc: 'a123123a', color: 'orange' },
-            { id: 26, userTnt: 'metao1989', passTnt: 'metao1989', name: 'Shin', userTc: 'tcmetao1989', passTc: 'a123123a', color: 'orange' },
-            { id: 27, userTnt: 'cchtp07', passTnt: 'a123123', name: 'Nikita', userTc: 'tccchtp07', passTc: 'a123123a', color: 'yellow' },
-            { id: 28, userTnt: 'huychu729', passTnt: 'huychu7290', name: 'Mia', userTc: 'tchuychu729', passTc: 'a123123a', color: 'yellow' },
-            { id: 29, userTnt: 'huychu7291', passTnt: 'huychu7290', name: 'Gin', userTc: 'tchuychu7291', passTc: 'a123123a', color: 'yellow' },
-            { id: 30, userTnt: 'huychu7292', passTnt: 'huychu7290', name: 'Tonic', userTc: 'tchuychu7292', passTc: 'a123123a', color: 'yellow' },
-            { id: 31, userTnt: 'Tuanbmt02', passTnt: '123456a', name: 'Nyx', userTc: 'tctuanbmt02', passTc: 'a123123a', color: 'white' },
-            { id: 32, userTnt: 'Tuanbmt001', passTnt: '123456a', name: 'Kraken', userTc: 'tctuanbmt001', passTc: 'a123123a', color: 'white' },
-            { id: 33, userTnt: 'huychu7296', passTnt: 'huychu7290', name: 'Yi', userTc: 'tchuychu7296', passTc: 'a123123a', color: 'yellow' },
-            { id: 34, userTnt: 'Tuanbmt03', passTnt: '123456a', name: 'Hebe', userTc: 'tctuanbmt03', passTc: 'a123123a', color: 'white' },
-            { id: 35, userTnt: 'huychu7295', passTnt: 'huychu7290', name: 'Zhao', userTc: 'tchuychu7295', passTc: 'a123123a', color: 'yellow' },
-            { id: 36, userTnt: 'huychu7294', passTnt: 'huychu7290', name: 'YanYan', userTc: 'tchuychu7294', passTc: 'a123123a', color: 'yellow' },
-            { id: 37, userTnt: 'daucongan3', passTnt: 'congancauke9', name: 'NHỊLONG', userTc: 'tcdaucongan3', passTc: 'a123123a', color: 'purple' },
-            { id: 38, userTnt: 'huychu7293', passTnt: 'huychu7290', name: 'Neo', userTc: 'tchuychu7293', passTc: 'a123123a', color: 'yellow' },
-            { id: 39, userTnt: 'binhhang33', passTnt: 'congvan1', name: 'MẹTạo', userTc: 'tcbinhhang33', passTc: 'a123123a', color: 'orange' },
-            { id: 40, userTnt: 'cchtp05', passTnt: 'a123123', name: 'Lusi05', userTc: 'tccchtp05', passTc: 'a123123a', color: 'yellow' },
-            { id: 41, userTnt: 'admin11', passTnt: 'admin123', name: 'Dạ Quân Lâm', userTc: 'tcadmin11', passTc: 'a123123a', color: 'white' },
-            { id: 42, userTnt: 'Vungocnha2', passTnt: 'Vungocnha2', name: 'Yến Thập Tam', userTc: 'tcvungocnha2', passTc: 'a123123a', color: 'white' },
-            { id: 43, userTnt: 'Tuanbmt005', passTnt: '123456a', name: 'Iris', userTc: 'tctuanbmt005', passTc: 'a123123a', color: 'white' }
+            { id: 1, userTnt: 'vankhanh4', passTnt: '123123 (or 123456 check lại)', oldName: 'NữYTá', newName: 'Nhược Thủy', userTc: 'tcvankhanh4', passTc: 'a123123a', color: 'orange' },
+            { id: 2, userTnt: 'vankhanh5', passTnt: '123123', oldName: 'BácSỹGià', newName: 'Vô Nhai', userTc: 'tcvankhanh5', passTc: 'a123123a', color: 'orange' },
+            { id: 3, userTnt: 'baolamka21', passTnt: 'baolamka2021', oldName: 'ZzCakezZ', newName: 'Lăng Hư', userTc: 'tcbaolamka21', passTc: 'a123123a', color: 'orange' },
+            { id: 4, userTnt: 'botao1989', passTnt: 'botao1989', oldName: 'BốTạo', newName: 'Ngạo Thiên', userTc: 'tcbotao1989', passTc: 'a123123a', color: 'orange' },
+            { id: 5, userTnt: 't26115', passTnt: '123456aa', oldName: 'zVôKỵ', newName: 'Vô Kỵ', userTc: 'tct26115', passTc: 'a123123a', color: 'pink' },
+            { id: 6, userTnt: 't26113', passTnt: '123456aa', oldName: 'zNgữYên', newName: 'Ngữ Yên', userTc: 'tct26113', passTc: 'a123123a', color: 'pink' },
+            { id: 7, userTnt: 't26120', passTnt: '123456aa', oldName: 'zTiêuPhong', newName: 'Tiêu Phong', userTc: 'tct26120', passTc: 'a123123a', color: 'pink' },
+            { id: 8, userTnt: 't26121', passTnt: '123456aa', oldName: 'TiểuLongNữ', newName: 'Long Nữ', userTc: 'tct26121', passTc: 'a123123a', color: 'pink' },
+            { id: 9, userTnt: 'thienlong05', passTnt: '123456aa', oldName: 'ThanhLong', newName: 'Thanh Long', userTc: 'tcthienlong05', passTc: 'a123123a', color: 'pink' },
+            { id: 10, userTnt: 'thienlong06', passTnt: '123456aa', oldName: 'ThầnLong', newName: 'Thần Long', userTc: 'tcthienlong06', passTc: 'a123123a', color: 'pink' },
+            { id: 11, userTnt: 'ongtao1989', passTnt: 'ongtao1989', oldName: 'TônMỹMỹ', newName: 'Mẫn Mẫn', userTc: 'tcongtao1989', passTc: 'a123123a', color: 'orange' },
+            { id: 12, userTnt: 'vankhanh3', passTnt: '25251325', oldName: 'TiểuNạiHà', newName: 'Nại Hà', userTc: 'tcvankhanh3', passTc: 'a123123a', color: 'orange' },
+            { id: 13, userTnt: 'cchtp06', passTnt: 'a123123', oldName: 'San', newName: 'Nhạc San', userTc: 'tccchtp06', passTc: 'a123123a', color: 'yellow' },
+            { id: 14, userTnt: 'admin0', passTnt: 'admin123', oldName: 'ICBM', newName: 'Phá Thiên', userTc: 'tcadmin0', passTc: 'a123123a', color: 'blue' },
+            { id: 15, userTnt: 'admin1', passTnt: 'admin123', oldName: 'iskander', newName: 'Phi Mộc', userTc: 'tcadmin1', passTc: 'a123123a', color: 'blue' },
+            { id: 16, userTnt: 'admin2', passTnt: 'admin123', oldName: 'Tomahawk', newName: 'Kinh Lôi', userTc: 'tcadmin2', passTc: 'a123123a', color: 'blue' },
+            { id: 17, userTnt: 'admin3', passTnt: 'admin123', oldName: 'Oreshnik', newName: 'Độc Cô', userTc: 'tcadmin3', passTc: 'a123123a', color: 'blue' },
+            { id: 18, userTnt: 'admin4', passTnt: 'admin123', oldName: 'Kinzhal', newName: 'Kiếm Ma', userTc: 'tcadmin4', passTc: 'a123123a', color: 'blue' },
+            { id: 19, userTnt: 'admin5', passTnt: 'admin123', oldName: 'Rs28Sarmat', newName: 'Cửu Tinh', userTc: 'tcadmin5', passTc: 'a123123a', color: 'blue' },
+            { id: 20, userTnt: 'Tuanbmt002', passTnt: '123456a', oldName: 'Cronos', newName: 'Thiên Tôn', userTc: 'tctuanbmt002', passTc: 'a123123a', color: 'white' },
+            { id: 21, userTnt: 'huychu7297', passTnt: 'huychu7290', oldName: 'Hera', newName: 'Huyền Nữ', userTc: 'tchuychu7297', passTc: 'a123123a', color: 'yellow' },
+            { id: 22, userTnt: 'vankhanh', passTnt: '123456', oldName: 'ThiênVũ', newName: 'Thiên Vũ', userTc: 'tcvankhanh', passTc: 'a123123a', color: 'orange' },
+            { id: 23, userTnt: 'Tuanbmt003', passTnt: '123456a', oldName: 'Hades', newName: 'Minh Vương', userTc: 'tctuanbmt003', passTc: 'a123123a', color: 'white' },
+            { id: 24, userTnt: 'binhhang44', passTnt: 'congvan1', oldName: 'MáTạo', newName: 'Tử Hà', userTc: 'tcbinhhang44', passTc: 'a123123a', color: 'orange' },
+            { id: 25, userTnt: 'otao1989', passTnt: 'otao1989', oldName: 'BàTổCô', newName: 'Đồng Lão', userTc: 'tcotao1989', passTc: 'a123123a', color: 'orange' },
+            { id: 26, userTnt: 'metao1989', passTnt: 'metao1989', oldName: 'Shin', newName: 'Vô Ảnh', userTc: 'tcmetao1989', passTc: 'a123123a', color: 'orange' },
+            { id: 27, userTnt: 'cchtp07', passTnt: 'a123123', oldName: 'Nikita', newName: 'Phi Yến', userTc: 'tccchtp07', passTc: 'a123123a', color: 'yellow' },
+            { id: 28, userTnt: 'huychu729', passTnt: 'huychu7290', oldName: 'Mia', newName: 'Lạc Nhạn', userTc: 'tchuychu729', passTc: 'a123123a', color: 'yellow' },
+            { id: 29, userTnt: 'huychu7291', passTnt: 'huychu7290', oldName: 'Gin', newName: 'Trường Phong', userTc: 'tchuychu7291', passTc: 'a123123a', color: 'yellow' },
+            { id: 30, userTnt: 'huychu7292', passTnt: 'huychu7290', oldName: 'Tonic', newName: 'Tiêu Giao', userTc: 'tchuychu7292', passTc: 'a123123a', color: 'yellow' },
+            { id: 31, userTnt: 'Tuanbmt02', passTnt: '123456a', oldName: 'Nyx', newName: 'Dạ Đế', userTc: 'tctuanbmt02', passTc: 'a123123a', color: 'white' },
+            { id: 32, userTnt: 'Tuanbmt001', passTnt: '123456a', oldName: 'Kraken', newName: 'Bích Hải', userTc: 'tctuanbmt001', passTc: 'a123123a', color: 'white' },
+            { id: 33, userTnt: 'huychu7296', passTnt: 'huychu7290', oldName: 'Yi', newName: 'Lưu Tinh', userTc: 'tchuychu7296', passTc: 'a123123a', color: 'yellow' },
+            { id: 34, userTnt: 'Tuanbmt03', passTnt: '123456a', oldName: 'Hebe', newName: 'Tố Tố', userTc: 'tctuanbmt03', passTc: 'a123123a', color: 'white' },
+            { id: 35, userTnt: 'huychu7295', passTnt: 'huychu7290', oldName: 'Zhao', newName: 'Triệu Mẫn', userTc: 'tchuychu7295', passTc: 'a123123a', color: 'yellow' },
+            { id: 36, userTnt: 'huychu7294', passTnt: 'huychu7290', oldName: 'YanYan', newName: 'Yến Yến', userTc: 'tchuychu7294', passTc: 'a123123a', color: 'yellow' },
+            { id: 37, userTnt: 'daucongan3', passTnt: 'congancauke9', oldName: 'NHỊLONG', newName: 'Nhị Long', userTc: 'tcdaucongan3', passTc: 'a123123a', color: 'purple' },
+            { id: 38, userTnt: 'huychu7293', passTnt: 'huychu7290', oldName: 'Neo', newName: 'Hư Vô', userTc: 'tchuychu7293', passTc: 'a123123a', color: 'yellow' },
+            { id: 39, userTnt: 'binhhang33', passTnt: 'congvan1', oldName: 'MẹTạo', newName: 'Mạc Sầu', userTc: 'tcbinhhang33', passTc: 'a123123a', color: 'orange' },
+            { id: 40, userTnt: 'cchtp05', passTnt: 'a123123', oldName: 'Lusi05', newName: 'Lưu Ly', userTc: 'tccchtp05', passTc: 'a123123a', color: 'yellow' },
+            { id: 41, userTnt: 'admin11', passTnt: 'admin123', oldName: 'Dạ Quân Lâm', newName: 'Quân Lâm', userTc: 'tcadmin11', passTc: 'a123123a', color: 'white' },
+            { id: 42, userTnt: 'Vungocnha2', passTnt: 'Vungocnha2', oldName: 'Yến Thập Tam', newName: 'Thập Tam', userTc: 'tcvungocnha2', passTc: 'a123123a', color: 'white' },
+            { id: 43, userTnt: 'Tuanbmt005', passTnt: '123456a', oldName: 'Iris', newName: 'Băng Thu', userTc: 'tctuanbmt005', passTc: 'a123123a', color: 'white' }
         ];
 
         const colorWeight = {
@@ -340,22 +351,30 @@
 
                 // STT hiển thị: Dựa trên STT nhóm màu gốc (1-43), giúp nhân viên xem đúng con số của mình
                 const displayStt = isGrouped ? groupedIndexMap[row.id] : row.id;
+                
+                // Trạng thái checkbox (Xong / Chưa Xong)
+                const isDone = doneItems[row.id];
+                const textOpacityClass = isDone ? 'opacity-40' : '';
 
                 tr.innerHTML = `
                     <td class="border border-black px-3 py-1 text-center font-medium">
                         ${displayStt}
                     </td>
-                    <td class="border border-black px-3 py-1 whitespace-nowrap ${!isLoggedIn ? 'text-center' : ''}">
+                    <td class="border border-black px-3 py-1 text-center bg-white/20">
+                        <input type="checkbox" onchange="toggleDone(${row.id})" ${isDone ? 'checked' : ''} class="w-4 h-4 cursor-pointer accent-green-600">
+                    </td>
+                    <td class="border border-black px-3 py-1 whitespace-nowrap ${!isLoggedIn ? 'text-center' : ''} ${textOpacityClass}">
                         ${displayUserTnt}
                     </td>
-                    <td class="border border-black px-3 py-1 text-center">
+                    <td class="border border-black px-3 py-1 text-center ${textOpacityClass}">
                         ${displayPassTnt}
                     </td>
-                    <td class="border border-black px-3 py-1 font-medium">${row.name}</td>
-                    <td class="border border-black px-3 py-1 whitespace-nowrap ${!isLoggedIn ? 'text-center' : ''}">
+                    <td class="border border-black px-3 py-1 font-medium text-gray-500 line-through text-xs ${textOpacityClass}">${row.oldName}</td>
+                    <td class="border border-black px-3 py-1 font-bold text-blue-800 ${textOpacityClass}">${row.newName}</td>
+                    <td class="border border-black px-3 py-1 whitespace-nowrap ${!isLoggedIn ? 'text-center' : ''} ${textOpacityClass}">
                         ${displayUserTc}
                     </td>
-                    <td class="border border-black px-3 py-1 text-center">
+                    <td class="border border-black px-3 py-1 text-center ${textOpacityClass}">
                         ${displayPassTc}
                     </td>
                 `;
