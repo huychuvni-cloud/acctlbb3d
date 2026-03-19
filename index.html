@@ -566,8 +566,6 @@
             }
         }, 10000);
 
-        checkSession();
-
         // Dữ liệu bảng
         const rawData = [
             { id: 1, userTnt: 'vankhanh4', passTnt: '123123 (or 123456 check lại)', oldName: 'NữYTá', newName: 'NhượcThủy', userTc: 'tcvankhanh4', passTc: 'a123123a', color: 'orange' },
@@ -762,6 +760,9 @@
             isGrouped = !isGrouped;
             renderTable();
         });
+
+        // TẢI PHIÊN SAU KHI DỮ LIỆU ĐÃ SẴN SÀNG
+        checkSession();
 
     </script>
 </body>
