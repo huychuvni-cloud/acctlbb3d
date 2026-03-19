@@ -1,183 +1,209 @@
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Thông tin Tài khoản - Quản lý Trực quan</title>
-    <!-- Tải Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Cấu hình Font và Tailwind -->
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f3f4f6;
-        }
-    </style>
-</head>
-<body class="p-4 md:p-8">
+import React, { useState, useMemo } from 'react';
+import { ArrowLeftRight, PaintBucket, Copy, Check } from 'lucide-react';
 
-    <div class="max-w-7xl mx-auto bg-white shadow-xl rounded-xl p-4 md:p-8">
-        <h1 class="text-3xl font-bold text-gray-800 mb-6 border-b-2 pb-2">Quản Lý Thông Tin Nhân Vật</h1>
-        <p class="text-sm text-gray-500 mb-6">Nhấn vào nút sao chép để dễ dàng lấy ID và Mật khẩu.</p>
-        
-        <!-- Khu vực hiển thị bảng -->
-        <div id="account-table-container" class="overflow-x-auto rounded-lg shadow-md">
-            <!-- Bảng sẽ được render tại đây bằng JavaScript -->
-        </div>
+// Dữ liệu được trích xuất từ hình ảnh và phân loại màu
+const rawData = [
+  { id: 1, userTnt: 'vankhanh4', passTnt: '123123 (or 123456 check lại)', name: 'NữYTá', userTc: 'tcvankhanh4', passTc: 'a123123a', color: 'orange' },
+  { id: 2, userTnt: 'vankhanh5', passTnt: '123123', name: 'BácSỹGià', userTc: 'tcvankhanh5', passTc: 'a123123a', color: 'orange' },
+  { id: 3, userTnt: 'baolamka21', passTnt: 'baolamka2021', name: 'ZzCakezZ', userTc: 'tcbaolamka21', passTc: 'a123123a', color: 'orange' },
+  { id: 4, userTnt: 'botao1989', passTnt: 'botao1989', name: 'BốTạo', userTc: 'tcbotao1989', passTc: 'a123123a', color: 'orange' },
+  { id: 5, userTnt: 't26115', passTnt: '123456aa', name: 'zVôKỵ', userTc: 'tct26115', passTc: 'a123123a', color: 'pink' },
+  { id: 6, userTnt: 't26113', passTnt: '123456aa', name: 'zNgữYên', userTc: 'tct26113', passTc: 'a123123a', color: 'pink' },
+  { id: 7, userTnt: 't26120', passTnt: '123456aa', name: 'zTiêuPhong', userTc: 'tct26120', passTc: 'a123123a', color: 'pink' },
+  { id: 8, userTnt: 't26121', passTnt: '123456aa', name: 'TiểuLongNữ', userTc: 'tct26121', passTc: 'a123123a', color: 'pink' },
+  { id: 9, userTnt: 'thienlong05', passTnt: '123456aa', name: 'ThanhLong', userTc: 'tcthienlong05', passTc: 'a123123a', color: 'pink' },
+  { id: 10, userTnt: 'thienlong06', passTnt: '123456aa', name: 'ThầnLong', userTc: 'tcthienlong06', passTc: 'a123123a', color: 'pink' },
+  { id: 11, userTnt: 'ongtao1989', passTnt: 'ongtao1989', name: 'TônMỹMỹ', userTc: 'tcongtao1989', passTc: 'a123123a', color: 'orange' },
+  { id: 12, userTnt: 'vankhanh3', passTnt: '25251325', name: 'TiểuNạiHà', userTc: 'tcvankhanh3', passTc: 'a123123a', color: 'orange' },
+  { id: 13, userTnt: 'cchtp06', passTnt: 'a123123', name: 'San', userTc: 'tccchtp06', passTc: 'a123123a', color: 'yellow' },
+  { id: 14, userTnt: 'admin0', passTnt: 'admin123', name: 'ICBM', userTc: 'tcadmin0', passTc: 'a123123a', color: 'blue' },
+  { id: 15, userTnt: 'admin1', passTnt: 'admin123', name: 'iskander', userTc: 'tcadmin1', passTc: 'a123123a', color: 'blue' },
+  { id: 16, userTnt: 'admin2', passTnt: 'admin123', name: 'Tomahawk', userTc: 'tcadmin2', passTc: 'a123123a', color: 'blue' },
+  { id: 17, userTnt: 'admin3', passTnt: 'admin123', name: 'Oreshnik', userTc: 'tcadmin3', passTc: 'a123123a', color: 'blue' },
+  { id: 18, userTnt: 'admin4', passTnt: 'admin123', name: 'Kinzhal', userTc: 'tcadmin4', passTc: 'a123123a', color: 'blue' },
+  { id: 19, userTnt: 'admin5', passTnt: 'admin123', name: 'Rs28Sarmat', userTc: 'tcadmin5', passTc: 'a123123a', color: 'blue' },
+  { id: 20, userTnt: 'Tuanbmt002', passTnt: '123456a', name: 'Cronos', userTc: 'tctuanbmt002', passTc: 'a123123a', color: 'white' },
+  { id: 21, userTnt: 'huychu7297', passTnt: 'huychu7290', name: 'Hera', userTc: 'tchuychu7297', passTc: 'a123123a', color: 'yellow' },
+  { id: 22, userTnt: 'vankhanh', passTnt: '123456', name: 'ThiênVũ', userTc: 'tcvankhanh', passTc: 'a123123a', color: 'orange' },
+  { id: 23, userTnt: 'Tuanbmt003', passTnt: '123456a', name: 'Hades', userTc: 'tctuanbmt003', passTc: 'a123123a', color: 'white' },
+  { id: 24, userTnt: 'binhhang44', passTnt: 'congvan1', name: 'MáTạo', userTc: 'tcbinhhang44', passTc: 'a123123a', color: 'orange' },
+  { id: 25, userTnt: 'otao1989', passTnt: 'otao1989', name: 'BàTổCô', userTc: 'tcotao1989', passTc: 'a123123a', color: 'orange' },
+  { id: 26, userTnt: 'metao1989', passTnt: 'metao1989', name: 'Shin', userTc: 'tcmetao1989', passTc: 'a123123a', color: 'orange' },
+  { id: 27, userTnt: 'cchtp07', passTnt: 'a123123', name: 'Nikita', userTc: 'tccchtp07', passTc: 'a123123a', color: 'yellow' },
+  { id: 28, userTnt: 'huychu729', passTnt: 'huychu7290', name: 'Mia', userTc: 'tchuychu729', passTc: 'a123123a', color: 'yellow' },
+  { id: 29, userTnt: 'huychu7291', passTnt: 'huychu7290', name: 'Gin', userTc: 'tchuychu7291', passTc: 'a123123a', color: 'yellow' },
+  { id: 30, userTnt: 'huychu7292', passTnt: 'huychu7290', name: 'Tonic', userTc: 'tchuychu7292', passTc: 'a123123a', color: 'yellow' },
+  { id: 31, userTnt: 'Tuanbmt02', passTnt: '123456a', name: 'Nyx', userTc: 'tctuanbmt02', passTc: 'a123123a', color: 'white' },
+  { id: 32, userTnt: 'Tuanbmt001', passTnt: '123456a', name: 'Kraken', userTc: 'tctuanbmt001', passTc: 'a123123a', color: 'white' },
+  { id: 33, userTnt: 'huychu7296', passTnt: 'huychu7290', name: 'Yi', userTc: 'tchuychu7296', passTc: 'a123123a', color: 'yellow' },
+  { id: 34, userTnt: 'Tuanbmt03', passTnt: '123456a', name: 'Hebe', userTc: 'tctuanbmt03', passTc: 'a123123a', color: 'white' },
+  { id: 35, userTnt: 'huychu7295', passTnt: 'huychu7290', name: 'Zhao', userTc: 'tchuychu7295', passTc: 'a123123a', color: 'yellow' },
+  { id: 36, userTnt: 'huychu7294', passTnt: 'huychu7290', name: 'YanYan', userTc: 'tchuychu7294', passTc: 'a123123a', color: 'yellow' },
+  { id: 37, userTnt: 'daucongan3', passTnt: 'congancauke9', name: 'NHỊLONG', userTc: 'tcdaucongan3', passTc: 'a123123a', color: 'purple' },
+  { id: 38, userTnt: 'huychu7293', passTnt: 'huychu7290', name: 'Neo', userTc: 'tchuychu7293', passTc: 'a123123a', color: 'yellow' },
+  { id: 39, userTnt: 'binhhang33', passTnt: 'congvan1', name: 'MẹTạo', userTc: 'tcbinhhang33', passTc: 'a123123a', color: 'orange' },
+  { id: 40, userTnt: 'cchtp05', passTnt: 'a123123', name: 'Lusi05', userTc: 'tccchtp05', passTc: 'a123123a', color: 'yellow' },
+  { id: 41, userTnt: 'admin11', passTnt: 'admin123', name: 'Dạ Quân Lâm', userTc: 'tcadmin11', passTc: 'a123123a', color: 'white' },
+  { id: 42, userTnt: 'Vungocnha2', passTnt: 'Vungocnha2', name: 'Yến Thập Tam', userTc: 'tcvungocnha2', passTc: 'a123123a', color: 'white' },
+  { id: 43, userTnt: 'Tuanbmt005', passTnt: '123456a', name: 'Iris', userTc: 'tctuanbmt005', passTc: 'a123123a', color: 'white' }
+];
 
-        <!-- Thông báo Copy Thành công -->
-        <div id="copy-notification" class="fixed bottom-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg opacity-0 transition-opacity duration-300 ease-in-out pointer-events-none">
-            Đã sao chép thành công!
-        </div>
+// Định nghĩa trọng số để sắp xếp các nhóm màu theo khối
+const colorWeight = {
+  'blue': 1,
+  'orange': 2,
+  'pink': 3,
+  'yellow': 4,
+  'purple': 5,
+  'white': 6
+};
+
+// Map class màu Tailwind tương ứng với màu gốc từ ảnh
+const colorClasses = {
+  'blue': 'bg-[#99c1de]',   // Xanh dương nhạt
+  'pink': 'bg-[#dfb6b2]',   // Hồng nhạt
+  'orange': 'bg-[#f8d49a]', // Cam nhạt/Da
+  'yellow': 'bg-[#ffff00]', // Vàng chanh
+  'purple': 'bg-[#d6c3df]', // Tím nhạt
+  'white': 'bg-white'       // Trắng
+};
+
+const CopyableCell = ({ text, align = 'left' }) => {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    // Sử dụng document.execCommand('copy') để hỗ trợ chạy mượt trong iFrame
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.position = "fixed";
+    textArea.style.top = "-9999px";
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    try {
+      document.execCommand('copy');
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Lỗi khi sao chép', err);
+    }
+    document.body.removeChild(textArea);
+  };
+
+  return (
+    <div className={`flex items-center group ${align === 'center' ? 'justify-center gap-2' : 'justify-between'}`}>
+      <span>{text}</span>
+      <button
+        onClick={handleCopy}
+        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-black/10 focus:opacity-100"
+        title="Sao chép"
+      >
+        {copied ? <Check size={16} className="text-green-700" /> : <Copy size={16} className="text-gray-600" />}
+      </button>
     </div>
+  );
+};
 
-    <script>
-        // Dữ liệu tài khoản đã được cập nhật đầy đủ 17 dòng
-        const accountData = [
-            { id: 't26113', pass: '123456aa', name: 'zNgũYên', faction: 'NgaMy' },
-            { id: 't26115', pass: '123456aa', name: 'zVôKỵ', faction: 'MinhGiáo' },
-            { id: 't26120', pass: '123456aa', name: 'zTiêuPhong', faction: 'CáiBang' },
-            { id: 't26121', pass: '123456aa', name: 'TiêuLongNữ', faction: 'NgaMy' },
-            { id: 'thienlong05', pass: '123456aa', name: 'ThanhLong', faction: 'CáiBang' },
-            { id: 'thienlong06', pass: '123456aa', name: 'ThầnLong', faction: 'CáiBang' },
-            { id: 'baolamka21', pass: 'baolamka2021', name: 'ZzCakezz', faction: 'Tiêu dao' },
-            { id: 'ongtao1989', pass: 'ongtao1989', name: 'Tôn Mỹ Mỹ', faction: 'NM' },
-            { id: 'botao1989', pass: 'botao1989', name: 'BốTao', faction: 'TT' },
-            { id: 'vankhanh3', pass: '25251325', name: 'TiếuNạiHà', faction: 'Tlong' },
-            { id: 'binhhang33', pass: 'congvan1', name: 'MeTao', faction: 'TD' },
-            { id: 'binhhang44', pass: 'congvan1', name: 'MáTao', faction: 'NM' },
-            { id: 'vankhanh', pass: '123456', name: 'ThiênVũ', faction: 'VD' },
-            { id: 'vankhanh4', pass: '123123 (or 123456 check lại)', name: 'NữYTá', faction: 'NM' },
-            { id: 'vankhanh5', pass: '123123', name: 'BácSĩGià', faction: 'NM' },
-            { id: 'otao1989', pass: 'otao1989', name: 'Bà Tổ Cô', faction: 'TD' }, 
-            // Dòng thứ 17 đã được cập nhật theo yêu cầu
-            { id: 'metao1989', pass: 'metao1989', name: 'MẹTao', faction: 'MD' },
-        ];
+export default function App() {
+  // Trạng thái: true = Nhóm theo màu (mặc định theo yêu cầu), false = Giữ thứ tự gốc
+  const [isGrouped, setIsGrouped] = useState(true);
 
-        const tableContainer = document.getElementById('account-table-container');
-        const notification = document.getElementById('copy-notification');
+  // Tính toán dữ liệu hiển thị dựa trên trạng thái
+  const displayData = useMemo(() => {
+    if (!isGrouped) return rawData;
 
-        /**
-         * Hiển thị thông báo sao chép thành công.
-         */
-        function showNotification() {
-            notification.classList.remove('opacity-0');
-            notification.classList.add('opacity-100');
-            setTimeout(() => {
-                notification.classList.remove('opacity-100');
-                notification.classList.add('opacity-0');
-            }, 2000);
-        }
+    return [...rawData].sort((a, b) => {
+      // Sắp xếp theo nhóm màu trước
+      if (colorWeight[a.color] !== colorWeight[b.color]) {
+        return colorWeight[a.color] - colorWeight[b.color];
+      }
+      // Nếu cùng màu, giữ nguyên thứ tự ban đầu (theo id)
+      return a.id - b.id;
+    });
+  }, [isGrouped]);
 
-        /**
-         * Sao chép nội dung vào clipboard và hiển thị thông báo.
-         * Dùng document.execCommand('copy') để đảm bảo hoạt động trong iframe.
-         * @param {string} text - Nội dung cần sao chép.
-         */
-        function copyToClipboard(text) {
-            // Tạo một textarea ẩn
-            const textarea = document.createElement('textarea');
-            textarea.value = text;
-            textarea.style.position = 'fixed'; // Vị trí cố định để không ảnh hưởng đến scroll
-            textarea.style.opacity = '0';
-            document.body.appendChild(textarea);
-            
-            // Chọn và sao chép nội dung
-            textarea.select();
-            try {
-                const successful = document.execCommand('copy');
-                if (successful) {
-                    showNotification();
-                } else {
-                    console.error('Sao chép thất bại (execCommand).');
-                    // Không dùng alert(), chỉ log lỗi
-                    console.error('Lỗi: Sao chép thất bại. Vui lòng thử lại.');
-                }
-            } catch (err) {
-                console.error('Không thể thực hiện sao chép:', err);
-                // Không dùng alert(), chỉ log lỗi
-                console.error('Lỗi: Không thể thực hiện sao chép. Trình duyệt không hỗ trợ.');
-            }
-            
-            // Xóa textarea khỏi DOM
-            document.body.removeChild(textarea);
-        }
+  return (
+    <div className="min-h-screen bg-gray-100 py-8 px-4 font-sans text-black">
+      <div className="max-w-6xl mx-auto bg-white rounded-xl shadow-lg p-6 overflow-hidden">
+        
+        {/* Header & Controls */}
+        <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+          <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+            Danh Sách Tài Khoản Hệ Thống
+          </h1>
+          
+          <button
+            onClick={() => setIsGrouped(!isGrouped)}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium transition-all shadow-sm active:scale-95 ${
+              isGrouped 
+                ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
+            }`}
+          >
+            {isGrouped ? (
+              <>
+                <PaintBucket size={18} />
+                <span>Đang hiển thị: Gom Nhóm Màu</span>
+              </>
+            ) : (
+              <>
+                <ArrowLeftRight size={18} />
+                <span>Đang hiển thị: Thứ Tự Gốc</span>
+              </>
+            )}
+          </button>
+        </div>
 
-        /**
-         * Render bảng dữ liệu.
-         */
-        function renderTable() {
-            let html = `
-                <table class="min-w-full divide-y divide-gray-200">
-                    <!-- Header Bảng -->
-                    <thead class="bg-gray-100">
-                        <tr>
-                            <th scope="col" class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">STT</th>
-                            <th scope="col" class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tên NV</th>
-                            <th scope="col" class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phái</th>
-                            <th scope="col" class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID (Tài khoản)</th>
-                            <th scope="col" class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mật khẩu (PASS)</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-            `;
-
-            accountData.forEach((item, index) => {
-                const stt = index + 1;
-                // Loại bỏ lớp màu vàng cho dòng giữ chỗ vì bây giờ đã có dữ liệu
-                html += `
-                    <tr class="hover:bg-gray-50 transition duration-150">
-                        <!-- STT -->
-                        <td class="px-3 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${stt}</td>
-                        <!-- Tên NV -->
-                        <td class="px-3 py-4 whitespace-nowrap text-sm text-gray-700">${item.name}</td>
-                        <!-- Phái -->
-                        <td class="px-3 py-4 whitespace-nowrap text-sm text-gray-700">${item.faction}</td>
-                        
-                        <!-- ID + Nút Copy -->
-                        <td class="px-3 py-4 whitespace-nowrap">
-                            <div class="flex items-center space-x-2">
-                                <span class="text-sm font-mono text-indigo-700 select-all" id="id-${stt}">${item.id}</span>
-                                <button onclick="copyToClipboard('${item.id.replace(/'/g, "\\'")}')" 
-                                        class="p-1 bg-indigo-100 text-indigo-600 rounded-full hover:bg-indigo-200 transition duration-150 transform hover:scale-105"
-                                        title="Sao chép ID">
-                                    <!-- Icon Copy SVG -->
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v2M6 8h10M6 15h10"/>
-                                    </svg>
-                                </button>
-                            </div>
-                        </td>
-                        
-                        <!-- Mật khẩu + Nút Copy -->
-                        <td class="px-3 py-4 whitespace-nowrap">
-                            <div class="flex items-center space-x-2">
-                                <span class="text-sm font-mono text-red-600 select-all" id="pass-${stt}">${item.pass}</span>
-                                <button onclick="copyToClipboard('${item.pass.replace(/'/g, "\\'")}')" 
-                                        class="p-1 bg-red-100 text-red-600 rounded-full hover:bg-red-200 transition duration-150 transform hover:scale-105"
-                                        title="Sao chép Mật khẩu">
-                                    <!-- Icon Copy SVG -->
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v2M6 8h10M6 15h10"/>
-                                    </svg>
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                `;
-            });
-
-            html += `
-                    </tbody>
-                </table>
-            `;
-
-            tableContainer.innerHTML = html;
-        }
-
-        // Khởi tạo bảng khi trang tải xong
-        window.onload = renderTable;
-    </script>
-</body>
-</html>
+        {/* Bảng dữ liệu */}
+        <div className="overflow-x-auto border-2 border-black rounded-sm shadow-sm">
+          <table className="w-full text-sm border-collapse">
+            <thead>
+              <tr className="bg-white">
+                <th className="border border-black px-3 py-2 text-center font-bold w-12">STT</th>
+                <th className="border border-black px-3 py-2 text-left font-bold w-48">Username TNT</th>
+                <th className="border border-black px-3 py-2 text-center font-bold w-64">Passwords TNT</th>
+                <th className="border border-black px-3 py-2 text-left font-bold w-40">Tên NV</th>
+                <th className="border border-black px-3 py-2 text-left font-bold w-48">Username TC</th>
+                <th className="border border-black px-3 py-2 text-center font-bold w-40">Passwords TC</th>
+              </tr>
+            </thead>
+            <tbody>
+              {displayData.map((row, index) => (
+                <tr 
+                  key={row.id} 
+                  className={`
+                    ${colorClasses[row.color]} 
+                    hover:brightness-95 transition-all duration-150
+                  `}
+                >
+                  {/* Số thứ tự: khi gom nhóm sẽ đánh số lại từ 1, nếu không giữ số gốc */}
+                  <td className="border border-black px-3 py-1 text-center font-medium">
+                    {isGrouped ? index + 1 : row.id}
+                  </td>
+                  <td className="border border-black px-3 py-1 whitespace-nowrap">
+                    <CopyableCell text={row.userTnt} />
+                  </td>
+                  <td className="border border-black px-3 py-1 text-center">
+                    <CopyableCell text={row.passTnt} align="center" />
+                  </td>
+                  <td className="border border-black px-3 py-1 font-medium">{row.name}</td>
+                  <td className="border border-black px-3 py-1 whitespace-nowrap">
+                    <CopyableCell text={row.userTc} />
+                  </td>
+                  <td className="border border-black px-3 py-1 text-center">
+                    <CopyableCell text={row.passTc} align="center" />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        
+        {/* Footer info */}
+        <div className="mt-4 text-sm text-gray-500 text-right">
+          Tổng cộng: {rawData.length} tài khoản
+        </div>
+      </div>
+    </div>
+  );
+}
