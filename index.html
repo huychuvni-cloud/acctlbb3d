@@ -10,6 +10,21 @@
         .group:hover .copy-btn {
             opacity: 1;
         }
+        /* Tùy chỉnh thanh cuộn cho bảng nhật ký */
+        #activityLogContainer::-webkit-scrollbar {
+            width: 8px;
+        }
+        #activityLogContainer::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        #activityLogContainer::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        #activityLogContainer::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
     </style>
 </head>
 <body class="min-h-screen bg-gray-100 py-8 px-4 font-sans text-black flex flex-col justify-center">
@@ -46,7 +61,7 @@
         </form>
     </div>
 
-    <!-- Bảng dữ liệu (Ẩn mặc định) -->
+    <!-- Bảng dữ liệu chính (Ẩn mặc định) -->
     <div id="mainApp" class="hidden max-w-6xl mx-auto w-full bg-white rounded-xl shadow-lg p-6 overflow-hidden">
         
         <!-- Header & Controls -->
@@ -93,10 +108,163 @@
             <button id="logoutBtn" class="text-red-500 hover:text-red-700 font-medium transition-colors">Đăng xuất</button>
             <span id="footerInfo">Tổng cộng: 0 tài khoản</span>
         </div>
+
+        <!-- Nhật ký hoạt động (MỚI) -->
+        <div class="mt-8 border-t border-gray-200 pt-6">
+            <h2 class="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-600"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>
+                Nhật Ký Hoạt Động (Real-time)
+            </h2>
+            <div id="activityLogContainer" class="bg-gray-50 border border-gray-300 rounded-lg p-4 h-56 overflow-y-auto font-mono text-sm space-y-2 shadow-inner">
+                <div class="text-gray-500 italic flex items-center gap-2">
+                    <svg class="animate-spin h-4 w-4 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    Đang kết nối hệ thống đồng bộ...
+                </div>
+            </div>
+        </div>
     </div>
 
-    <script>
-        // --- LOGIC ĐĂNG NHẬP VÀ PHÂN QUYỀN ---
+    <!-- KHỐI SCRIPT MODULE ĐỂ HỖ TRỢ REAL-TIME CLOUD FIREBASE -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, setDoc, onSnapshot, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Khởi tạo Firebase từ config hệ thống Canvas cung cấp
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Biến lưu trạng thái kết nối và Cloud data
+        let firebaseUser = null;
+        let unsubStatus = null;
+        let unsubLogs = null;
+        
+        let doneItems = {}; // Dữ liệu real-time Xong/Chưa
+        let activityLogs = []; // Dữ liệu nhật ký
+        
+        // Xác thực kết nối DB ẩn danh ban đầu để mở khoá Listeners
+        const initAuth = async () => {
+            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                await signInWithCustomToken(auth, __initial_auth_token);
+            } else {
+                await signInAnonymously(auth);
+            }
+        };
+        initAuth();
+
+        onAuthStateChanged(auth, (user) => {
+            firebaseUser = user;
+            if (user) {
+                setupRealtimeListeners();
+            } else {
+                // Hủy nghe dữ liệu khi thoát
+                if (unsubStatus) unsubStatus();
+                if (unsubLogs) unsubLogs();
+            }
+        });
+
+        function setupRealtimeListeners() {
+            // Nghe thay đổi trạng thái tick Xong
+            const statusRef = collection(db, 'artifacts', appId, 'public', 'data', 'account_status');
+            unsubStatus = onSnapshot(statusRef, (snapshot) => {
+                snapshot.docChanges().forEach((change) => {
+                    const data = change.doc.data();
+                    doneItems[change.doc.id] = data.isDone;
+                });
+                renderTable(); // Vẽ lại bảng khi có người khác tick
+            }, (error) => console.error("Lỗi đồng bộ trạng thái:", error));
+
+            // Nghe thay đổi của Nhật ký
+            const logRef = collection(db, 'artifacts', appId, 'public', 'data', 'activity_log');
+            unsubLogs = onSnapshot(logRef, (snapshot) => {
+                activityLogs = [];
+                snapshot.forEach(doc => {
+                    activityLogs.push({ id: doc.id, ...doc.data() });
+                });
+                
+                // Sắp xếp nhật ký mới nhất lên đầu
+                activityLogs.sort((a, b) => b.timestamp - a.timestamp);
+                renderLogs();
+            }, (error) => console.error("Lỗi đồng bộ nhật ký:", error));
+        }
+
+        function renderLogs() {
+            const container = document.getElementById('activityLogContainer');
+            container.innerHTML = '';
+            
+            if (activityLogs.length === 0) {
+                container.innerHTML = '<div class="text-gray-500 italic p-2">Chưa có hoạt động nào được ghi lại. Bắt đầu tick để tạo nhật ký...</div>';
+                return;
+            }
+
+            activityLogs.forEach(log => {
+                const dateObj = new Date(log.timestamp);
+                const timeString = dateObj.toLocaleTimeString('vi-VN', { hour12: false });
+                const dateString = dateObj.toLocaleDateString('vi-VN');
+                
+                // Màu sắc của hành động
+                const isCheck = log.action === 'XONG';
+                const actionBadge = isCheck 
+                    ? `<span class="bg-green-100 text-green-700 px-2 py-0.5 rounded font-bold text-xs uppercase border border-green-200">${log.action}</span>` 
+                    : `<span class="bg-red-100 text-red-700 px-2 py-0.5 rounded font-bold text-xs uppercase border border-red-200">${log.action}</span>`;
+
+                const div = document.createElement('div');
+                div.className = "flex items-center gap-2 border-b border-gray-200 pb-2 mb-2 last:border-0 hover:bg-white p-1 rounded transition-colors";
+                div.innerHTML = `
+                    <span class="text-gray-400 text-xs w-36 shrink-0">[${timeString} ${dateString}]</span>
+                    <span class="font-bold text-blue-700 w-24 shrink-0 truncate" title="${log.username}">${log.username}</span>
+                    <span class="text-gray-600">đã đánh dấu</span>
+                    ${actionBadge}
+                    <span class="text-gray-700">tài khoản STT</span>
+                    <span class="font-bold text-black border-b border-black leading-none">${log.displayStt}</span>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        // Đẩy logic toggleDone lên Cloud Database
+        window.toggleDone = async (id) => {
+            if (!firebaseUser || !currentUser || currentUser.isGuest) return;
+
+            const isCurrentlyDone = !!doneItems[id];
+            const newState = !isCurrentlyDone;
+            const displayStt = groupedIndexMap[id] || id; // Lấy STT chuẩn hiển thị cho user
+
+            // Cập nhật giao diện lập tức (Optimistic UI)
+            doneItems[id] = newState;
+            renderTable();
+
+            try {
+                // Đẩy trạng thái ô check lên server
+                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'account_status', id.toString());
+                await setDoc(docRef, {
+                    isDone: newState,
+                    updatedBy: currentUser.username,
+                    updatedAt: Date.now()
+                });
+
+                // Ghi nhận dòng nhật ký
+                const logRef = collection(db, 'artifacts', appId, 'public', 'data', 'activity_log');
+                await addDoc(logRef, {
+                    timestamp: Date.now(),
+                    username: currentUser.username,
+                    action: newState ? 'XONG' : 'BỎ',
+                    accountId: id,
+                    displayStt: displayStt
+                });
+            } catch (error) {
+                console.error("Lỗi cập nhật server: ", error);
+                // Hoàn tác nếu lỗi
+                doneItems[id] = isCurrentlyDone;
+                renderTable();
+            }
+        };
+
+        // --- CÁC THÀNH PHẦN LOGIC GIAO DIỆN HIỆN TẠI ĐƯỢC GIỮ NGUYÊN BÊN DƯỚI ---
         const loginScreen = document.getElementById('loginScreen');
         const mainApp = document.getElementById('mainApp');
         const loginBtn = document.getElementById('loginBtn');
@@ -107,12 +275,12 @@
         const errorMessage = document.getElementById('errorMessage');
         const viewModeText = document.getElementById('viewModeText');
 
-        let currentUser = null; // Lưu thông tin người dùng hiện tại
-        let isLoggedIn = false; // Trạng thái đăng nhập (true: User/Admin, false: Guest)
+        let currentUser = null; 
+        let isLoggedIn = false; 
 
-        // Cấu hình danh sách tài khoản và phân quyền xem theo STT (sau khi đã gom nhóm màu)
         const userAccounts = [
             { username: 'admin', password: 'admin@@', allowedIndices: 'all' },
+            { username: 'admin1', password: 'asdasd', allowedIndices: 'all' },
             { username: 'buiquangmien', password: 'buiquangmien1', allowedIndices: [1, 2, 3, 4, 5, 6, 41] },
             { username: 'trannam', password: 'trannam2', allowedIndices: [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17] },
             { username: 'phamthao', password: 'phamthao3', allowedIndices: [18, 19, 20, 21, 22, 23] },
@@ -125,11 +293,10 @@
             currentUser = userObj;
             isLoggedIn = !userObj.isGuest;
             
-            // Cập nhật text trạng thái
             if (userObj.isGuest) {
                 viewModeText.innerText = "Chế độ: Khách (Đã ẩn thông tin nhạy cảm)";
                 viewModeText.className = "text-sm font-medium mt-1 text-orange-600";
-            } else if (userObj.username === 'admin') {
+            } else if (userObj.allowedIndices === 'all') {
                 viewModeText.innerText = "Chế độ: Quản trị viên (Xem tất cả)";
                 viewModeText.className = "text-sm font-medium mt-1 text-green-600";
             } else {
@@ -137,28 +304,24 @@
                 viewModeText.className = "text-sm font-medium mt-1 text-blue-600";
             }
 
-            // Chuyển màn hình
             loginScreen.classList.add('hidden');
             mainApp.classList.remove('hidden');
-            document.body.classList.remove('justify-center'); // Cho phép cuộn khi hiện bảng
+            document.body.classList.remove('justify-center');
             errorMessage.classList.add('hidden');
             
-            // Clear input
             usernameInput.value = '';
             passwordInput.value = '';
             
-            // Hiển thị bảng
             renderTable();
         }
 
         function handleLogin() {
             const user = usernameInput.value.trim();
             const pass = passwordInput.value.trim();
-
             const matchedUser = userAccounts.find(u => u.username === user && u.password === pass);
 
             if (matchedUser) {
-                showApp(matchedUser); // Đăng nhập thành công
+                showApp(matchedUser); 
             } else {
                 errorMessage.classList.remove('hidden');
             }
@@ -167,22 +330,16 @@
         loginBtn.addEventListener('click', handleLogin);
         
         guestBtn.addEventListener('click', () => {
-            showApp({ username: 'Khách', allowedIndices: 'all', isGuest: true }); // Đăng nhập Khách
+            showApp({ username: 'Khách', allowedIndices: 'all', isGuest: true }); 
         });
         
-        // Hỗ trợ nhấn phím Enter để đăng nhập
         passwordInput.addEventListener('keypress', function (e) {
-            if (e.key === 'Enter') {
-                handleLogin();
-            }
+            if (e.key === 'Enter') handleLogin();
         });
         usernameInput.addEventListener('keypress', function (e) {
-            if (e.key === 'Enter') {
-                passwordInput.focus();
-            }
+            if (e.key === 'Enter') passwordInput.focus();
         });
 
-        // Nút đăng xuất
         logoutBtn.addEventListener('click', () => {
             currentUser = null;
             isLoggedIn = false;
@@ -192,17 +349,7 @@
             errorMessage.classList.add('hidden');
         });
 
-        // --- TRẠNG THÁI HOÀN THÀNH TÀI KHOẢN ---
-        let doneItems = JSON.parse(localStorage.getItem('doneAccounts')) || {};
-
-        function toggleDone(id) {
-            doneItems[id] = !doneItems[id];
-            localStorage.setItem('doneAccounts', JSON.stringify(doneItems));
-            renderTable();
-        }
-
-        // --- LOGIC BẢNG DỮ LIỆU ---
-        // Đã cập nhật Tên NV thành chuẩn 2 chữ kiếm hiệp (không có khoảng trắng)
+        // Dữ liệu bảng
         const rawData = [
             { id: 1, userTnt: 'vankhanh4', passTnt: '123123 (or 123456 check lại)', oldName: 'NữYTá', newName: 'NhượcThủy', userTc: 'tcvankhanh4', passTc: 'a123123a', color: 'orange' },
             { id: 2, userTnt: 'vankhanh5', passTnt: '123123', oldName: 'BácSỹGià', newName: 'VôNhai', userTc: 'tcvankhanh5', passTc: 'a123123a', color: 'orange' },
@@ -265,7 +412,7 @@
 
         let isGrouped = true;
 
-        function handleCopy(text, buttonElement) {
+        window.handleCopy = function(text, buttonElement) {
             const textArea = document.createElement("textarea");
             textArea.value = text;
             textArea.style.position = "fixed";
@@ -287,12 +434,11 @@
 
         function createCopyableCell(text, align = 'left') {
             const alignmentClass = align === 'center' ? 'justify-center gap-2' : 'justify-between';
-            
             return `
                 <div class="flex items-center group ${alignmentClass}">
                     <span>${text}</span>
                     <button
-                        onclick="handleCopy('${text.replace(/'/g, "\\'")}', this)"
+                        onclick="window.handleCopy('${text.replace(/'/g, "\\'")}', this)"
                         class="copy-btn opacity-0 transition-opacity p-1 rounded hover:bg-black/10 focus:opacity-100"
                         title="Sao chép"
                     >
@@ -302,31 +448,28 @@
             `;
         }
 
+        // Tính toán map ID -> STT để dùng chung cho render và ghi nhật ký
+        const groupedIndexMap = {};
+        let referenceData = [...rawData].sort((a, b) => {
+            if (colorWeight[a.color] !== colorWeight[b.color]) {
+                return colorWeight[a.color] - colorWeight[b.color];
+            }
+            return a.id - b.id;
+        });
+        referenceData.forEach((row, index) => {
+            groupedIndexMap[row.id] = index + 1; 
+        });
+
         function renderTable() {
             const tableBody = document.getElementById('tableBody');
             tableBody.innerHTML = '';
 
-            // 1. Tính toán thứ tự toàn cục (STT Nhóm Màu) để đối chiếu phân quyền
-            let referenceData = [...rawData].sort((a, b) => {
-                if (colorWeight[a.color] !== colorWeight[b.color]) {
-                    return colorWeight[a.color] - colorWeight[b.color];
-                }
-                return a.id - b.id;
-            });
-            
-            const groupedIndexMap = {};
-            referenceData.forEach((row, index) => {
-                groupedIndexMap[row.id] = index + 1; // Lưu STT mới của từng dòng
-            });
-
             let displayData = [...rawData];
 
-            // 2. Lọc dữ liệu theo quyền của User đang đăng nhập (dựa trên STT Nhóm Màu)
             if (currentUser && currentUser.allowedIndices !== 'all') {
                 displayData = displayData.filter(row => currentUser.allowedIndices.includes(groupedIndexMap[row.id]));
             }
 
-            // 3. Sắp xếp lại nếu chế độ "Gom Nhóm Màu" đang bật
             if (isGrouped) {
                 displayData.sort((a, b) => {
                     if (colorWeight[a.color] !== colorWeight[b.color]) {
@@ -336,32 +479,32 @@
                 });
             }
 
-            // Cập nhật số lượng đếm hiển thị
             document.getElementById('footerInfo').innerText = `Tổng cộng: ${displayData.length} tài khoản`;
 
-            displayData.forEach((row, index) => {
+            displayData.forEach((row) => {
                 const tr = document.createElement('tr');
                 tr.className = `${colorClasses[row.color]} hover:brightness-95 transition-all duration-150`;
 
-                // Nếu là Khách (isLoggedIn = false), ẩn dữ liệu và bỏ nút copy
                 const displayUserTnt = isLoggedIn ? createCopyableCell(row.userTnt, 'left') : '<span class="text-gray-600 font-mono tracking-widest text-lg">*****</span>';
                 const displayPassTnt = isLoggedIn ? createCopyableCell(row.passTnt, 'center') : '<span class="text-gray-600 font-mono tracking-widest text-lg">*****</span>';
                 const displayUserTc = isLoggedIn ? createCopyableCell(row.userTc, 'left') : '<span class="text-gray-600 font-mono tracking-widest text-lg">*****</span>';
                 const displayPassTc = isLoggedIn ? createCopyableCell(row.passTc, 'center') : '<span class="text-gray-600 font-mono tracking-widest text-lg">*****</span>';
 
-                // STT hiển thị: Dựa trên STT nhóm màu gốc (1-43), giúp nhân viên xem đúng con số của mình
                 const displayStt = isGrouped ? groupedIndexMap[row.id] : row.id;
                 
-                // Trạng thái checkbox (Xong / Chưa Xong)
                 const isDone = doneItems[row.id];
                 const textOpacityClass = isDone ? 'opacity-40' : '';
+
+                // Phân quyền cho checkbox: Guest sẽ không thể click (bị disabled)
+                const disabledStatus = !isLoggedIn ? 'disabled' : '';
+                const cursorClass = !isLoggedIn ? 'cursor-not-allowed opacity-50' : 'cursor-pointer accent-green-600';
 
                 tr.innerHTML = `
                     <td class="border border-black px-3 py-1 text-center font-medium">
                         ${displayStt}
                     </td>
                     <td class="border border-black px-3 py-1 text-center bg-white/20">
-                        <input type="checkbox" onchange="toggleDone(${row.id})" ${isDone ? 'checked' : ''} class="w-4 h-4 cursor-pointer accent-green-600">
+                        <input type="checkbox" onchange="window.toggleDone(${row.id})" ${isDone ? 'checked' : ''} ${disabledStatus} class="w-4 h-4 ${cursorClass}">
                     </td>
                     <td class="border border-black px-3 py-1 whitespace-nowrap ${!isLoggedIn ? 'text-center' : ''} ${textOpacityClass}">
                         ${displayUserTnt}
@@ -381,7 +524,6 @@
                 tableBody.appendChild(tr);
             });
             
-            // Cập nhật giao diện nút
             const toggleBtn = document.getElementById('toggleBtn');
             const toggleIcon = document.getElementById('toggleIcon');
             const toggleText = document.getElementById('toggleText');
@@ -397,7 +539,6 @@
             }
         }
 
-        // Lắng nghe sự kiện click nút đổi trạng thái
         document.getElementById('toggleBtn').addEventListener('click', () => {
             isGrouped = !isGrouped;
             renderTable();
