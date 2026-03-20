@@ -29,6 +29,11 @@
         #adminPanelModal, #registerModal {
             backdrop-filter: blur(4px);
         }
+        /* Hiệu ứng cho ô tên được phép chỉnh sửa (Chỉ Admin) */
+        .editable-cell:hover {
+            background-color: #fef08a !important; /* Vàng nhạt */
+            cursor: pointer;
+        }
     </style>
 </head>
 <body class="min-h-screen bg-gray-100 py-8 px-4 font-sans text-black flex flex-col justify-center">
@@ -194,27 +199,28 @@
         </div>
     </div>
 
-    <!-- Modal Quản Lý Phân Quyền (Dành cho Admin) -->
+    <!-- Modal Quản Lý Phân Quyền & Tài Khoản (Dành cho Admin) -->
     <div id="adminPanelModal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-xl shadow-2xl max-w-4xl w-full p-6 border border-gray-200 flex flex-col max-h-[90vh]">
             <div class="flex justify-between items-center mb-4 border-b border-gray-100 pb-3">
                 <h3 class="text-xl font-bold text-gray-800 flex items-center gap-2">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-purple-600"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                    Quản Lý Phân Quyền Nhân Viên
+                    Quản Lý Phân Quyền & Tài Khoản
                 </h3>
                 <button onclick="window.closeAdminPanel()" class="p-2 text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded-full transition-colors">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
                 </button>
             </div>
             
-            <div class="overflow-y-auto flex-1 mb-4">
+            <!-- Danh sách phân quyền nhân viên -->
+            <div class="overflow-y-auto flex-1 mb-4 border border-gray-200 rounded">
                 <table class="w-full text-sm border-collapse text-left">
                     <thead class="sticky top-0 bg-gray-50 shadow-sm z-10">
                         <tr>
-                            <th class="border border-gray-300 px-3 py-2 font-bold w-1/5 text-gray-700">Tài Khoản</th>
-                            <th class="border border-gray-300 px-3 py-2 font-bold w-2/5 text-gray-700" title="Nhập danh sách số cách nhau bởi dấu phẩy, hoặc nhập 'all'">STT Được Xem (Phân cách bằng dấu phẩy)</th>
-                            <th class="border border-gray-300 px-3 py-2 font-bold text-center w-1/5 text-gray-700 text-xs">Quyền Sửa<br>(Tích thêm ô Xong)</th>
-                            <th class="border border-gray-300 px-3 py-2 font-bold text-center w-1/5 text-gray-700 text-xs">Quyền Xóa<br>(Bỏ tích ô Xong)</th>
+                            <th class="border-b border-r border-gray-300 px-3 py-2 font-bold w-1/5 text-gray-700">Tài Khoản</th>
+                            <th class="border-b border-r border-gray-300 px-3 py-2 font-bold w-2/5 text-gray-700" title="Nhập danh sách số cách nhau bởi dấu phẩy, hoặc nhập 'all'">STT Được Xem (Phân cách bằng dấu phẩy)</th>
+                            <th class="border-b border-r border-gray-300 px-3 py-2 font-bold text-center w-1/5 text-gray-700 text-xs">Quyền Sửa<br>(Tích thêm ô Xong)</th>
+                            <th class="border-b border-gray-300 px-3 py-2 font-bold text-center w-1/5 text-gray-700 text-xs">Quyền Xóa<br>(Bỏ tích ô Xong)</th>
                         </tr>
                     </thead>
                     <tbody id="adminPanelTableBody">
@@ -223,8 +229,33 @@
                 </table>
             </div>
             
-            <div class="mt-auto flex justify-between items-center text-xs text-gray-500 pt-3 border-t border-gray-100">
-                <p>* Gõ <span class="font-bold text-black">none</span> (hoặc để trống) để KHÓA quyền xem hoàn toàn.</p>
+            <!-- Thêm Tài Khoản (Nửa dưới của Modal) -->
+            <div class="mt-2 border-t border-gray-200 pt-4">
+                <h4 class="text-sm font-bold text-gray-800 mb-2 flex items-center gap-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-600"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/></svg>
+                    Thêm Dữ Liệu Bảng Mới
+                </h4>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                    <input type="text" id="newAcc_userTnt" placeholder="User Sv Cũ (Tùy chọn)" class="border border-gray-300 rounded px-2 py-1.5 focus:ring-1 focus:ring-blue-500 outline-none">
+                    <input type="text" id="newAcc_passTnt" placeholder="Pass Sv Cũ (Tùy chọn)" class="border border-gray-300 rounded px-2 py-1.5 focus:ring-1 focus:ring-blue-500 outline-none">
+                    <input type="text" id="newAcc_oldName" placeholder="Tên NV Cũ (Tùy chọn)" class="border border-gray-300 rounded px-2 py-1.5 focus:ring-1 focus:ring-blue-500 outline-none">
+                    <select id="newAcc_color" class="border border-gray-300 rounded px-2 py-1.5 focus:ring-1 focus:ring-blue-500 outline-none">
+                        <option value="white">⚪ Màu Trắng</option>
+                        <option value="blue">🔵 Màu Xanh</option>
+                        <option value="orange">🟠 Màu Cam</option>
+                        <option value="yellow">🟡 Màu Vàng</option>
+                        <option value="pink">🔴 Màu Hồng</option>
+                        <option value="purple">🟣 Màu Tím</option>
+                    </select>
+                    <input type="text" id="newAcc_userTc" placeholder="User Sv Mới* (Bắt buộc)" class="border border-blue-400 bg-blue-50 rounded px-2 py-1.5 focus:ring-1 focus:ring-blue-600 outline-none">
+                    <input type="text" id="newAcc_passTc" placeholder="Pass Sv Mới* (Bắt buộc)" class="border border-blue-400 bg-blue-50 rounded px-2 py-1.5 focus:ring-1 focus:ring-blue-600 outline-none">
+                    <input type="text" id="newAcc_newName" placeholder="Tên NV Mới* (Bắt buộc)" class="border border-blue-400 bg-blue-50 rounded px-2 py-1.5 focus:ring-1 focus:ring-blue-600 outline-none">
+                    <button onclick="window.addNewSystemAccount()" class="bg-blue-600 text-white font-bold rounded px-2 py-1.5 hover:bg-blue-700 transition-colors shadow-sm">Thêm Vào Bảng</button>
+                </div>
+            </div>
+
+            <div class="mt-4 flex justify-between items-center text-xs text-gray-500 pt-3 border-t border-gray-100">
+                <p>* Mọi thay đổi đều được tự động lưu. Gõ <span class="font-bold text-black">none</span> để khóa quyền xem.</p>
                 <button onclick="window.closeAdminPanel()" class="px-5 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors font-medium">Đóng bảng</button>
             </div>
         </div>
@@ -273,7 +304,6 @@
         let useFirebase = false;
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'shared-account-manager-v1';
 
-        // TỰ ĐỘNG SỬA LỖI JSON KHI DÙNG MODAL (Nếu cần)
         window.saveFirebaseConfig = function(inputId = 'firebaseConfigInput') {
             let val = document.getElementById(inputId).value.trim();
             if(!val) {
@@ -306,7 +336,6 @@
             let configToUse = null;
             
             // ƯU TIÊN 1: LUÔN SỬ DỤNG MÃ CỐ ĐỊNH NẾU CÓ
-            // Xóa rác trong LocalStorage để tránh gây xung đột mạng
             if (Object.keys(MY_FIREBASE_CONFIG).length > 0 && MY_FIREBASE_CONFIG.apiKey) {
                 configToUse = MY_FIREBASE_CONFIG;
                 localStorage.removeItem('custom_firebase_config'); 
@@ -382,7 +411,7 @@
             }
         }
 
-        // --- CƠ CHẾ OFFLINE FIRST VÀ QUẢN LÝ USER ĐỘNG ---
+        // --- DỮ LIỆU ĐỘNG & BỘ NHỚ LƯU TRỮ ---
         const baseUserAccounts = [
             { username: 'admin', password: 'admin@@', allowedIndices: 'all', canTick: true, canUntick: true },
             { username: 'admin1', password: 'asdasd', allowedIndices: 'all', canTick: true, canUntick: true },
@@ -394,17 +423,19 @@
             { username: 'congtuan', password: 'congtuan6', allowedIndices: [36, 37, 38, 39, 40, 43], canTick: true, canUntick: true }
         ];
 
-        let allUsers = []; // Danh sách gộp: Base + Đăng ký mới
-        let registeredAccounts = []; // Danh sách tài khoản tự đăng ký
+        let allUsers = []; 
+        let registeredAccounts = []; 
         let localPerms = JSON.parse(localStorage.getItem('localUserPermissions')) || {};
 
+        // Thêm dữ liệu tài khoản được Admin tạo mới, hoặc Admin đổi tên nhân vật
+        let customAccounts = JSON.parse(localStorage.getItem('customAccounts')) || [];
+        let editedNamesMap = JSON.parse(localStorage.getItem('editedNamesMap')) || {};
+
         function buildAllUsers() {
-            // Apply permissions cho các tài khoản gốc
             const mergedBase = baseUserAccounts.map(u => ({ ...u, ...(localPerms[u.username] || {}) }));
             allUsers = [...mergedBase, ...registeredAccounts];
         }
 
-        // Tải sẵn danh sách User đăng ký offline (nếu có)
         registeredAccounts = Object.keys(localPerms)
             .filter(k => localPerms[k].isRegistered)
             .map(k => ({ username: k, ...localPerms[k] }));
@@ -414,6 +445,8 @@
         let unsubStatus = null;
         let unsubLogs = null;
         let unsubPerms = null;
+        let unsubCustomAcc = null;
+        let unsubEditedNames = null;
         
         let doneItems = JSON.parse(localStorage.getItem('doneAccounts')) || {};
         let activityLogs = JSON.parse(localStorage.getItem('activityLogs')) || [];
@@ -442,13 +475,13 @@
         });
         
         if (useFirebase) {
-            setNetworkStatus('connecting'); // Hiển thị Đang kết nối
+            setNetworkStatus('connecting'); 
             const initAuth = async () => {
                 try {
                     await signInAnonymously(auth);
                 } catch(e) { 
                     console.error("Firebase Auth Error:", e); 
-                    setNetworkStatus('error', e.message); // Hiển thị badge Đỏ
+                    setNetworkStatus('error', e.message); 
                     
                     const container = document.getElementById('activityLogContainer');
                     if(container) {
@@ -478,23 +511,27 @@
                     if (unsubStatus) unsubStatus();
                     if (unsubLogs) unsubLogs();
                     if (unsubPerms) unsubPerms();
+                    if (unsubCustomAcc) unsubCustomAcc();
+                    if (unsubEditedNames) unsubEditedNames();
                 }
             });
         }
 
         function setupRealtimeListeners() {
-            setNetworkStatus('online'); // Chuyển sang Xanh Lá
+            setNetworkStatus('online'); 
 
+            // Sync: Trạng thái tick
             const statusRef = collection(db, 'artifacts', appId, 'public', 'data', 'account_status');
             unsubStatus = onSnapshot(statusRef, (snapshot) => {
                 snapshot.docChanges().forEach((change) => {
                     const data = change.doc.data();
                     doneItems[change.doc.id] = data.isDone;
                 });
-                localStorage.setItem('doneAccounts', JSON.stringify(doneItems)); // Cache
+                localStorage.setItem('doneAccounts', JSON.stringify(doneItems)); 
                 renderTable(); 
             }, (error) => console.error("Lỗi đồng bộ trạng thái:", error));
 
+            // Sync: Nhật ký
             const logRef = collection(db, 'artifacts', appId, 'public', 'data', 'activity_log');
             unsubLogs = onSnapshot(logRef, (snapshot) => {
                 activityLogs = [];
@@ -503,11 +540,11 @@
                 });
                 
                 activityLogs.sort((a, b) => b.timestamp - a.timestamp);
-                localStorage.setItem('activityLogs', JSON.stringify(activityLogs)); // Cache
+                localStorage.setItem('activityLogs', JSON.stringify(activityLogs)); 
                 renderLogs();
             }, (error) => console.error("Lỗi đồng bộ nhật ký:", error));
 
-            // Lấy thông tin tài khoản tự đăng ký & phân quyền
+            // Sync: Quyền Admin
             const permRef = collection(db, 'artifacts', appId, 'public', 'data', 'user_permissions');
             unsubPerms = onSnapshot(permRef, (snapshot) => {
                 let tempRegistered = [];
@@ -547,12 +584,33 @@
                     renderAdminPanel();
                 }
             }, (error) => console.error("Lỗi đồng bộ quyền:", error));
+
+            // Sync: Các tài khoản Data mới được thêm
+            const customAccRef = collection(db, 'artifacts', appId, 'public', 'data', 'custom_accounts');
+            unsubCustomAcc = onSnapshot(customAccRef, (snapshot) => {
+                customAccounts = [];
+                snapshot.forEach(doc => {
+                    customAccounts.push({ id: doc.id, ...doc.data() });
+                });
+                localStorage.setItem('customAccounts', JSON.stringify(customAccounts));
+                renderTable();
+            });
+
+            // Sync: Tên nhân vật được chỉnh sửa
+            const editedNamesRef = collection(db, 'artifacts', appId, 'public', 'data', 'edited_names');
+            unsubEditedNames = onSnapshot(editedNamesRef, (snapshot) => {
+                editedNamesMap = {};
+                snapshot.forEach(doc => {
+                    editedNamesMap[doc.id] = doc.data();
+                });
+                localStorage.setItem('editedNamesMap', JSON.stringify(editedNamesMap));
+                renderTable();
+            });
         }
 
         function renderLogs() {
             const container = document.getElementById('activityLogContainer');
             
-            // Xóa thông báo lỗi cũ nếu đang online
             const isError = document.getElementById('networkStatus').classList.contains('bg-red-50');
             if(!isError) container.innerHTML = '';
 
@@ -564,7 +622,7 @@
                 return;
             }
             
-            if(!isError) container.innerHTML = ''; // Đảm bảo làm sạch trước khi in log
+            if(!isError) container.innerHTML = ''; 
 
             filteredLogs.forEach(log => {
                 const dateObj = new Date(log.timestamp);
@@ -596,6 +654,8 @@
             if (!useFirebase) {
                 doneItems = JSON.parse(localStorage.getItem('doneAccounts')) || {};
                 activityLogs = JSON.parse(localStorage.getItem('activityLogs')) || [];
+                customAccounts = JSON.parse(localStorage.getItem('customAccounts')) || [];
+                editedNamesMap = JSON.parse(localStorage.getItem('editedNamesMap')) || {};
                 
                 localPerms = JSON.parse(localStorage.getItem('localUserPermissions')) || {};
                 registeredAccounts = Object.keys(localPerms)
@@ -618,17 +678,14 @@
                     
                     const permRef = collection(db, 'artifacts', appId, 'public', 'data', 'user_permissions');
                     const permSnap = await getDocs(permRef);
-                    
                     let tempRegistered = [];
                     const newPerms = {};
-
                     permSnap.forEach(doc => {
                         const data = doc.data();
                         newPerms[doc.id] = data;
                         if (data.isRegistered) {
                             tempRegistered.push({
-                                username: doc.id,
-                                password: data.password,
+                                username: doc.id, password: data.password,
                                 allowedIndices: data.allowedIndices !== undefined ? data.allowedIndices : [],
                                 canTick: data.canTick !== undefined ? data.canTick : false,
                                 canUntick: data.canUntick !== undefined ? data.canUntick : false,
@@ -636,11 +693,22 @@
                             });
                         }
                     });
-                    
                     localPerms = newPerms;
                     registeredAccounts = tempRegistered;
                     localStorage.setItem('localUserPermissions', JSON.stringify(localPerms));
                     buildAllUsers();
+
+                    const cAccRef = collection(db, 'artifacts', appId, 'public', 'data', 'custom_accounts');
+                    const cAccSnap = await getDocs(cAccRef);
+                    customAccounts = [];
+                    cAccSnap.forEach(doc => customAccounts.push({ id: doc.id, ...doc.data() }));
+                    localStorage.setItem('customAccounts', JSON.stringify(customAccounts));
+
+                    const eNameRef = collection(db, 'artifacts', appId, 'public', 'data', 'edited_names');
+                    const eNameSnap = await getDocs(eNameRef);
+                    editedNamesMap = {};
+                    eNameSnap.forEach(doc => editedNamesMap[doc.id] = doc.data());
+                    localStorage.setItem('editedNamesMap', JSON.stringify(editedNamesMap));
 
                 } catch(e) {
                     console.error("Lỗi khi Refresh dữ liệu:", e);
@@ -665,7 +733,11 @@
             }
 
             const newState = !isCurrentlyDone;
-            const displayStt = groupedIndexMap[id] || id; 
+            // Lookup the displayStt globally based on sorting
+            let displayStt = id;
+            if(isGrouped && window.globalGroupedIndexMap) {
+                 displayStt = window.globalGroupedIndexMap[id] || id;
+            }
 
             doneItems[id] = newState;
             localStorage.setItem('doneAccounts', JSON.stringify(doneItems)); 
@@ -747,7 +819,6 @@
                 return alert("Tên đăng nhập này đã tồn tại! Vui lòng chọn tên khác.");
             }
 
-            // Mặc định tài khoản đăng ký mới sẽ bị khóa quyền xem, quyền tích
             const newUserPerms = {
                 password: pass,
                 isRegistered: true,
@@ -768,7 +839,6 @@
                     alert("Đăng ký thất bại: " + e.message);
                 }
             } else {
-                // Lưu ngoại tuyến
                 localPerms[user] = newUserPerms;
                 localStorage.setItem('localUserPermissions', JSON.stringify(localPerms));
                 
@@ -965,7 +1035,6 @@
                 localPerms[username][field] = newValue;
                 localStorage.setItem('localUserPermissions', JSON.stringify(localPerms));
                 
-                // Cập nhật lại list đăng ký local
                 registeredAccounts = Object.keys(localPerms)
                     .filter(k => localPerms[k].isRegistered)
                     .map(k => ({ username: k, ...localPerms[k] }));
@@ -973,6 +1042,78 @@
             }
             renderTable(); 
         }
+
+        // --- HÀM THÊM TÀI KHOẢN DATA MỚI (DÀNH CHO ADMIN) ---
+        window.addNewSystemAccount = async function() {
+            const userTc = document.getElementById('newAcc_userTc').value.trim();
+            const passTc = document.getElementById('newAcc_passTc').value.trim();
+            const newName = document.getElementById('newAcc_newName').value.trim();
+
+            if (!userTc || !passTc || !newName) {
+                alert("Vui lòng nhập đầy đủ Username, Password và Tên NV cho Server Mới (các ô màu xanh)!");
+                return;
+            }
+
+            const newAcc = {
+                id: Date.now(), // Generate a unique ID (timestamp)
+                userTnt: document.getElementById('newAcc_userTnt').value.trim(),
+                passTnt: document.getElementById('newAcc_passTnt').value.trim(),
+                oldName: document.getElementById('newAcc_oldName').value.trim(),
+                userTc: userTc,
+                passTc: passTc,
+                newName: newName,
+                color: document.getElementById('newAcc_color').value
+            };
+
+            if (useFirebase && firebaseUser) {
+                try {
+                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'custom_accounts', newAcc.id.toString()), newAcc);
+                    // Clear fields
+                    document.getElementById('newAcc_userTnt').value = '';
+                    document.getElementById('newAcc_passTnt').value = '';
+                    document.getElementById('newAcc_oldName').value = '';
+                    document.getElementById('newAcc_userTc').value = '';
+                    document.getElementById('newAcc_passTc').value = '';
+                    document.getElementById('newAcc_newName').value = '';
+                    alert("Thêm tài khoản vào bảng thành công!");
+                } catch(e) {
+                    console.error("Lỗi thêm tài khoản bảng:", e);
+                    alert("Lỗi khi thêm: " + e.message);
+                }
+            } else {
+                customAccounts.push(newAcc);
+                localStorage.setItem('customAccounts', JSON.stringify(customAccounts));
+                renderTable();
+                alert("Thêm tài khoản vào bảng thành công (Ngoại tuyến)!");
+            }
+        }
+
+        // --- HÀM SỬA TÊN NHÂN VẬT DÀNH CHO ADMIN ---
+        window.promptEditName = async function(id, field, oldVal) {
+            if (!currentUser || currentUser.username !== 'admin') return;
+            const fieldLabel = field === 'oldName' ? 'Tên NV (Cũ)' : 'Tên NV (Mới)';
+            const newVal = prompt(`Chỉnh sửa ${fieldLabel} cho ID ${id}:`, oldVal);
+            
+            if (newVal === null || newVal.trim() === oldVal) return; // Hủy hoặc không đổi
+            const finalVal = newVal.trim();
+
+            if (useFirebase && firebaseUser) {
+                try {
+                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'edited_names', id.toString()), {
+                        [field]: finalVal
+                    }, { merge: true });
+                } catch(e) {
+                    console.error("Lỗi sửa tên:", e);
+                    alert("Lỗi sửa tên: " + e.message);
+                }
+            } else {
+                if(!editedNamesMap[id]) editedNamesMap[id] = {};
+                editedNamesMap[id][field] = finalVal;
+                localStorage.setItem('editedNamesMap', JSON.stringify(editedNamesMap));
+                renderTable();
+            }
+        }
+
 
         function renderAdminPanel() {
             const tbody = document.getElementById('adminPanelTableBody');
@@ -989,27 +1130,26 @@
                 const canUntick = user.canUntick !== false;
                 const indicesStr = formatIndices(user.allowedIndices);
                 
-                // Thêm tag để Admin nhận diện được user đăng ký tự do
                 const isNewTag = user.isRegistered 
                     ? '<span class="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded ml-2 shadow-sm font-bold align-middle">[Mới]</span>' 
                     : '';
 
                 tr.innerHTML = `
-                    <td class="border border-gray-200 px-3 py-2 font-medium text-blue-700">
+                    <td class="border-r border-gray-200 px-3 py-2 font-medium text-blue-700">
                         ${user.username} ${isNewTag}
                     </td>
-                    <td class="border border-gray-200 px-3 py-2">
+                    <td class="border-r border-gray-200 px-3 py-2">
                         <input type="text" value="${indicesStr}" 
                                onblur="window.updateUserPermission('${user.username}', 'allowedIndices', this)"
                                placeholder="Nhập 1,2,3 hoặc all, none"
                                class="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
                     </td>
-                    <td class="border border-gray-200 px-3 py-2 text-center bg-green-50/50">
+                    <td class="border-r border-gray-200 px-3 py-2 text-center bg-green-50/50">
                         <input type="checkbox" ${canTick ? 'checked' : ''} 
                                onchange="window.updateUserPermission('${user.username}', 'canTick', this)"
                                class="w-4 h-4 cursor-pointer accent-green-600 hover:scale-110">
                     </td>
-                    <td class="border border-gray-200 px-3 py-2 text-center bg-red-50/50">
+                    <td class="border-gray-200 px-3 py-2 text-center bg-red-50/50">
                         <input type="checkbox" ${canUntick ? 'checked' : ''} 
                                onchange="window.updateUserPermission('${user.username}', 'canUntick', this)"
                                class="w-4 h-4 cursor-pointer accent-red-600 hover:scale-110">
@@ -1020,7 +1160,7 @@
         }
 
 
-        // Dữ liệu bảng (Raw)
+        // Dữ liệu bảng (Raw Mặc định)
         const rawData = [
             { id: 1, userTnt: 'vankhanh4', passTnt: '123123 (or 123456 check lại)', oldName: 'NữYTá', newName: 'NhượcThủy', userTc: 'tcvankhanh4', passTc: 'a123123a', color: 'orange' },
             { id: 2, userTnt: 'vankhanh5', passTnt: '123123', oldName: 'BácSỹGià', newName: 'VôNhai', userTc: 'tcvankhanh5', passTc: 'a123123a', color: 'orange' },
@@ -1082,6 +1222,8 @@
         const sortIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/></svg>`;
 
         let isGrouped = true;
+        // Bổ sung biến map STT toàn cục để lưu log chuẩn xác nhất
+        window.globalGroupedIndexMap = {};
 
         window.handleCopy = function(text, buttonElement) {
             const textArea = document.createElement("textarea");
@@ -1119,23 +1261,38 @@
             `;
         }
 
-        const groupedIndexMap = {};
-        let referenceData = [...rawData].sort((a, b) => {
-            if (colorWeight[a.color] !== colorWeight[b.color]) {
-                return colorWeight[a.color] - colorWeight[b.color];
-            }
-            return a.id - b.id;
-        });
-        referenceData.forEach((row, index) => {
-            groupedIndexMap[row.id] = index + 1; 
-        });
-
         function renderTable() {
             const tableBody = document.getElementById('tableBody');
             tableBody.innerHTML = '';
 
-            let displayData = [...rawData];
+            // Ghép dữ liệu thô + dữ liệu thêm bằng Admin + dữ liệu Edit Tên
+            let finalData = [...rawData, ...customAccounts].map(row => {
+                const edited = editedNamesMap[row.id];
+                if (edited) {
+                    return {
+                        ...row,
+                        oldName: edited.oldName !== undefined ? edited.oldName : row.oldName,
+                        newName: edited.newName !== undefined ? edited.newName : row.newName
+                    };
+                }
+                return row;
+            });
 
+            // Gom nhóm màu và tính toán STT hiển thị
+            const groupedIndexMap = {};
+            let referenceData = [...finalData].sort((a, b) => {
+                if (colorWeight[a.color] !== colorWeight[b.color]) {
+                    return colorWeight[a.color] - colorWeight[b.color];
+                }
+                return parseInt(a.id) - parseInt(b.id);
+            });
+            referenceData.forEach((row, index) => {
+                groupedIndexMap[row.id] = index + 1; 
+            });
+            window.globalGroupedIndexMap = groupedIndexMap; // Phục vụ ghi Log
+
+            // Lọc danh sách dữ liệu thực tế được hiển thị (tùy quyền User)
+            let displayData = [...finalData];
             if (currentUser && currentUser.allowedIndices !== 'all') {
                 displayData = displayData.filter(row => currentUser.allowedIndices.includes(groupedIndexMap[row.id]));
             }
@@ -1145,20 +1302,25 @@
                     if (colorWeight[a.color] !== colorWeight[b.color]) {
                         return colorWeight[a.color] - colorWeight[b.color];
                     }
-                    return a.id - b.id;
+                    return parseInt(a.id) - parseInt(b.id);
                 });
             }
 
             document.getElementById('footerInfo').innerText = `Tổng cộng: ${displayData.length} tài khoản`;
 
+            // Kiểm tra quyền Sửa/Xóa Tên trực tiếp trên bảng
+            const isAdmin = currentUser && currentUser.username === 'admin';
+            const oldNameTitle = isAdmin ? 'title="Click để sửa tên (Quyền Admin)"' : '';
+            const oldNameCursor = isAdmin ? 'editable-cell border-dashed border-b border-gray-400' : '';
+
             displayData.forEach((row) => {
                 const tr = document.createElement('tr');
                 tr.className = `${colorClasses[row.color]} hover:brightness-95 transition-all duration-150`;
 
-                const displayUserTnt = isLoggedIn ? createCopyableCell(row.userTnt, 'left') : '<span class="text-gray-600 font-mono tracking-widest text-lg">*****</span>';
-                const displayPassTnt = isLoggedIn ? createCopyableCell(row.passTnt, 'center') : '<span class="text-gray-600 font-mono tracking-widest text-lg">*****</span>';
-                const displayUserTc = isLoggedIn ? createCopyableCell(row.userTc, 'left') : '<span class="text-gray-600 font-mono tracking-widest text-lg">*****</span>';
-                const displayPassTc = isLoggedIn ? createCopyableCell(row.passTc, 'center') : '<span class="text-gray-600 font-mono tracking-widest text-lg">*****</span>';
+                const displayUserTnt = isLoggedIn ? createCopyableCell(row.userTnt || '', 'left') : '<span class="text-gray-600 font-mono tracking-widest text-lg">*****</span>';
+                const displayPassTnt = isLoggedIn ? createCopyableCell(row.passTnt || '', 'center') : '<span class="text-gray-600 font-mono tracking-widest text-lg">*****</span>';
+                const displayUserTc = isLoggedIn ? createCopyableCell(row.userTc || '', 'left') : '<span class="text-gray-600 font-mono tracking-widest text-lg">*****</span>';
+                const displayPassTc = isLoggedIn ? createCopyableCell(row.passTc || '', 'center') : '<span class="text-gray-600 font-mono tracking-widest text-lg">*****</span>';
 
                 const displayStt = isGrouped ? groupedIndexMap[row.id] : row.id;
                 
@@ -1181,12 +1343,16 @@
                     ? 'cursor-not-allowed opacity-50 grayscale' 
                     : 'cursor-pointer accent-green-600 hover:scale-110 transition-transform';
 
+                // Escaping strings for HTML Injection
+                const safeOldName = (row.oldName || '').replace(/'/g, "\\'");
+                const safeNewName = (row.newName || '').replace(/'/g, "\\'");
+
                 tr.innerHTML = `
                     <td class="border border-black px-3 py-1 text-center font-medium">
                         ${displayStt}
                     </td>
                     <td class="border border-black px-3 py-1 text-center bg-white/20">
-                        <input type="checkbox" onchange="window.toggleDone(${row.id})" ${isDone ? 'checked' : ''} ${disabledStatus} class="w-4 h-4 ${cursorClass}">
+                        <input type="checkbox" onchange="window.toggleDone('${row.id}')" ${isDone ? 'checked' : ''} ${disabledStatus} class="w-4 h-4 ${cursorClass}">
                     </td>
                     <td class="border border-black px-3 py-1 whitespace-nowrap ${!isLoggedIn ? 'text-center' : ''} ${textOpacityClass}">
                         ${displayUserTnt}
@@ -1194,8 +1360,8 @@
                     <td class="border border-black px-3 py-1 text-center ${textOpacityClass}">
                         ${displayPassTnt}
                     </td>
-                    <td class="border border-black px-3 py-1 font-medium ${textOpacityClass}">${row.oldName}</td>
-                    <td class="border border-black px-3 py-1 font-bold text-blue-800 ${textOpacityClass}">${row.newName}</td>
+                    <td ${oldNameTitle} ${isAdmin ? `onclick="window.promptEditName('${row.id}', 'oldName', '${safeOldName}')"` : ''} class="border border-black px-3 py-1 font-medium ${textOpacityClass} ${oldNameCursor}">${row.oldName || ''}</td>
+                    <td ${oldNameTitle} ${isAdmin ? `onclick="window.promptEditName('${row.id}', 'newName', '${safeNewName}')"` : ''} class="border border-black px-3 py-1 font-bold text-blue-800 ${textOpacityClass} ${oldNameCursor}">${row.newName || ''}</td>
                     <td class="border border-black px-3 py-1 whitespace-nowrap ${!isLoggedIn ? 'text-center' : ''} ${textOpacityClass}">
                         ${displayUserTc}
                     </td>
