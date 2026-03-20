@@ -173,7 +173,7 @@
         // CẤU HÌNH ĐỒNG BỘ ĐÁM MÂY (CLOUD SYNC) - ĐỂ CHẠY TRÊN NHIỀU THIẾT BỊ/IP
         // =========================================================================
         const MY_FIREBASE_CONFIG = {
-            "apiKey": "AIzaSyDWMkqROBBA0udi_AlTe3W2-c5fRIINApc",
+            "apiKey": "AIzaSyDWMkqR0BBA0udi_A1Te3W2-c5fRIINApc",
             "authDomain": "qltk-be316.firebaseapp.com",
             "databaseURL": "https://qltk-be316-default-rtdb.asia-southeast1.firebasedatabase.app",
             "projectId": "qltk-be316",
@@ -321,7 +321,11 @@
                     }
                 } catch(e) { 
                     console.error("Firebase Auth Error:", e); 
-                    alert("Không thể kết nối đến Server Đồng bộ. Hãy chắc chắn bạn đã Bật 'Anonymous Auth' trong Firebase của bạn.");
+                    if(e.code === 'auth/unauthorized-domain') {
+                        alert("LỖI BẢO MẬT TÊN MIỀN:\nBạn cần vào Firebase -> Authentication -> Settings -> Authorized domains -> Thêm tên miền '" + window.location.hostname + "' vào danh sách để cho phép đồng bộ.");
+                    } else {
+                        alert("Không thể kết nối đến Server Đồng bộ. Hãy chắc chắn bạn đã Bật 'Anonymous Auth' trong Firebase. Lỗi: " + e.message);
+                    }
                 }
             };
             initAuth();
