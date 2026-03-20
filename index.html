@@ -11,18 +11,18 @@
             opacity: 1;
         }
         /* Tùy chỉnh thanh cuộn cho bảng nhật ký */
-        #activityLogContainer::-webkit-scrollbar {
+        #activityLogContainer::-webkit-scrollbar, #adminLogContainer::-webkit-scrollbar {
             width: 8px;
         }
-        #activityLogContainer::-webkit-scrollbar-track {
+        #activityLogContainer::-webkit-scrollbar-track, #adminLogContainer::-webkit-scrollbar-track {
             background: #f1f1f1;
             border-radius: 4px;
         }
-        #activityLogContainer::-webkit-scrollbar-thumb {
+        #activityLogContainer::-webkit-scrollbar-thumb, #adminLogContainer::-webkit-scrollbar-thumb {
             background: #cbd5e1;
             border-radius: 4px;
         }
-        #activityLogContainer::-webkit-scrollbar-thumb:hover {
+        #activityLogContainer::-webkit-scrollbar-thumb:hover, #adminLogContainer::-webkit-scrollbar-thumb:hover {
             background: #94a3b8;
         }
         /* Tùy chỉnh modal phân quyền */
@@ -30,9 +30,14 @@
             backdrop-filter: blur(4px);
         }
         /* Hiệu ứng cho ô tên được phép chỉnh sửa (Chỉ Admin) */
+        .editable-cell {
+            border-bottom: 2px dashed #9ca3af;
+            transition: all 0.2s ease;
+        }
         .editable-cell:hover {
             background-color: #fef08a !important; /* Vàng nhạt */
             cursor: pointer;
+            box-shadow: inset 0 0 5px rgba(0,0,0,0.1);
         }
     </style>
 </head>
@@ -80,7 +85,7 @@
                 <p>Bạn phải kết nối Server Đồng Bộ thì mới có thể đăng nhập và thao tác.</p>
             </div>
             <label class="block text-gray-700 text-sm font-bold mb-2">
-                Nhập mã Firebase Config:
+                Dán mã Firebase Config copy trực tiếp từ trang web:
             </label>
             <textarea id="mandatoryConfigInput" rows="6" class="w-full border border-gray-300 rounded-lg p-3 text-xs font-mono focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50 shadow-inner" placeholder='{\n  "apiKey": "AIzaSy...",\n  "authDomain": "...",\n  "projectId": "...",\n  "storageBucket": "...",\n  "messagingSenderId": "...",\n  "appId": "..."\n}'></textarea>
             <button onclick="window.saveMandatoryConfig()" class="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline transition-colors" type="button">
@@ -176,12 +181,12 @@
             <span id="footerInfo">Tổng cộng: 0 tài khoản</span>
         </div>
 
-        <!-- Nhật ký hoạt động -->
+        <!-- Nhật ký hoạt động (BẢNG CHÍNH) -->
         <div id="activityLogSection" class="hidden mt-8 border-t border-gray-200 pt-6">
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-3 gap-2">
                 <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-600"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>
-                    Nhật Ký Hoạt Động (Real-time)
+                    Nhật Ký Hệ Thống (Real-time)
                 </h2>
                 <div class="flex items-center gap-2">
                     <label for="logDateFilter" class="text-sm font-medium text-gray-700">Chọn ngày:</label>
@@ -212,25 +217,42 @@
                 </button>
             </div>
             
-            <!-- Danh sách phân quyền nhân viên -->
-            <div class="overflow-y-auto flex-1 mb-4 border border-gray-200 rounded">
-                <table class="w-full text-sm border-collapse text-left">
-                    <thead class="sticky top-0 bg-gray-50 shadow-sm z-10">
-                        <tr>
-                            <th class="border-b border-r border-gray-300 px-3 py-2 font-bold w-1/5 text-gray-700">Tài Khoản</th>
-                            <th class="border-b border-r border-gray-300 px-3 py-2 font-bold w-2/5 text-gray-700" title="Nhập danh sách số cách nhau bởi dấu phẩy, hoặc nhập 'all'">STT Được Xem (Phân cách bằng dấu phẩy)</th>
-                            <th class="border-b border-r border-gray-300 px-3 py-2 font-bold text-center w-1/5 text-gray-700 text-xs">Quyền Sửa<br>(Tích thêm ô Xong)</th>
-                            <th class="border-b border-gray-300 px-3 py-2 font-bold text-center w-1/5 text-gray-700 text-xs">Quyền Xóa<br>(Bỏ tích ô Xong)</th>
-                        </tr>
-                    </thead>
-                    <tbody id="adminPanelTableBody">
-                        <!-- Danh sách nhân viên sẽ được render tại đây -->
-                    </tbody>
-                </table>
+            <!-- Cột Trái / Phải chứa Danh sách Quyền và Nhật Ký Quyền -->
+            <div class="flex flex-col md:flex-row gap-4 overflow-hidden flex-1">
+                
+                <!-- Bảng Quyền Nhân viên (Trái) -->
+                <div class="md:w-2/3 flex flex-col border border-gray-200 rounded overflow-hidden">
+                    <div class="bg-gray-100 text-sm font-bold text-gray-700 p-2 border-b border-gray-200">Danh Sách Phân Quyền</div>
+                    <div class="overflow-y-auto flex-1">
+                        <table class="w-full text-sm border-collapse text-left">
+                            <thead class="sticky top-0 bg-gray-50 shadow-sm z-10">
+                                <tr>
+                                    <th class="border-b border-r border-gray-300 px-3 py-2 font-bold w-1/4 text-gray-700">Tài Khoản</th>
+                                    <th class="border-b border-r border-gray-300 px-3 py-2 font-bold w-1/2 text-gray-700" title="Nhập danh sách số cách nhau bởi dấu phẩy, hoặc nhập 'all'">STT Được Xem</th>
+                                    <th class="border-b border-r border-gray-300 px-3 py-2 font-bold text-center text-xs text-gray-700">Sửa</th>
+                                    <th class="border-b border-gray-300 px-3 py-2 font-bold text-center text-xs text-gray-700">Xóa</th>
+                                </tr>
+                            </thead>
+                            <tbody id="adminPanelTableBody">
+                                <!-- Danh sách nhân viên sẽ được render tại đây -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Nhật ký Phân Quyền & Đăng Ký (Phải) -->
+                <div class="md:w-1/3 flex flex-col border border-purple-200 rounded overflow-hidden bg-purple-50/30">
+                    <div class="bg-purple-100 text-sm font-bold text-purple-800 p-2 border-b border-purple-200 flex justify-between items-center">
+                        <span>Nhật Ký Phân Quyền</span>
+                    </div>
+                    <div id="adminLogContainer" class="p-3 overflow-y-auto font-mono text-xs space-y-2 flex-1 text-gray-700">
+                        <!-- Nhật ký riêng cho Admin -->
+                    </div>
+                </div>
             </div>
             
             <!-- Thêm Tài Khoản (Nửa dưới của Modal) -->
-            <div class="mt-2 border-t border-gray-200 pt-4">
+            <div class="mt-4 border-t border-gray-200 pt-4">
                 <h4 class="text-sm font-bold text-gray-800 mb-2 flex items-center gap-1">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-600"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/></svg>
                     Thêm Dữ Liệu Bảng Mới
@@ -255,13 +277,13 @@
             </div>
 
             <div class="mt-4 flex justify-between items-center text-xs text-gray-500 pt-3 border-t border-gray-100">
-                <p>* Mọi thay đổi đều được tự động lưu. Gõ <span class="font-bold text-black">none</span> để khóa quyền xem.</p>
+                <p>* Mọi thay đổi đều được tự động lưu.</p>
                 <button onclick="window.closeAdminPanel()" class="px-5 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors font-medium">Đóng bảng</button>
             </div>
         </div>
     </div>
 
-    <!-- Modal cấu hình Firebase (Gắn Server cho file HTML tĩnh) -->
+    <!-- Modal cấu hình Firebase -->
     <div id="firebaseConfigModal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
         <div class="bg-white rounded-xl shadow-2xl max-w-lg w-full p-6 border border-gray-200">
             <div class="flex justify-between items-center mb-4">
@@ -288,7 +310,7 @@
         import { getFirestore, collection, doc, setDoc, onSnapshot, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // =========================================================================
-        // CẤU HÌNH ĐỒNG BỘ ĐÁM MÂY (CLOUD SYNC) - ĐỂ CHẠY TRÊN NHIỀU THIẾT BỊ/IP
+        // CẤU HÌNH ĐỒNG BỘ ĐÁM MÂY (CLOUD SYNC)
         // =========================================================================
         const MY_FIREBASE_CONFIG = {
             "apiKey": "AIzaSyDWMkqROBBA0udi_AlTe3W2-c5fRIINApc",
@@ -302,6 +324,7 @@
 
         let app, auth, db;
         let useFirebase = false;
+        let isUsingCanvasConfig = false;
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'shared-account-manager-v1';
 
         window.saveFirebaseConfig = function(inputId = 'firebaseConfigInput') {
@@ -334,18 +357,18 @@
 
         try {
             let configToUse = null;
+            const customConfigStr = localStorage.getItem('custom_firebase_config');
             
-            // ƯU TIÊN 1: LUÔN SỬ DỤNG MÃ CỐ ĐỊNH NẾU CÓ
             if (Object.keys(MY_FIREBASE_CONFIG).length > 0 && MY_FIREBASE_CONFIG.apiKey) {
                 configToUse = MY_FIREBASE_CONFIG;
                 localStorage.removeItem('custom_firebase_config'); 
             } 
             else if (typeof __firebase_config !== 'undefined' && __firebase_config && __firebase_config !== '{}') {
                 configToUse = JSON.parse(__firebase_config);
+                isUsingCanvasConfig = true;
             } 
-            else {
-                const customConfigStr = localStorage.getItem('custom_firebase_config');
-                if (customConfigStr) configToUse = JSON.parse(customConfigStr);
+            else if (customConfigStr) {
+                configToUse = JSON.parse(customConfigStr);
             }
 
             if (configToUse) {
@@ -365,7 +388,33 @@
             document.getElementById('loginScreenDesc').innerText = "Trạng thái: Chưa có kết nối Server";
         }
 
-        // --- Cập nhật giao diện trạng thái mạng chi tiết ---
+        // --- XỬ LÝ LỖI FIRESTORE QUYỀN TRUY CẬP ---
+        window.handleFirestoreError = function(error) {
+            if (error.code === 'permission-denied') {
+                setNetworkStatus('error', 'Lỗi phân quyền Database (Rules)');
+                const container = document.getElementById('activityLogContainer');
+                if (container) {
+                    container.innerHTML = `
+                        <div class="text-red-700 bg-red-50 border border-red-200 p-4 rounded-lg text-sm shadow-sm">
+                            <p class="font-bold text-base mb-2">⛔ LỖI QUYỀN TRUY CẬP FIRESTORE (PERMISSION DENIED)</p>
+                            <p class="mb-2">Firebase của bạn đang chặn quyền Đọc/Ghi dữ liệu. Để sửa lỗi, vui lòng làm đúng các bước sau:</p>
+                            <ol class="list-decimal pl-5 space-y-1 mb-3">
+                                <li>Truy cập <a href="https://console.firebase.google.com" target="_blank" class="font-bold text-blue-600 hover:underline">Firebase Console</a> và mở dự án <b>${MY_FIREBASE_CONFIG.projectId || 'của bạn'}</b>.</li>
+                                <li>Ở menu bên trái, chọn <b>Firestore Database</b>.</li>
+                                <li>Chuyển sang tab <b>Rules</b> (Quy tắc) ở giữa màn hình.</li>
+                                <li>Thay đổi chữ <code class="bg-gray-200 px-1 text-red-600 rounded">false</code> thành <code class="bg-green-200 px-1 text-green-800 font-bold rounded">true</code> trong dòng allow read, write. Cụ thể:
+                                    <pre class="bg-gray-800 text-green-400 p-2 mt-2 rounded text-xs overflow-x-auto">match /{document=**} {\n  allow read, write: if true;\n}</pre>
+                                </li>
+                                <li>Bấm nút <b>Publish</b> (Xuất bản) rồi quay lại đây tải lại trang (F5).</li>
+                            </ol>
+                        </div>
+                    `;
+                }
+            } else {
+                console.error("Firestore Error:", error);
+            }
+        }
+
         function setNetworkStatus(status, errMsg = '') {
             const el = document.getElementById('networkStatus');
             if (!el) return;
@@ -390,7 +439,11 @@
                 el.className = "flex items-center gap-1.5 text-xs font-bold bg-red-50 px-2.5 py-0.5 rounded-full border border-red-200 cursor-pointer hover:bg-red-100 transition-colors";
                 el.title = errMsg;
                 el.onclick = () => {
-                    alert("LỖI KẾT NỐI SERVER:\n" + errMsg + "\n\n(Vui lòng kiểm tra lại quyền truy cập tên miền hoặc API Key của Firebase)");
+                    alert("LỖI KẾT NỐI SERVER:\n" + errMsg);
+                    if(errMsg.includes('auth/api-key-not-valid')) {
+                        localStorage.removeItem('custom_firebase_config');
+                        window.location.reload();
+                    }
                 };
             }
             else if (status === 'connecting') {
@@ -411,7 +464,7 @@
             }
         }
 
-        // --- DỮ LIỆU ĐỘNG & BỘ NHỚ LƯU TRỮ ---
+        // --- CƠ CHẾ OFFLINE FIRST VÀ QUẢN LÝ USER ĐỘNG ---
         const baseUserAccounts = [
             { username: 'admin', password: 'admin@@', allowedIndices: 'all', canTick: true, canUntick: true },
             { username: 'admin1', password: 'asdasd', allowedIndices: 'all', canTick: true, canUntick: true },
@@ -427,9 +480,13 @@
         let registeredAccounts = []; 
         let localPerms = JSON.parse(localStorage.getItem('localUserPermissions')) || {};
 
-        // Thêm dữ liệu tài khoản được Admin tạo mới, hoặc Admin đổi tên nhân vật
         let customAccounts = JSON.parse(localStorage.getItem('customAccounts')) || [];
         let editedNamesMap = JSON.parse(localStorage.getItem('editedNamesMap')) || {};
+
+        // TRẠNG THÁI NHẬT KÝ (MAIN + ADMIN)
+        let doneItems = JSON.parse(localStorage.getItem('doneAccounts')) || {};
+        let activityLogs = JSON.parse(localStorage.getItem('activityLogs')) || [];
+        let adminActivityLogs = JSON.parse(localStorage.getItem('adminActivityLogs')) || [];
 
         function buildAllUsers() {
             const mergedBase = baseUserAccounts.map(u => ({ ...u, ...(localPerms[u.username] || {}) }));
@@ -444,12 +501,10 @@
         let firebaseUser = null;
         let unsubStatus = null;
         let unsubLogs = null;
+        let unsubAdminLogs = null;
         let unsubPerms = null;
         let unsubCustomAcc = null;
         let unsubEditedNames = null;
-        
-        let doneItems = JSON.parse(localStorage.getItem('doneAccounts')) || {};
-        let activityLogs = JSON.parse(localStorage.getItem('activityLogs')) || [];
         
         if (!useFirebase) {
             setNetworkStatus('offline');
@@ -478,26 +533,34 @@
             setNetworkStatus('connecting'); 
             const initAuth = async () => {
                 try {
-                    await signInAnonymously(auth);
+                    if (isUsingCanvasConfig && typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
                 } catch(e) { 
                     console.error("Firebase Auth Error:", e); 
                     setNetworkStatus('error', e.message); 
                     
-                    const container = document.getElementById('activityLogContainer');
-                    if(container) {
-                        let helperText = "";
-                        if(e.message.includes('auth/api-key-not-valid')) {
-                            helperText = "Mã API Key không đúng định dạng. Vui lòng kiểm tra lại đoạn cấu hình Firebase.";
-                        } else if (e.message.includes('unauthorized-domain')) {
-                            helperText = `Hãy vào Firebase -> Authentication -> Settings -> Authorized domains -> Thêm <b>${window.location.hostname}</b> vào danh sách.`;
-                        } else {
-                            helperText = "Hãy đảm bảo bạn đã bật tính năng 'Anonymous Auth' trong Firebase.";
+                    if(e.code === 'auth/api-key-not-valid') {
+                        alert("Mã API Key của bạn không hợp lệ. Vui lòng kiểm tra lại đoạn cấu hình Firebase.");
+                        localStorage.removeItem('custom_firebase_config');
+                        window.location.reload();
+                    } else {
+                        const container = document.getElementById('activityLogContainer');
+                        if(container) {
+                            let helperText = "";
+                            if (e.message.includes('unauthorized-domain')) {
+                                helperText = `Hãy vào Firebase -> Authentication -> Settings -> Authorized domains -> Thêm <b>${window.location.hostname}</b> vào danh sách.`;
+                            } else {
+                                helperText = "Hãy đảm bảo bạn đã bật tính năng 'Anonymous Auth' trong Firebase.";
+                            }
+                            
+                            container.innerHTML = `<div class="text-red-600 bg-red-50 border border-red-200 p-3 rounded-lg text-sm">
+                                ⚠️ <b>Lỗi kết nối Máy chủ:</b> ${e.message}<br><br>
+                                👉 <b>Cách khắc phục:</b><br>${helperText}
+                            </div>`;
                         }
-                        
-                        container.innerHTML = `<div class="text-red-600 bg-red-50 border border-red-200 p-3 rounded-lg text-sm">
-                            ⚠️ <b>Lỗi kết nối Máy chủ:</b> ${e.message}<br><br>
-                            👉 <b>Cách khắc phục:</b><br>${helperText}
-                        </div>`;
                     }
                 }
             };
@@ -510,11 +573,34 @@
                 } else {
                     if (unsubStatus) unsubStatus();
                     if (unsubLogs) unsubLogs();
+                    if (unsubAdminLogs) unsubAdminLogs();
                     if (unsubPerms) unsubPerms();
                     if (unsubCustomAcc) unsubCustomAcc();
                     if (unsubEditedNames) unsubEditedNames();
                 }
             });
+        }
+
+        // --- HÀM GHI NHẬT KÝ CHUNG TRÊN TOÀN HỆ THỐNG ---
+        window.logAction = async function(type, payload) {
+            const collectionName = type === 'main' ? 'activity_log' : 'admin_activity_log';
+            const storageKey = type === 'main' ? 'activityLogs' : 'adminActivityLogs';
+            const logArray = type === 'main' ? activityLogs : adminActivityLogs;
+
+            if (useFirebase && firebaseUser) {
+                try {
+                    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', collectionName), payload);
+                } catch (e) {
+                    console.error("Lỗi ghi log:", e);
+                    window.handleFirestoreError(e);
+                }
+            } else {
+                payload.id = Date.now().toString();
+                logArray.unshift(payload);
+                localStorage.setItem(storageKey, JSON.stringify(logArray));
+                if(type === 'main') renderLogs();
+                if(type === 'admin') renderAdminLogs();
+            }
         }
 
         function setupRealtimeListeners() {
@@ -529,20 +615,33 @@
                 });
                 localStorage.setItem('doneAccounts', JSON.stringify(doneItems)); 
                 renderTable(); 
-            }, (error) => console.error("Lỗi đồng bộ trạng thái:", error));
+            }, (error) => window.handleFirestoreError(error));
 
-            // Sync: Nhật ký
+            // Sync: Nhật ký Chính
             const logRef = collection(db, 'artifacts', appId, 'public', 'data', 'activity_log');
             unsubLogs = onSnapshot(logRef, (snapshot) => {
                 activityLogs = [];
                 snapshot.forEach(doc => {
                     activityLogs.push({ id: doc.id, ...doc.data() });
                 });
-                
                 activityLogs.sort((a, b) => b.timestamp - a.timestamp);
                 localStorage.setItem('activityLogs', JSON.stringify(activityLogs)); 
                 renderLogs();
-            }, (error) => console.error("Lỗi đồng bộ nhật ký:", error));
+            }, (error) => window.handleFirestoreError(error));
+
+            // Sync: Nhật ký Phân quyền Admin
+            const adminLogRef = collection(db, 'artifacts', appId, 'public', 'data', 'admin_activity_log');
+            unsubAdminLogs = onSnapshot(adminLogRef, (snapshot) => {
+                adminActivityLogs = [];
+                snapshot.forEach(doc => {
+                    adminActivityLogs.push({ id: doc.id, ...doc.data() });
+                });
+                adminActivityLogs.sort((a, b) => b.timestamp - a.timestamp);
+                localStorage.setItem('adminActivityLogs', JSON.stringify(adminActivityLogs));
+                if(!document.getElementById('adminPanelModal').classList.contains('hidden')) {
+                    renderAdminLogs();
+                }
+            }, (error) => window.handleFirestoreError(error));
 
             // Sync: Quyền Admin
             const permRef = collection(db, 'artifacts', appId, 'public', 'data', 'user_permissions');
@@ -583,9 +682,9 @@
                 if(!document.getElementById('adminPanelModal').classList.contains('hidden')) {
                     renderAdminPanel();
                 }
-            }, (error) => console.error("Lỗi đồng bộ quyền:", error));
+            }, (error) => window.handleFirestoreError(error));
 
-            // Sync: Các tài khoản Data mới được thêm
+            // Sync: Thêm Tài Khoản (Admin)
             const customAccRef = collection(db, 'artifacts', appId, 'public', 'data', 'custom_accounts');
             unsubCustomAcc = onSnapshot(customAccRef, (snapshot) => {
                 customAccounts = [];
@@ -594,9 +693,9 @@
                 });
                 localStorage.setItem('customAccounts', JSON.stringify(customAccounts));
                 renderTable();
-            });
+            }, (error) => window.handleFirestoreError(error));
 
-            // Sync: Tên nhân vật được chỉnh sửa
+            // Sync: Sửa Tên Nhân Vật (Admin)
             const editedNamesRef = collection(db, 'artifacts', appId, 'public', 'data', 'edited_names');
             unsubEditedNames = onSnapshot(editedNamesRef, (snapshot) => {
                 editedNamesMap = {};
@@ -605,9 +704,10 @@
                 });
                 localStorage.setItem('editedNamesMap', JSON.stringify(editedNamesMap));
                 renderTable();
-            });
+            }, (error) => window.handleFirestoreError(error));
         }
 
+        // --- RENDER NHẬT KÝ HỆ THỐNG ---
         function renderLogs() {
             const container = document.getElementById('activityLogContainer');
             
@@ -628,21 +728,62 @@
                 const dateObj = new Date(log.timestamp);
                 const timeString = dateObj.toLocaleTimeString('vi-VN', { hour12: false });
                 
-                const isCheck = log.action === 'XONG';
-                const actionBadge = isCheck 
-                    ? `<span class="bg-green-100 text-green-700 px-2 py-0.5 rounded font-bold text-xs uppercase border border-green-200">${log.action}</span>` 
-                    : `<span class="bg-red-100 text-red-700 px-2 py-0.5 rounded font-bold text-xs uppercase border border-red-200">${log.action}</span>`;
+                let logTextHtml = "";
+                
+                if (log.action === 'XONG' || log.action === 'BỎ') {
+                    const actionBadge = log.action === 'XONG' 
+                        ? `<span class="bg-green-100 text-green-700 px-2 py-0.5 rounded font-bold text-xs uppercase border border-green-200">${log.action}</span>` 
+                        : `<span class="bg-red-100 text-red-700 px-2 py-0.5 rounded font-bold text-xs uppercase border border-red-200">${log.action}</span>`;
+                    logTextHtml = `<span class="text-gray-600">đã đánh dấu</span> ${actionBadge} <span class="text-gray-700">tài khoản STT</span> <span class="font-bold text-black border-b border-black leading-none">${log.displayStt}</span>`;
+                } 
+                else if (log.action === 'SỬA TÊN') {
+                    logTextHtml = `<span class="text-gray-600">đã sửa</span> <span class="font-semibold text-gray-800">${log.details.field}</span> <span class="text-gray-600">của STT</span> <span class="font-bold text-black border-b border-black leading-none">${log.displayStt}</span> <span class="text-gray-600">từ</span> <span class="line-through text-gray-400">'${log.details.oldVal || 'trống'}'</span> <span class="text-gray-600">thành</span> <span class="font-bold text-blue-700">'${log.details.newVal}'</span>`;
+                }
+                else if (log.action === 'THÊM MỚI') {
+                    logTextHtml = `<span class="text-gray-600">đã thêm</span> <span class="font-bold text-blue-600">tài khoản mới</span> <span class="text-gray-600">vào bảng (Tên NV Mới: <span class="font-bold">${log.details.newName}</span>)</span>`;
+                }
 
                 const div = document.createElement('div');
                 div.className = "flex items-center gap-2 border-b border-gray-200 pb-2 mb-2 last:border-0 hover:bg-white p-1 rounded transition-colors";
                 div.innerHTML = `
                     <span class="text-gray-400 text-xs w-20 shrink-0">[${timeString}]</span>
                     <span class="font-bold text-blue-700 w-24 shrink-0 truncate" title="${log.username}">${log.username}</span>
-                    <span class="text-gray-600">đã đánh dấu</span>
-                    ${actionBadge}
-                    <span class="text-gray-700">tài khoản STT</span>
-                    <span class="font-bold text-black border-b border-black leading-none">${log.displayStt}</span>
+                    ${logTextHtml}
                 `;
+                container.appendChild(div);
+            });
+        }
+
+        // --- RENDER NHẬT KÝ PHÂN QUYỀN (CHỈ ADMIN) ---
+        function renderAdminLogs() {
+            const container = document.getElementById('adminLogContainer');
+            if(!container) return;
+            container.innerHTML = '';
+            
+            if(adminActivityLogs.length === 0) {
+                container.innerHTML = '<div class="text-gray-500 italic">Chưa có nhật ký phân quyền & đăng ký.</div>';
+                return;
+            }
+
+            adminActivityLogs.forEach(log => {
+                const dateObj = new Date(log.timestamp);
+                const timeString = `${dateObj.getHours().toString().padStart(2, '0')}:${dateObj.getMinutes().toString().padStart(2, '0')} ${dateObj.getDate()}/${dateObj.getMonth()+1}`;
+                
+                let textHtml = '';
+                if (log.action === 'ĐĂNG KÝ') {
+                    textHtml = `Tài khoản <span class="font-bold text-green-700">${log.targetUser}</span> vừa tự đăng ký mới.`;
+                } else if (log.action === 'PHÂN QUYỀN') {
+                    let fieldName = log.details.field === 'allowedIndices' ? 'STT Được Xem' : (log.details.field === 'canTick' ? 'Quyền Sửa (Tick)' : 'Quyền Xóa (Bỏ)');
+                    let valName = log.details.newVal;
+                    if(typeof valName === 'boolean') valName = valName ? 'BẬT' : 'TẮT';
+                    if(Array.isArray(valName)) valName = valName.length === 0 ? 'KHÓA' : valName.join(', ');
+                    
+                    textHtml = `Admin đã đổi <span class="font-semibold">${fieldName}</span> của <span class="font-bold text-gray-800">${log.targetUser}</span> thành <span class="font-bold text-purple-700">[${valName}]</span>.`;
+                }
+                
+                const div = document.createElement('div');
+                div.className = "border-b border-purple-100 pb-1.5 mb-1.5 last:border-0";
+                div.innerHTML = `<span class="text-gray-400 mr-1">[${timeString}]</span> ${textHtml}`;
                 container.appendChild(div);
             });
         }
@@ -654,6 +795,7 @@
             if (!useFirebase) {
                 doneItems = JSON.parse(localStorage.getItem('doneAccounts')) || {};
                 activityLogs = JSON.parse(localStorage.getItem('activityLogs')) || [];
+                adminActivityLogs = JSON.parse(localStorage.getItem('adminActivityLogs')) || [];
                 customAccounts = JSON.parse(localStorage.getItem('customAccounts')) || [];
                 editedNamesMap = JSON.parse(localStorage.getItem('editedNamesMap')) || {};
                 
@@ -676,6 +818,13 @@
                     activityLogs.sort((a, b) => b.timestamp - a.timestamp);
                     localStorage.setItem('activityLogs', JSON.stringify(activityLogs));
                     
+                    const adminLogRef = collection(db, 'artifacts', appId, 'public', 'data', 'admin_activity_log');
+                    const adminLogSnap = await getDocs(adminLogRef);
+                    adminActivityLogs = [];
+                    adminLogSnap.forEach(doc => { adminActivityLogs.push({ id: doc.id, ...doc.data() }); });
+                    adminActivityLogs.sort((a, b) => b.timestamp - a.timestamp);
+                    localStorage.setItem('adminActivityLogs', JSON.stringify(adminActivityLogs));
+
                     const permRef = collection(db, 'artifacts', appId, 'public', 'data', 'user_permissions');
                     const permSnap = await getDocs(permRef);
                     let tempRegistered = [];
@@ -712,12 +861,16 @@
 
                 } catch(e) {
                     console.error("Lỗi khi Refresh dữ liệu:", e);
+                    window.handleFirestoreError(e);
                 }
             }
 
             renderTable();
             renderLogs();
-            if(!document.getElementById('adminPanelModal').classList.contains('hidden')) renderAdminPanel();
+            if(!document.getElementById('adminPanelModal').classList.contains('hidden')) {
+                renderAdminPanel();
+                renderAdminLogs();
+            }
 
             setTimeout(() => { if (icon) icon.classList.remove('animate-spin'); }, 600);
         };
@@ -733,7 +886,6 @@
             }
 
             const newState = !isCurrentlyDone;
-            // Lookup the displayStt globally based on sorting
             let displayStt = id;
             if(isGrouped && window.globalGroupedIndexMap) {
                  displayStt = window.globalGroupedIndexMap[id] || id;
@@ -743,39 +895,32 @@
             localStorage.setItem('doneAccounts', JSON.stringify(doneItems)); 
             renderTable();
 
+            // Cập nhật Firebase
             if (useFirebase && firebaseUser) {
                 try {
-                    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'account_status', id.toString());
-                    await setDoc(docRef, {
+                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'account_status', id.toString()), {
                         isDone: newState,
                         updatedBy: currentUser.username,
                         updatedAt: Date.now()
                     });
-
-                    const logRef = collection(db, 'artifacts', appId, 'public', 'data', 'activity_log');
-                    await addDoc(logRef, {
-                        timestamp: Date.now(),
-                        username: currentUser.username,
-                        action: newState ? 'XONG' : 'BỎ',
-                        accountId: id,
-                        displayStt: displayStt
-                    });
                 } catch (error) {
                     console.error("Lỗi cập nhật server: ", error);
+                    window.handleFirestoreError(error);
                     doneItems[id] = isCurrentlyDone;
                     localStorage.setItem('doneAccounts', JSON.stringify(doneItems));
                     renderTable();
+                    return;
                 }
-            } else {
-                const newLog = {
-                    id: Date.now().toString(), timestamp: Date.now(),
-                    username: currentUser.username, action: newState ? 'XONG' : 'BỎ',
-                    accountId: id, displayStt: displayStt
-                };
-                activityLogs.unshift(newLog);
-                localStorage.setItem('activityLogs', JSON.stringify(activityLogs));
-                renderLogs();
             }
+            
+            // Ghi log chung
+            await window.logAction('main', {
+                timestamp: Date.now(),
+                username: currentUser.username,
+                action: newState ? 'XONG' : 'BỎ',
+                accountId: id,
+                displayStt: displayStt
+            });
         };
 
         // --- CÁC THÀNH PHẦN LOGIC GIAO DIỆN ---
@@ -830,24 +975,30 @@
 
             if (useFirebase && firebaseUser) {
                 try {
-                    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'user_permissions', user);
-                    await setDoc(docRef, newUserPerms, { merge: true });
-                    alert("Đăng ký thành công! Bạn có thể đăng nhập ngay.\n\nLưu ý: Bạn phải chờ Admin cấp quyền thì mới xem được dữ liệu.");
-                    window.closeRegisterModal();
+                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_permissions', user), newUserPerms, { merge: true });
                 } catch(e) {
                     console.error("Lỗi đăng ký:", e);
-                    alert("Đăng ký thất bại: " + e.message);
+                    window.handleFirestoreError(e);
+                    alert("Đăng ký thất bại.");
+                    return;
                 }
             } else {
                 localPerms[user] = newUserPerms;
                 localStorage.setItem('localUserPermissions', JSON.stringify(localPerms));
-                
                 registeredAccounts.push({ username: user, ...newUserPerms });
                 buildAllUsers();
-                
-                alert("Đăng ký thành công (Ngoại Tuyến)!\nLưu ý: Bạn phải chờ Admin cấp quyền thì mới xem được dữ liệu.");
-                window.closeRegisterModal();
             }
+
+            // Ghi log cho Admin
+            await window.logAction('admin', {
+                timestamp: Date.now(),
+                actor: user,
+                targetUser: user,
+                action: 'ĐĂNG KÝ'
+            });
+
+            alert("Đăng ký thành công! Bạn có thể đăng nhập ngay.\n\nLưu ý: Bạn phải chờ Admin cấp quyền thì mới xem được dữ liệu.");
+            window.closeRegisterModal();
         };
 
         function showApp(userObj, isRestoring = false) {
@@ -989,6 +1140,7 @@
         window.openAdminPanel = function() {
             document.getElementById('adminPanelModal').classList.remove('hidden');
             renderAdminPanel();
+            renderAdminLogs();
         }
 
         window.closeAdminPanel = function() {
@@ -997,7 +1149,7 @@
 
         function formatIndices(arr) {
             if (arr === 'all') return 'all';
-            if (Array.isArray(arr) && arr.length === 0) return 'none'; // Mới đký = rỗng
+            if (Array.isArray(arr) && arr.length === 0) return 'none'; 
             if (Array.isArray(arr)) return arr.join(', ');
             return 'none';
         }
@@ -1005,7 +1157,7 @@
         function parseIndices(str) {
             str = str.trim().toLowerCase();
             if (str === 'all') return 'all';
-            if (str === 'none' || str === '') return []; // Rỗng hoặc none = Khóa xem
+            if (str === 'none' || str === '') return []; 
             const arr = str.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
             return arr;
         }
@@ -1023,12 +1175,21 @@
                 allUsers[uIndex][field] = newValue;
             }
 
+            // Ghi log Admin
+            await window.logAction('admin', {
+                timestamp: Date.now(),
+                actor: currentUser.username,
+                targetUser: username,
+                action: 'PHÂN QUYỀN',
+                details: { field: field, newVal: newValue }
+            });
+
             if (useFirebase && firebaseUser) {
                 try {
-                    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'user_permissions', username);
-                    await setDoc(docRef, { [field]: newValue }, { merge: true });
+                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_permissions', username), { [field]: newValue }, { merge: true });
                 } catch(e) {
                     console.error("Lỗi cập nhật quyền Firebase:", e);
+                    window.handleFirestoreError(e);
                 }
             } else {
                 if(!localPerms[username]) localPerms[username] = {};
@@ -1055,7 +1216,7 @@
             }
 
             const newAcc = {
-                id: Date.now(), // Generate a unique ID (timestamp)
+                id: Date.now(),
                 userTnt: document.getElementById('newAcc_userTnt').value.trim(),
                 passTnt: document.getElementById('newAcc_passTnt').value.trim(),
                 oldName: document.getElementById('newAcc_oldName').value.trim(),
@@ -1065,10 +1226,18 @@
                 color: document.getElementById('newAcc_color').value
             };
 
+            // Ghi Log Thêm mới vào Bảng chính
+            await window.logAction('main', {
+                timestamp: Date.now(),
+                username: currentUser.username,
+                action: 'THÊM MỚI',
+                displayStt: 'N/A', // Mới thêm chưa có STT liền
+                details: { newName: newName }
+            });
+
             if (useFirebase && firebaseUser) {
                 try {
                     await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'custom_accounts', newAcc.id.toString()), newAcc);
-                    // Clear fields
                     document.getElementById('newAcc_userTnt').value = '';
                     document.getElementById('newAcc_passTnt').value = '';
                     document.getElementById('newAcc_oldName').value = '';
@@ -1078,7 +1247,7 @@
                     alert("Thêm tài khoản vào bảng thành công!");
                 } catch(e) {
                     console.error("Lỗi thêm tài khoản bảng:", e);
-                    alert("Lỗi khi thêm: " + e.message);
+                    window.handleFirestoreError(e);
                 }
             } else {
                 customAccounts.push(newAcc);
@@ -1092,10 +1261,24 @@
         window.promptEditName = async function(id, field, oldVal) {
             if (!currentUser || currentUser.username !== 'admin') return;
             const fieldLabel = field === 'oldName' ? 'Tên NV (Cũ)' : 'Tên NV (Mới)';
-            const newVal = prompt(`Chỉnh sửa ${fieldLabel} cho ID ${id}:`, oldVal);
+            const newVal = prompt(`Chỉnh sửa ${fieldLabel} cho dòng này:`, oldVal);
             
-            if (newVal === null || newVal.trim() === oldVal) return; // Hủy hoặc không đổi
+            if (newVal === null || newVal.trim() === oldVal) return; 
             const finalVal = newVal.trim();
+
+            let displayStt = id;
+            if(isGrouped && window.globalGroupedIndexMap) {
+                 displayStt = window.globalGroupedIndexMap[id] || id;
+            }
+
+            // Ghi Log Sửa Tên vào Bảng chính
+            await window.logAction('main', {
+                timestamp: Date.now(),
+                username: currentUser.username,
+                action: 'SỬA TÊN',
+                displayStt: displayStt,
+                details: { field: fieldLabel, oldVal: oldVal, newVal: finalVal }
+            });
 
             if (useFirebase && firebaseUser) {
                 try {
@@ -1104,7 +1287,7 @@
                     }, { merge: true });
                 } catch(e) {
                     console.error("Lỗi sửa tên:", e);
-                    alert("Lỗi sửa tên: " + e.message);
+                    window.handleFirestoreError(e);
                 }
             } else {
                 if(!editedNamesMap[id]) editedNamesMap[id] = {};
@@ -1113,7 +1296,6 @@
                 renderTable();
             }
         }
-
 
         function renderAdminPanel() {
             const tbody = document.getElementById('adminPanelTableBody');
@@ -1222,7 +1404,6 @@
         const sortIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/></svg>`;
 
         let isGrouped = true;
-        // Bổ sung biến map STT toàn cục để lưu log chuẩn xác nhất
         window.globalGroupedIndexMap = {};
 
         window.handleCopy = function(text, buttonElement) {
@@ -1265,7 +1446,6 @@
             const tableBody = document.getElementById('tableBody');
             tableBody.innerHTML = '';
 
-            // Ghép dữ liệu thô + dữ liệu thêm bằng Admin + dữ liệu Edit Tên
             let finalData = [...rawData, ...customAccounts].map(row => {
                 const edited = editedNamesMap[row.id];
                 if (edited) {
@@ -1278,7 +1458,6 @@
                 return row;
             });
 
-            // Gom nhóm màu và tính toán STT hiển thị
             const groupedIndexMap = {};
             let referenceData = [...finalData].sort((a, b) => {
                 if (colorWeight[a.color] !== colorWeight[b.color]) {
@@ -1289,9 +1468,8 @@
             referenceData.forEach((row, index) => {
                 groupedIndexMap[row.id] = index + 1; 
             });
-            window.globalGroupedIndexMap = groupedIndexMap; // Phục vụ ghi Log
+            window.globalGroupedIndexMap = groupedIndexMap; 
 
-            // Lọc danh sách dữ liệu thực tế được hiển thị (tùy quyền User)
             let displayData = [...finalData];
             if (currentUser && currentUser.allowedIndices !== 'all') {
                 displayData = displayData.filter(row => currentUser.allowedIndices.includes(groupedIndexMap[row.id]));
@@ -1308,10 +1486,9 @@
 
             document.getElementById('footerInfo').innerText = `Tổng cộng: ${displayData.length} tài khoản`;
 
-            // Kiểm tra quyền Sửa/Xóa Tên trực tiếp trên bảng
             const isAdmin = currentUser && currentUser.username === 'admin';
             const oldNameTitle = isAdmin ? 'title="Click để sửa tên (Quyền Admin)"' : '';
-            const oldNameCursor = isAdmin ? 'editable-cell border-dashed border-b border-gray-400' : '';
+            const oldNameCursor = isAdmin ? 'editable-cell' : '';
 
             displayData.forEach((row) => {
                 const tr = document.createElement('tr');
@@ -1327,14 +1504,11 @@
                 const isDone = doneItems[row.id];
                 const textOpacityClass = isDone ? 'opacity-40' : '';
 
-                // --- XỬ LÝ GIAO DIỆN PHÂN QUYỀN CHECKBOX ---
                 let canInteract = true;
                 if (!isLoggedIn || currentUser.isGuest) {
                     canInteract = false;
                 } else if (currentUser.username !== 'admin' && currentUser.username !== 'admin1') {
-                    // Nếu đã check nhưng KHÔNG CÓ quyền Untick (Xóa) -> Khóa
                     if (isDone && currentUser.canUntick === false) canInteract = false;
-                    // Nếu chưa check nhưng KHÔNG CÓ quyền Tick (Sửa) -> Khóa
                     if (!isDone && currentUser.canTick === false) canInteract = false;
                 }
 
@@ -1343,7 +1517,6 @@
                     ? 'cursor-not-allowed opacity-50 grayscale' 
                     : 'cursor-pointer accent-green-600 hover:scale-110 transition-transform';
 
-                // Escaping strings for HTML Injection
                 const safeOldName = (row.oldName || '').replace(/'/g, "\\'");
                 const safeNewName = (row.newName || '').replace(/'/g, "\\'");
 
@@ -1392,7 +1565,6 @@
             renderTable();
         });
 
-        // TẢI PHIÊN SAU KHI DỮ LIỆU ĐÃ SẴN SÀNG
         checkSession();
 
     </script>
