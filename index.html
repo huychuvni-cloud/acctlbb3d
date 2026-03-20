@@ -390,7 +390,7 @@
 
         // --- XỬ LÝ LỖI FIRESTORE QUYỀN TRUY CẬP ---
         window.handleFirestoreError = function(error) {
-            if (error.code === 'permission-denied') {
+            if (error && error.code === 'permission-denied') {
                 setNetworkStatus('error', 'Lỗi phân quyền Database (Rules)');
                 const container = document.getElementById('activityLogContainer');
                 if (container) {
@@ -695,7 +695,7 @@
                 renderTable();
             }, (error) => window.handleFirestoreError(error));
 
-            // Sync: Sửa Tên Nhân Vật (Admin)
+            // Sync: Sửa Thông Tin (Admin)
             const editedNamesRef = collection(db, 'artifacts', appId, 'public', 'data', 'edited_names');
             unsubEditedNames = onSnapshot(editedNamesRef, (snapshot) => {
                 editedNamesMap = {};
@@ -736,11 +736,15 @@
                         : `<span class="bg-red-100 text-red-700 px-2 py-0.5 rounded font-bold text-xs uppercase border border-red-200">${log.action}</span>`;
                     logTextHtml = `<span class="text-gray-600">đã đánh dấu</span> ${actionBadge} <span class="text-gray-700">tài khoản STT</span> <span class="font-bold text-black border-b border-black leading-none">${log.displayStt}</span>`;
                 } 
-                else if (log.action === 'SỬA TÊN') {
-                    logTextHtml = `<span class="text-gray-600">đã sửa</span> <span class="font-semibold text-gray-800">${log.details.field}</span> <span class="text-gray-600">của STT</span> <span class="font-bold text-black border-b border-black leading-none">${log.displayStt}</span> <span class="text-gray-600">từ</span> <span class="line-through text-gray-400">'${log.details.oldVal || 'trống'}'</span> <span class="text-gray-600">thành</span> <span class="font-bold text-blue-700">'${log.details.newVal}'</span>`;
+                else if (log.action === 'SỬA THÔNG TIN' || log.action === 'SỬA TÊN') {
+                    const safeField = log.details?.field || 'Thông tin';
+                    const safeOld = log.details?.oldVal || 'trống';
+                    const safeNew = log.details?.newVal || 'trống';
+                    logTextHtml = `<span class="text-gray-600">đã sửa</span> <span class="font-semibold text-gray-800">${safeField}</span> <span class="text-gray-600">của STT</span> <span class="font-bold text-black border-b border-black leading-none">${log.displayStt}</span> <span class="text-gray-600">từ</span> <span class="line-through text-gray-400">'${safeOld}'</span> <span class="text-gray-600">thành</span> <span class="font-bold text-blue-700">'${safeNew}'</span>`;
                 }
                 else if (log.action === 'THÊM MỚI') {
-                    logTextHtml = `<span class="text-gray-600">đã thêm</span> <span class="font-bold text-blue-600">tài khoản mới</span> <span class="text-gray-600">vào bảng (Tên NV Mới: <span class="font-bold">${log.details.newName}</span>)</span>`;
+                    const newName = log.details?.newName || 'N/A';
+                    logTextHtml = `<span class="text-gray-600">đã thêm</span> <span class="font-bold text-blue-600">tài khoản mới</span> <span class="text-gray-600">vào bảng (Tên NV Mới: <span class="font-bold">${newName}</span>)</span>`;
                 }
 
                 const div = document.createElement('div');
@@ -773,8 +777,8 @@
                 if (log.action === 'ĐĂNG KÝ') {
                     textHtml = `Tài khoản <span class="font-bold text-green-700">${log.targetUser}</span> vừa tự đăng ký mới.`;
                 } else if (log.action === 'PHÂN QUYỀN') {
-                    let fieldName = log.details.field === 'allowedIndices' ? 'STT Được Xem' : (log.details.field === 'canTick' ? 'Quyền Sửa (Tick)' : 'Quyền Xóa (Bỏ)');
-                    let valName = log.details.newVal;
+                    let fieldName = log.details?.field === 'allowedIndices' ? 'STT Được Xem' : (log.details?.field === 'canTick' ? 'Quyền Sửa (Tick)' : 'Quyền Xóa (Bỏ)');
+                    let valName = log.details?.newVal;
                     if(typeof valName === 'boolean') valName = valName ? 'BẬT' : 'TẮT';
                     if(Array.isArray(valName)) valName = valName.length === 0 ? 'KHÓA' : valName.join(', ');
                     
@@ -1257,13 +1261,13 @@
             }
         }
 
-        // --- HÀM SỬA TÊN NHÂN VẬT DÀNH CHO ADMIN ---
-        window.promptEditName = async function(id, field, oldVal) {
+        // --- HÀM SỬA TẤT CẢ THÔNG TIN BẢNG DÀNH CHO ADMIN ---
+        window.promptEditField = async function(id, field, oldVal, fieldLabel) {
             if (!currentUser || currentUser.username !== 'admin') return;
-            const fieldLabel = field === 'oldName' ? 'Tên NV (Cũ)' : 'Tên NV (Mới)';
-            const newVal = prompt(`Chỉnh sửa ${fieldLabel} cho dòng này:`, oldVal);
             
+            const newVal = prompt(`Chỉnh sửa ${fieldLabel} cho dòng này:`, oldVal);
             if (newVal === null || newVal.trim() === oldVal) return; 
+            
             const finalVal = newVal.trim();
 
             let displayStt = id;
@@ -1271,11 +1275,11 @@
                  displayStt = window.globalGroupedIndexMap[id] || id;
             }
 
-            // Ghi Log Sửa Tên vào Bảng chính
+            // Ghi Log Sửa Thông Tin vào Bảng chính
             await window.logAction('main', {
                 timestamp: Date.now(),
                 username: currentUser.username,
-                action: 'SỬA TÊN',
+                action: 'SỬA THÔNG TIN',
                 displayStt: displayStt,
                 details: { field: fieldLabel, oldVal: oldVal, newVal: finalVal }
             });
@@ -1286,7 +1290,7 @@
                         [field]: finalVal
                     }, { merge: true });
                 } catch(e) {
-                    console.error("Lỗi sửa tên:", e);
+                    console.error("Lỗi sửa thông tin:", e);
                     window.handleFirestoreError(e);
                 }
             } else {
@@ -1426,14 +1430,15 @@
             document.body.removeChild(textArea);
         }
 
+        // Tách biệt việc Bấm để Sửa (TD) và Bấm để Copy (Button)
         function createCopyableCell(text, align = 'left') {
             const alignmentClass = align === 'center' ? 'justify-center gap-2' : 'justify-between';
             return `
                 <div class="flex items-center group ${alignmentClass}">
                     <span>${text}</span>
                     <button
-                        onclick="window.handleCopy('${text.replace(/'/g, "\\'")}', this)"
-                        class="copy-btn opacity-0 transition-opacity p-1 rounded hover:bg-black/10 focus:opacity-100"
+                        onclick="event.stopPropagation(); window.handleCopy('${text.replace(/'/g, "\\'")}', this)"
+                        class="copy-btn opacity-0 transition-opacity p-1 rounded hover:bg-black/10 focus:opacity-100 ml-1"
                         title="Sao chép"
                     >
                         ${copyIcon}
@@ -1451,8 +1456,12 @@
                 if (edited) {
                     return {
                         ...row,
+                        userTnt: edited.userTnt !== undefined ? edited.userTnt : row.userTnt,
+                        passTnt: edited.passTnt !== undefined ? edited.passTnt : row.passTnt,
                         oldName: edited.oldName !== undefined ? edited.oldName : row.oldName,
-                        newName: edited.newName !== undefined ? edited.newName : row.newName
+                        newName: edited.newName !== undefined ? edited.newName : row.newName,
+                        userTc: edited.userTc !== undefined ? edited.userTc : row.userTc,
+                        passTc: edited.passTc !== undefined ? edited.passTc : row.passTc
                     };
                 }
                 return row;
@@ -1487,20 +1496,22 @@
             document.getElementById('footerInfo').innerText = `Tổng cộng: ${displayData.length} tài khoản`;
 
             const isAdmin = currentUser && currentUser.username === 'admin';
-            const oldNameTitle = isAdmin ? 'title="Click để sửa tên (Quyền Admin)"' : '';
-            const oldNameCursor = isAdmin ? 'editable-cell' : '';
+            const editableCls = isAdmin ? 'editable-cell' : '';
 
             displayData.forEach((row) => {
                 const tr = document.createElement('tr');
                 tr.className = `${colorClasses[row.color]} hover:brightness-95 transition-all duration-150`;
 
-                const displayUserTnt = isLoggedIn ? createCopyableCell(row.userTnt || '', 'left') : '<span class="text-gray-600 font-mono tracking-widest text-lg">*****</span>';
-                const displayPassTnt = isLoggedIn ? createCopyableCell(row.passTnt || '', 'center') : '<span class="text-gray-600 font-mono tracking-widest text-lg">*****</span>';
-                const displayUserTc = isLoggedIn ? createCopyableCell(row.userTc || '', 'left') : '<span class="text-gray-600 font-mono tracking-widest text-lg">*****</span>';
-                const displayPassTc = isLoggedIn ? createCopyableCell(row.passTc || '', 'center') : '<span class="text-gray-600 font-mono tracking-widest text-lg">*****</span>';
+                const safeUserTnt = (row.userTnt || '').replace(/'/g, "\\'");
+                const safePassTnt = (row.passTnt || '').replace(/'/g, "\\'");
+                const safeOldName = (row.oldName || '').replace(/'/g, "\\'");
+                const safeNewName = (row.newName || '').replace(/'/g, "\\'");
+                const safeUserTc  = (row.userTc || '').replace(/'/g, "\\'");
+                const safePassTc  = (row.passTc || '').replace(/'/g, "\\'");
+
+                const editAttr = (field, safeVal, label) => isAdmin ? `title="Click để sửa thông tin (Admin)" onclick="window.promptEditField('${row.id}', '${field}', '${safeVal}', '${label}')"` : '';
 
                 const displayStt = isGrouped ? groupedIndexMap[row.id] : row.id;
-                
                 const isDone = doneItems[row.id];
                 const textOpacityClass = isDone ? 'opacity-40' : '';
 
@@ -1517,9 +1528,6 @@
                     ? 'cursor-not-allowed opacity-50 grayscale' 
                     : 'cursor-pointer accent-green-600 hover:scale-110 transition-transform';
 
-                const safeOldName = (row.oldName || '').replace(/'/g, "\\'");
-                const safeNewName = (row.newName || '').replace(/'/g, "\\'");
-
                 tr.innerHTML = `
                     <td class="border border-black px-3 py-1 text-center font-medium">
                         ${displayStt}
@@ -1527,19 +1535,19 @@
                     <td class="border border-black px-3 py-1 text-center bg-white/20">
                         <input type="checkbox" onchange="window.toggleDone('${row.id}')" ${isDone ? 'checked' : ''} ${disabledStatus} class="w-4 h-4 ${cursorClass}">
                     </td>
-                    <td class="border border-black px-3 py-1 whitespace-nowrap ${!isLoggedIn ? 'text-center' : ''} ${textOpacityClass}">
-                        ${displayUserTnt}
+                    <td ${editAttr('userTnt', safeUserTnt, 'Username TNT')} class="border border-black px-3 py-1 whitespace-nowrap ${!isLoggedIn ? 'text-center' : ''} ${textOpacityClass} ${editableCls}">
+                        ${isLoggedIn ? createCopyableCell(row.userTnt || '', 'left') : '<span class="text-gray-600 font-mono tracking-widest text-lg">*****</span>'}
                     </td>
-                    <td class="border border-black px-3 py-1 text-center ${textOpacityClass}">
-                        ${displayPassTnt}
+                    <td ${editAttr('passTnt', safePassTnt, 'Password TNT')} class="border border-black px-3 py-1 text-center ${textOpacityClass} ${editableCls}">
+                        ${isLoggedIn ? createCopyableCell(row.passTnt || '', 'center') : '<span class="text-gray-600 font-mono tracking-widest text-lg">*****</span>'}
                     </td>
-                    <td ${oldNameTitle} ${isAdmin ? `onclick="window.promptEditName('${row.id}', 'oldName', '${safeOldName}')"` : ''} class="border border-black px-3 py-1 font-medium ${textOpacityClass} ${oldNameCursor}">${row.oldName || ''}</td>
-                    <td ${oldNameTitle} ${isAdmin ? `onclick="window.promptEditName('${row.id}', 'newName', '${safeNewName}')"` : ''} class="border border-black px-3 py-1 font-bold text-blue-800 ${textOpacityClass} ${oldNameCursor}">${row.newName || ''}</td>
-                    <td class="border border-black px-3 py-1 whitespace-nowrap ${!isLoggedIn ? 'text-center' : ''} ${textOpacityClass}">
-                        ${displayUserTc}
+                    <td ${editAttr('oldName', safeOldName, 'Tên NV (Cũ)')} class="border border-black px-3 py-1 font-medium ${textOpacityClass} ${editableCls}">${row.oldName || ''}</td>
+                    <td ${editAttr('newName', safeNewName, 'Tên NV (Mới)')} class="border border-black px-3 py-1 font-bold text-blue-800 ${textOpacityClass} ${editableCls}">${row.newName || ''}</td>
+                    <td ${editAttr('userTc', safeUserTc, 'Username TC')} class="border border-black px-3 py-1 whitespace-nowrap ${!isLoggedIn ? 'text-center' : ''} ${textOpacityClass} ${editableCls}">
+                        ${isLoggedIn ? createCopyableCell(row.userTc || '', 'left') : '<span class="text-gray-600 font-mono tracking-widest text-lg">*****</span>'}
                     </td>
-                    <td class="border border-black px-3 py-1 text-center ${textOpacityClass}">
-                        ${displayPassTc}
+                    <td ${editAttr('passTc', safePassTc, 'Password TC')} class="border border-black px-3 py-1 text-center ${textOpacityClass} ${editableCls}">
+                        ${isLoggedIn ? createCopyableCell(row.passTc || '', 'center') : '<span class="text-gray-600 font-mono tracking-widest text-lg">*****</span>'}
                     </td>
                 `;
                 tableBody.appendChild(tr);
