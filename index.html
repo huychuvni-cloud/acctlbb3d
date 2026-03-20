@@ -93,7 +93,7 @@
                     <p id="viewModeText" class="text-sm font-medium text-blue-600">Chế độ: Quản trị viên</p>
                     <span class="text-gray-300">|</span>
                     <!-- Hiển thị trạng thái kết nối mạng thời gian thực -->
-                    <div id="networkStatus" class="flex items-center gap-1.5 text-xs font-bold text-gray-500 bg-gray-100 px-2.5 py-0.5 rounded-full border border-gray-200 cursor-pointer hover:bg-gray-200 transition-colors" title="Nhấn để thiết lập Đồng bộ Server">
+                    <div id="networkStatus" class="flex items-center gap-1.5 text-xs font-bold text-gray-500 bg-gray-100 px-2.5 py-0.5 rounded-full border border-gray-200 cursor-wait">
                         <span class="w-2 h-2 rounded-full bg-gray-400"></span>
                         Đang kết nối...
                     </div>
@@ -144,7 +144,7 @@
             <span id="footerInfo">Tổng cộng: 0 tài khoản</span>
         </div>
 
-        <!-- Nhật ký hoạt động (MỚI) - Ẩn mặc định, chỉ Admin mới thấy -->
+        <!-- Nhật ký hoạt động -->
         <div id="activityLogSection" class="hidden mt-8 border-t border-gray-200 pt-6">
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-3 gap-2">
                 <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
@@ -231,6 +231,7 @@
 
         // =========================================================================
         // CẤU HÌNH ĐỒNG BỘ ĐÁM MÂY (CLOUD SYNC) - ĐỂ CHẠY TRÊN NHIỀU THIẾT BỊ/IP
+        // Đã sửa lại đúng 100% mã API Key của bạn (có ký tự O và l)
         // =========================================================================
         const MY_FIREBASE_CONFIG = {
             "apiKey": "AIzaSyDWMkqROBBA0udi_AlTe3W2-c5fRIINApc",
@@ -242,27 +243,17 @@
             "appId": "1:373171969429:web:e6e65ccdf8c70b06dd6a9c"
         };
 
-        // Khởi tạo Firebase an toàn
         let app, auth, db;
         let useFirebase = false;
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'shared-account-manager-v1';
-        
-        // Tải config firebase đã lưu từ máy
-        document.addEventListener('DOMContentLoaded', () => {
-            const customConfig = localStorage.getItem('custom_firebase_config');
-            if (customConfig) {
-                document.getElementById('firebaseConfigInput').value = customConfig;
-            }
-        });
 
-        // TỰ ĐỘNG SỬA LỖI JSON KHI LƯU
+        // TỰ ĐỘNG SỬA LỖI JSON KHI DÙNG MODAL (Nếu cần)
         window.saveFirebaseConfig = function(inputId = 'firebaseConfigInput') {
             let val = document.getElementById(inputId).value.trim();
             if(!val) {
                 localStorage.removeItem('custom_firebase_config');
             } else {
                 try {
-                    val = val.replace(/ROBBA/g, 'R0BBA').replace(/AlTe3W2/g, 'A1Te3W2');
                     JSON.parse(val); 
                     localStorage.setItem('custom_firebase_config', val);
                 } catch(e) {
@@ -287,23 +278,22 @@
 
         try {
             let configToUse = null;
-            const customConfigStr = localStorage.getItem('custom_firebase_config');
             
-            if (typeof __firebase_config !== 'undefined' && __firebase_config && __firebase_config !== '{}') {
+            // ƯU TIÊN 1: LUÔN SỬ DỤNG MÃ CỐ ĐỊNH NẾU CÓ
+            // Xóa rác trong LocalStorage để tránh gây xung đột mạng
+            if (Object.keys(MY_FIREBASE_CONFIG).length > 0 && MY_FIREBASE_CONFIG.apiKey) {
+                configToUse = MY_FIREBASE_CONFIG;
+                localStorage.removeItem('custom_firebase_config'); 
+            } 
+            else if (typeof __firebase_config !== 'undefined' && __firebase_config && __firebase_config !== '{}') {
                 configToUse = JSON.parse(__firebase_config);
             } 
-            else if (customConfigStr) {
-                configToUse = JSON.parse(customConfigStr);
-            }
-            else if (Object.keys(MY_FIREBASE_CONFIG).length > 0) {
-                configToUse = MY_FIREBASE_CONFIG;
+            else {
+                const customConfigStr = localStorage.getItem('custom_firebase_config');
+                if (customConfigStr) configToUse = JSON.parse(customConfigStr);
             }
 
             if (configToUse) {
-                // Đảm bảo không bị dính O và l do OCR cho MY_FIREBASE_CONFIG
-                if(configToUse.apiKey) {
-                    configToUse.apiKey = configToUse.apiKey.replace(/ROBBA/g, 'R0BBA').replace(/AlTe3W2/g, 'A1Te3W2');
-                }
                 app = initializeApp(configToUse);
                 auth = getAuth(app);
                 db = getFirestore(app);
@@ -320,11 +310,12 @@
             document.getElementById('loginScreenDesc').innerText = "Trạng thái: Chưa có kết nối Server";
         }
 
-        // --- Cập nhật giao diện trạng thái mạng ---
-        function setNetworkStatus(isOnline) {
+        // --- Cập nhật giao diện trạng thái mạng chi tiết ---
+        function setNetworkStatus(status, errMsg = '') {
             const el = document.getElementById('networkStatus');
             if (!el) return;
-            if (isOnline) {
+
+            if (status === 'online') {
                 el.innerHTML = `
                     <span class="relative flex h-2 w-2">
                       <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
@@ -333,18 +324,39 @@
                     <span class="text-green-700">Đã đồng bộ Cloud</span>
                 `;
                 el.className = "flex items-center gap-1.5 text-xs font-bold bg-green-50 px-2.5 py-0.5 rounded-full border border-green-200 cursor-pointer hover:bg-green-100 transition-colors";
-            } else {
+                el.title = "Kết nối Server thành công";
+                el.onclick = () => document.getElementById('firebaseConfigModal').classList.remove('hidden');
+            } 
+            else if (status === 'error') {
+                el.innerHTML = `
+                    <span class="w-2 h-2 rounded-full bg-red-500"></span>
+                    <span class="text-red-700">Lỗi Kết Nối</span>
+                `;
+                el.className = "flex items-center gap-1.5 text-xs font-bold bg-red-50 px-2.5 py-0.5 rounded-full border border-red-200 cursor-pointer hover:bg-red-100 transition-colors";
+                el.title = errMsg;
+                el.onclick = () => {
+                    alert("LỖI KẾT NỐI SERVER:\n" + errMsg + "\n\n(Vui lòng kiểm tra lại quyền truy cập tên miền hoặc API Key của Firebase)");
+                };
+            }
+            else if (status === 'connecting') {
+                el.innerHTML = `
+                    <span class="w-2 h-2 rounded-full bg-gray-400"></span>
+                    <span class="text-gray-600">Đang kết nối...</span>
+                `;
+                el.className = "flex items-center gap-1.5 text-xs font-bold bg-gray-100 px-2.5 py-0.5 rounded-full border border-gray-200 cursor-wait";
+                el.onclick = null;
+            } 
+            else {
                 el.innerHTML = `
                     <span class="w-2 h-2 rounded-full bg-orange-400"></span>
                     <span class="text-orange-700">Lưu Ngoại tuyến (Local)</span>
                 `;
                 el.className = "flex items-center gap-1.5 text-xs font-bold bg-orange-50 px-2.5 py-0.5 rounded-full border border-orange-200 cursor-pointer hover:bg-orange-100 transition-colors hover:shadow-sm";
+                el.onclick = () => document.getElementById('firebaseConfigModal').classList.remove('hidden');
             }
-            el.onclick = () => document.getElementById('firebaseConfigModal').classList.remove('hidden');
         }
 
         // --- CƠ CHẾ OFFLINE FIRST (ƯU TIÊN LẤY DỮ LIỆU LOCAL ĐỂ HIỂN THỊ TỨC THÌ) ---
-        // Dữ liệu User Mặc Định (Đã thêm biến canTick, canUntick để phân quyền Sửa/Xóa)
         let userAccounts = [
             { username: 'admin', password: 'admin@@', allowedIndices: 'all', canTick: true, canUntick: true },
             { username: 'admin1', password: 'asdasd', allowedIndices: 'all', canTick: true, canUntick: true },
@@ -361,25 +373,16 @@
         let unsubLogs = null;
         let unsubPerms = null;
         
-        // LUÔN TẢI TỪ LOCALSTORAGE TRƯỚC (XÓA BỎ THỜI GIAN CHỜ)
         let doneItems = JSON.parse(localStorage.getItem('doneAccounts')) || {};
         let activityLogs = JSON.parse(localStorage.getItem('activityLogs')) || [];
         const localPerms = JSON.parse(localStorage.getItem('localUserPermissions')) || {};
         userAccounts = userAccounts.map(u => ({ ...u, ...(localPerms[u.username] || {}) }));
         
         if (!useFirebase) {
-            setNetworkStatus(false);
+            setNetworkStatus('offline');
             document.getElementById('activityLogContainer').innerHTML = `
                 <div class="text-gray-600 bg-orange-50 border border-orange-200 p-3 rounded-lg text-sm">
                     ⚠️ <b>Cảnh báo: Bảng đang chạy ở chế độ Ngoại Tuyến (Offline).</b><br> Dữ liệu sẽ chỉ được lưu trên máy tính này.
-                </div>
-            `;
-        } else {
-            // Mặc định hiện loading nhỏ, nhưng dữ liệu bảng đã có sẵn nhờ LocalStorage
-            document.getElementById('activityLogContainer').innerHTML = `
-                <div class="text-gray-500 italic flex items-center gap-2">
-                    <svg class="animate-spin h-4 w-4 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                    Đang đồng bộ dữ liệu mới nhất...
                 </div>
             `;
         }
@@ -399,16 +402,30 @@
         });
         
         if (useFirebase) {
+            setNetworkStatus('connecting'); // Hiển thị Đang kết nối
             const initAuth = async () => {
                 try {
-                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                        await signInWithCustomToken(auth, __initial_auth_token);
-                    } else {
-                        await signInAnonymously(auth);
-                    }
+                    await signInAnonymously(auth);
                 } catch(e) { 
                     console.error("Firebase Auth Error:", e); 
-                    document.getElementById('activityLogContainer').innerHTML = `<div class="text-red-500 p-2">Lỗi kết nối Firebase: ${e.message}</div>`;
+                    setNetworkStatus('error', e.message); // Hiển thị badge Đỏ
+                    
+                    const container = document.getElementById('activityLogContainer');
+                    if(container) {
+                        let helperText = "";
+                        if(e.message.includes('auth/api-key-not-valid')) {
+                            helperText = "Mã API Key không đúng định dạng. Vui lòng kiểm tra lại đoạn cấu hình Firebase.";
+                        } else if (e.message.includes('unauthorized-domain')) {
+                            helperText = `Hãy vào Firebase -> Authentication -> Settings -> Authorized domains -> Thêm <b>${window.location.hostname}</b> vào danh sách.`;
+                        } else {
+                            helperText = "Hãy đảm bảo bạn đã bật tính năng 'Anonymous Auth' trong Firebase.";
+                        }
+                        
+                        container.innerHTML = `<div class="text-red-600 bg-red-50 border border-red-200 p-3 rounded-lg text-sm">
+                            ⚠️ <b>Lỗi kết nối Máy chủ:</b> ${e.message}<br><br>
+                            👉 <b>Cách khắc phục:</b><br>${helperText}
+                        </div>`;
+                    }
                 }
             };
             initAuth();
@@ -426,9 +443,8 @@
         }
 
         function setupRealtimeListeners() {
-            setNetworkStatus(true); 
+            setNetworkStatus('online'); // Chuyển sang Xanh Lá
 
-            // Nghe trạng thái tick ô và GHI VÀO LOCALCACHE
             const statusRef = collection(db, 'artifacts', appId, 'public', 'data', 'account_status');
             unsubStatus = onSnapshot(statusRef, (snapshot) => {
                 snapshot.docChanges().forEach((change) => {
@@ -439,7 +455,6 @@
                 renderTable(); 
             }, (error) => console.error("Lỗi đồng bộ trạng thái:", error));
 
-            // Nghe nhật ký và GHI VÀO LOCALCACHE
             const logRef = collection(db, 'artifacts', appId, 'public', 'data', 'activity_log');
             unsubLogs = onSnapshot(logRef, (snapshot) => {
                 activityLogs = [];
@@ -452,7 +467,6 @@
                 renderLogs();
             }, (error) => console.error("Lỗi đồng bộ nhật ký:", error));
 
-            // Nghe phân quyền tài khoản từ Admin và GHI VÀO LOCALCACHE
             const permRef = collection(db, 'artifacts', appId, 'public', 'data', 'user_permissions');
             unsubPerms = onSnapshot(permRef, (snapshot) => {
                 snapshot.docChanges().forEach((change) => {
@@ -462,14 +476,12 @@
                     if (uIndex !== -1) {
                         userAccounts[uIndex] = { ...userAccounts[uIndex], ...data };
                         
-                        // Cache local perms
                         const currentLocalPerms = JSON.parse(localStorage.getItem('localUserPermissions')) || {};
                         currentLocalPerms[username] = data;
                         localStorage.setItem('localUserPermissions', JSON.stringify(currentLocalPerms));
                     }
                 });
                 
-                // Nếu user đang đăng nhập bị đổi quyền, cập nhật lại phiên
                 if (currentUser && currentUser.username !== 'admin') {
                     const updatedMe = userAccounts.find(u => u.username === currentUser.username);
                     if (updatedMe) {
@@ -487,14 +499,20 @@
 
         function renderLogs() {
             const container = document.getElementById('activityLogContainer');
-            container.innerHTML = '';
+            
+            // Xóa thông báo lỗi cũ nếu đang online
+            const isError = document.getElementById('networkStatus').classList.contains('bg-red-50');
+            if(!isError) container.innerHTML = '';
 
             const filteredLogs = activityLogs.filter(log => getYYYYMMDD(log.timestamp) === selectedLogDate);
             
             if (filteredLogs.length === 0) {
+                if(!useFirebase || isError) return; 
                 container.innerHTML = `<div class="text-gray-500 italic p-2">Chưa có hoạt động nào được ghi lại trong ngày ${selectedLogDate.split('-').reverse().join('/')}.</div>`;
                 return;
             }
+            
+            if(!isError) container.innerHTML = ''; // Đảm bảo làm sạch trước khi in log
 
             filteredLogs.forEach(log => {
                 const dateObj = new Date(log.timestamp);
@@ -572,18 +590,16 @@
 
             const isCurrentlyDone = !!doneItems[id];
             
-            // --- KIỂM TRA PHÂN QUYỀN BẢO MẬT (CHẶN HÀNH ĐỘNG NẾU KHÔNG CÓ QUYỀN) ---
             if (currentUser.username !== 'admin' && currentUser.username !== 'admin1') {
-                if (isCurrentlyDone && currentUser.canUntick === false) return; // Không có quyền bỏ tick (Xóa)
-                if (!isCurrentlyDone && currentUser.canTick === false) return;  // Không có quyền tick thêm (Sửa)
+                if (isCurrentlyDone && currentUser.canUntick === false) return; 
+                if (!isCurrentlyDone && currentUser.canTick === false) return; 
             }
 
             const newState = !isCurrentlyDone;
             const displayStt = groupedIndexMap[id] || id; 
 
-            // Cập nhật giao diện lập tức 
             doneItems[id] = newState;
-            localStorage.setItem('doneAccounts', JSON.stringify(doneItems)); // Cache ngay lập tức
+            localStorage.setItem('doneAccounts', JSON.stringify(doneItems)); 
             renderTable();
 
             if (useFirebase && firebaseUser) {
@@ -646,8 +662,8 @@
                 localStorage.setItem('app_lastActivity', Date.now().toString());
             }
             
-            adminPanelBtn.classList.add('hidden'); // Ẩn mặc định
-            activityLogSection.classList.add('hidden'); // Ẩn mặc định
+            adminPanelBtn.classList.add('hidden'); 
+            activityLogSection.classList.add('hidden'); 
 
             if (userObj.isGuest) {
                 viewModeText.innerText = "Chế độ: Khách (Đã ẩn thông tin nhạy cảm)";
@@ -656,7 +672,6 @@
                 viewModeText.innerText = "Chế độ: Quản trị viên (Xem tất cả)";
                 viewModeText.className = "text-sm font-medium text-green-600";
                 
-                // Mở quyền Panel và Nhật ký nếu là admin
                 if (userObj.username === 'admin') {
                     activityLogSection.classList.remove('hidden');
                     adminPanelBtn.classList.remove('hidden');
@@ -676,7 +691,6 @@
             
             renderTable();
             
-            // Xóa loading spinner nếu đã có log local
             if(activityLogs.length > 0) {
                  renderLogs();
             }
@@ -729,7 +743,6 @@
             if (savedUserStr) {
                 try {
                     const savedUser = JSON.parse(savedUserStr);
-                    // Update latest permissions from userAccounts list just in case it changed
                     const updatedRealUser = userAccounts.find(u => u.username === savedUser.username);
                     const userToBoot = updatedRealUser ? updatedRealUser : savedUser;
 
@@ -781,14 +794,12 @@
             document.getElementById('adminPanelModal').classList.add('hidden');
         }
 
-        // Chuyển chuỗi mảng thành text (VD: [1,2,3] -> "1, 2, 3")
         function formatIndices(arr) {
             if (arr === 'all') return 'all';
             if (Array.isArray(arr)) return arr.join(', ');
             return '';
         }
 
-        // Chuyển text thành mảng (VD: "1,2, 3" -> [1,2,3])
         function parseIndices(str) {
             str = str.trim().toLowerCase();
             if (str === 'all' || str === '') return 'all';
@@ -804,7 +815,6 @@
                 newValue = valueElement.checked;
             }
 
-            // Update local state first
             const uIndex = userAccounts.findIndex(u => u.username === username);
             if(uIndex > -1) {
                 userAccounts[uIndex][field] = newValue;
@@ -823,7 +833,7 @@
                 localPerms[username][field] = newValue;
                 localStorage.setItem('localUserPermissions', JSON.stringify(localPerms));
             }
-            renderTable(); // Update live table behind modal
+            renderTable(); 
         }
 
         function renderAdminPanel() {
@@ -831,12 +841,11 @@
             tbody.innerHTML = '';
 
             userAccounts.forEach(user => {
-                if (user.username === 'admin') return; // Ẩn admin khỏi bảng quyền
+                if (user.username === 'admin') return; 
 
                 const tr = document.createElement('tr');
                 tr.className = "hover:bg-blue-50 transition-colors border-b border-gray-100";
                 
-                // Mặc định luôn có quyền nếu chưa set (backward compatibility)
                 const canTick = user.canTick !== false;
                 const canUntick = user.canUntick !== false;
                 const indicesStr = formatIndices(user.allowedIndices);
