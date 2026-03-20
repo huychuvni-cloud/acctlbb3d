@@ -188,7 +188,7 @@
         // CẤU HÌNH ĐỒNG BỘ ĐÁM MÂY (CLOUD SYNC) - ĐỂ CHẠY TRÊN NHIỀU THIẾT BỊ/IP
         // =========================================================================
         const MY_FIREBASE_CONFIG = {
-            "apiKey": "AIzaSyDWMkqR0BBA0udi_A1Te3W2-c5fRIINApc",
+            "apiKey": "AIzaSyDWMkqROBBA0udi_AlTe3W2-c5fRIINApc",
             "authDomain": "qltk-be316.firebaseapp.com",
             "databaseURL": "https://qltk-be316-default-rtdb.asia-southeast1.firebasedatabase.app",
             "projectId": "qltk-be316",
@@ -217,9 +217,6 @@
                 localStorage.removeItem('custom_firebase_config');
             } else {
                 try {
-                    // Sửa lỗi đánh máy từ OCR (O thay vì 0, l thay vì 1)
-                    val = val.replace(/ROBBA/g, 'R0BBA').replace(/AlTe3W2/g, 'A1Te3W2');
-                    
                     // Thử phân tích JSON chuẩn
                     JSON.parse(val); 
                     localStorage.setItem('custom_firebase_config', val);
@@ -258,7 +255,7 @@
             else if (customConfigStr) {
                 configToUse = JSON.parse(customConfigStr);
             }
-            // Ưu tiên 3: Cấu hình CỐ ĐỊNH trong file (Đã được vá lỗi để nhận diện)
+            // Ưu tiên 3: Cấu hình CỐ ĐỊNH trong file 
             else if (Object.keys(MY_FIREBASE_CONFIG).length > 0) {
                 configToUse = MY_FIREBASE_CONFIG;
             }
