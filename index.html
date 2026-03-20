@@ -153,14 +153,8 @@
                 </h3>
             </div>
             <p class="text-sm text-gray-600 mb-3">
-                Nếu bạn tải file HTML này chạy trên máy tính cá nhân, dữ liệu chỉ lưu nội bộ máy đó (Offline). Để đồng bộ trạng thái tick XONG và Nhật ký trên <b>tất cả thiết bị của nhân viên</b>, bạn hãy:
+                Dán mã <b>firebaseConfig</b> mà bạn lấy được từ Firebase vào ô dưới đây (có thể copy nguyên bản từ Firebase, hệ thống sẽ tự động sửa lỗi ngoặc kép giúp bạn):
             </p>
-            <ul class="text-xs text-gray-600 list-disc pl-5 mb-4 space-y-1">
-                <li>Tạo miễn phí 1 DB tại <a href="https://console.firebase.google.com" target="_blank" class="text-blue-600 underline">Firebase Google</a></li>
-                <li>Bật <b>Authentication &gt; Sign-in method &gt; Anonymous</b></li>
-                <li>Bật <b>Firestore Database</b>, trong thẻ Rules chỉnh sửa thành: <br><code>match /{document=**} { allow read, write: if true; }</code></li>
-                <li>Copy mã <b>firebaseConfig</b> dán vào khung dưới đây:</li>
-            </ul>
             <textarea id="firebaseConfigInput" rows="6" class="w-full border border-gray-300 rounded-lg p-3 text-xs font-mono focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50 shadow-inner" placeholder='{\n  "apiKey": "AIzaSy...",\n  "authDomain": "...",\n  "projectId": "...",\n  "storageBucket": "...",\n  "messagingSenderId": "...",\n  "appId": "..."\n}'></textarea>
             <div class="mt-5 flex justify-end gap-3">
                 <button onclick="document.getElementById('firebaseConfigModal').classList.add('hidden')" class="px-5 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors font-medium">Đóng</button>
@@ -175,6 +169,19 @@
         import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, doc, setDoc, onSnapshot, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
+        // =========================================================================
+        // CẤU HÌNH ĐỒNG BỘ ĐÁM MÂY (CLOUD SYNC) - ĐỂ CHẠY TRÊN NHIỀU THIẾT BỊ/IP
+        // =========================================================================
+        const MY_FIREBASE_CONFIG = {
+            "apiKey": "AIzaSyDWMkqROBBA0udi_AlTe3W2-c5fRIINApc",
+            "authDomain": "qltk-be316.firebaseapp.com",
+            "databaseURL": "https://qltk-be316-default-rtdb.asia-southeast1.firebasedatabase.app",
+            "projectId": "qltk-be316",
+            "storageBucket": "qltk-be316.firebasestorage.app",
+            "messagingSenderId": "373171969429",
+            "appId": "1:373171969429:web:e6e65ccdf8c70b06dd6a9c"
+        };
+
         // Khởi tạo Firebase an toàn
         let app, auth, db;
         let useFirebase = false;
@@ -188,18 +195,30 @@
             }
         });
 
-        // Hàm Lưu Cấu Hình Database
+        // TỰ ĐỘNG SỬA LỖI JSON KHI LƯU
         window.saveFirebaseConfig = function() {
-            const val = document.getElementById('firebaseConfigInput').value.trim();
+            let val = document.getElementById('firebaseConfigInput').value.trim();
             if(!val) {
                 localStorage.removeItem('custom_firebase_config');
             } else {
                 try {
+                    // Thử phân tích JSON chuẩn
                     JSON.parse(val); 
                     localStorage.setItem('custom_firebase_config', val);
                 } catch(e) {
-                    alert("Cấu hình không hợp lệ. Vui lòng nhập đúng định dạng JSON chuẩn.");
-                    return;
+                    try {
+                        // Tự động sửa lỗi Javascript object -> JSON (thêm ngoặc kép vào từ khóa)
+                        let fixedVal = val.replace(/'/g, '"'); // Đổi nháy đơn thành nháy kép
+                        // Thêm dấu ngoặc kép vào các key (vd: apiKey: -> "apiKey":)
+                        fixedVal = fixedVal.replace(/([{,]\s*)([a-zA-Z0-9_]+)\s*:/g, '$1"$2":');
+                        
+                        JSON.parse(fixedVal); // Kiểm tra lại sau khi sửa
+                        localStorage.setItem('custom_firebase_config', fixedVal);
+                        alert("Hệ thống đã tự động định dạng lại mã của bạn thành JSON chuẩn và lưu thành công!");
+                    } catch(err2) {
+                        alert("Mã bạn nhập bị thiếu hoặc sai quá nhiều. Vui lòng kiểm tra lại (đảm bảo copy đủ dấu { }).");
+                        return;
+                    }
                 }
             }
             window.location.reload();
