@@ -227,10 +227,11 @@
                         <table class="w-full text-sm border-collapse text-left">
                             <thead class="sticky top-0 bg-gray-50 shadow-sm z-10">
                                 <tr>
-                                    <th class="border-b border-r border-gray-300 px-3 py-2 font-bold w-1/4 text-gray-700">Tài Khoản</th>
-                                    <th class="border-b border-r border-gray-300 px-3 py-2 font-bold w-1/2 text-gray-700" title="Nhập danh sách số cách nhau bởi dấu phẩy, hoặc nhập 'all'">STT Được Xem</th>
+                                    <th class="border-b border-r border-gray-300 px-3 py-2 font-bold w-1/5 text-gray-700">Tài Khoản</th>
+                                    <th class="border-b border-r border-gray-300 px-3 py-2 font-bold w-2/5 text-gray-700" title="Nhập danh sách số cách nhau bởi dấu phẩy, hoặc nhập 'all'">STT Được Xem</th>
                                     <th class="border-b border-r border-gray-300 px-3 py-2 font-bold text-center text-xs text-gray-700">Sửa</th>
-                                    <th class="border-b border-gray-300 px-3 py-2 font-bold text-center text-xs text-gray-700">Xóa</th>
+                                    <th class="border-b border-r border-gray-300 px-3 py-2 font-bold text-center text-xs text-gray-700">Xóa</th>
+                                    <th class="border-b border-gray-300 px-3 py-2 font-bold text-center text-xs text-gray-700">Mật Khẩu</th>
                                 </tr>
                             </thead>
                             <tbody id="adminPanelTableBody">
@@ -783,6 +784,8 @@
                     if(Array.isArray(valName)) valName = valName.length === 0 ? 'KHÓA' : valName.join(', ');
                     
                     textHtml = `Admin đã đổi <span class="font-semibold">${fieldName}</span> của <span class="font-bold text-gray-800">${log.targetUser}</span> thành <span class="font-bold text-purple-700">[${valName}]</span>.`;
+                } else if (log.action === 'ĐỔI MẬT KHẨU') {
+                    textHtml = `Admin đã cấp lại <span class="font-bold text-red-600">mật khẩu mới</span> cho tài khoản <span class="font-bold text-gray-800">${log.targetUser}</span>.`;
                 }
                 
                 const div = document.createElement('div');
@@ -1208,6 +1211,52 @@
             renderTable(); 
         }
 
+        // --- HÀM CẤP LẠI MẬT KHẨU (DÀNH CHO ADMIN) ---
+        window.resetUserPassword = async function(username) {
+            if (!currentUser || currentUser.username !== 'admin') return;
+
+            const newPass = prompt(`Nhập mật khẩu mới cho tài khoản '${username}':`);
+            if (!newPass || newPass.trim() === '') return;
+
+            const finalPass = newPass.trim();
+
+            if (confirm(`Bạn có chắc muốn đổi mật khẩu của '${username}' thành '${finalPass}'?`)) {
+                const uIndex = allUsers.findIndex(u => u.username === username);
+                if(uIndex > -1) {
+                    allUsers[uIndex].password = finalPass;
+                }
+
+                // Ghi log Admin
+                await window.logAction('admin', {
+                    timestamp: Date.now(),
+                    actor: currentUser.username,
+                    targetUser: username,
+                    action: 'ĐỔI MẬT KHẨU',
+                    details: { field: 'password', newVal: '***' } 
+                });
+
+                if (useFirebase && firebaseUser) {
+                    try {
+                        await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_permissions', username), { password: finalPass }, { merge: true });
+                        alert(`Đã đổi mật khẩu cho '${username}' thành công!`);
+                    } catch(e) {
+                        console.error("Lỗi cập nhật mật khẩu Firebase:", e);
+                        window.handleFirestoreError(e);
+                    }
+                } else {
+                    if(!localPerms[username]) localPerms[username] = {};
+                    localPerms[username].password = finalPass;
+                    localStorage.setItem('localUserPermissions', JSON.stringify(localPerms));
+
+                    registeredAccounts = Object.keys(localPerms)
+                        .filter(k => localPerms[k].isRegistered)
+                        .map(k => ({ username: k, ...localPerms[k] }));
+                    buildAllUsers();
+                    alert(`Đã đổi mật khẩu cho '${username}' thành công (Ngoại tuyến)!`);
+                }
+            }
+        }
+
         // --- HÀM THÊM TÀI KHOẢN DATA MỚI (DÀNH CHO ADMIN) ---
         window.addNewSystemAccount = async function() {
             const userTc = document.getElementById('newAcc_userTc').value.trim();
@@ -1335,10 +1384,13 @@
                                onchange="window.updateUserPermission('${user.username}', 'canTick', this)"
                                class="w-4 h-4 cursor-pointer accent-green-600 hover:scale-110">
                     </td>
-                    <td class="border-gray-200 px-3 py-2 text-center bg-red-50/50">
+                    <td class="border-r border-gray-200 px-3 py-2 text-center bg-red-50/50">
                         <input type="checkbox" ${canUntick ? 'checked' : ''} 
                                onchange="window.updateUserPermission('${user.username}', 'canUntick', this)"
                                class="w-4 h-4 cursor-pointer accent-red-600 hover:scale-110">
+                    </td>
+                    <td class="border-gray-200 px-3 py-2 text-center bg-yellow-50/50">
+                        <button onclick="window.resetUserPassword('${user.username}')" class="bg-yellow-500 hover:bg-yellow-600 text-white text-[10px] font-bold py-1 px-2 rounded shadow-sm transition-colors">Reset</button>
                     </td>
                 `;
                 tbody.appendChild(tr);
