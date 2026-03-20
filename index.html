@@ -26,7 +26,7 @@
             background: #94a3b8;
         }
         /* Tùy chỉnh modal phân quyền */
-        #adminPanelModal {
+        #adminPanelModal, #registerModal {
             backdrop-filter: blur(4px);
         }
     </style>
@@ -58,6 +58,10 @@
                 <button id="loginBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline transition-colors" type="button">
                     Đăng Nhập
                 </button>
+                <!-- NÚT ĐĂNG KÝ TÀI KHOẢN MỚI -->
+                <button id="openRegisterBtn" onclick="window.openRegisterModal()" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline transition-colors" type="button">
+                    Đăng Ký Tài Khoản Mới
+                </button>
                 <button id="guestBtn" class="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline transition-colors" type="button">
                     Xem dưới dạng Khách (Chỉ xem tên)
                 </button>
@@ -77,6 +81,29 @@
             <button onclick="window.saveMandatoryConfig()" class="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline transition-colors" type="button">
                 Lưu Kết Nối & Tải Lại
             </button>
+        </div>
+    </div>
+
+    <!-- MODAL ĐĂNG KÝ TÀI KHOẢN -->
+    <div id="registerModal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 border border-gray-200">
+            <h3 class="text-xl font-bold text-gray-800 mb-4 text-center">Tạo Tài Khoản Mới</h3>
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2">Tên đăng nhập</label>
+                <input id="regUsername" type="text" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="Nhập tên không dấu viết liền">
+            </div>
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2">Mật khẩu</label>
+                <input id="regPassword" type="password" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="Nhập mật khẩu">
+            </div>
+            <div class="mb-6">
+                <label class="block text-gray-700 text-sm font-bold mb-2">Xác nhận mật khẩu</label>
+                <input id="regConfirmPassword" type="password" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="Nhập lại mật khẩu">
+            </div>
+            <div class="flex justify-end gap-3">
+                <button onclick="window.closeRegisterModal()" class="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors font-medium">Hủy</button>
+                <button onclick="window.handleRegister()" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium shadow-sm">Xác Nhận Đăng Ký</button>
+            </div>
         </div>
     </div>
 
@@ -197,7 +224,7 @@
             </div>
             
             <div class="mt-auto flex justify-between items-center text-xs text-gray-500 pt-3 border-t border-gray-100">
-                <p>* Mọi thay đổi đều được lưu tự động và đồng bộ tức thì.</p>
+                <p>* Gõ <span class="font-bold text-black">none</span> (hoặc để trống) để KHÓA quyền xem hoàn toàn.</p>
                 <button onclick="window.closeAdminPanel()" class="px-5 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors font-medium">Đóng bảng</button>
             </div>
         </div>
@@ -213,7 +240,7 @@
                 </h3>
             </div>
             <p class="text-sm text-gray-600 mb-3">
-                Dán mã <b>firebaseConfig</b> mà bạn lấy được từ Firebase vào ô dưới đây (có thể copy nguyên bản từ Firebase, hệ thống sẽ tự động sửa lỗi ngoặc kép giúp bạn):
+                Dán mã <b>firebaseConfig</b> mà bạn lấy được từ Firebase vào ô dưới đây:
             </p>
             <textarea id="firebaseConfigInput" rows="6" class="w-full border border-gray-300 rounded-lg p-3 text-xs font-mono focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50 shadow-inner" placeholder='{\n  "apiKey": "AIzaSy...",\n  "authDomain": "...",\n  "projectId": "...",\n  "storageBucket": "...",\n  "messagingSenderId": "...",\n  "appId": "..."\n}'></textarea>
             <div class="mt-5 flex justify-end gap-3">
@@ -231,7 +258,6 @@
 
         // =========================================================================
         // CẤU HÌNH ĐỒNG BỘ ĐÁM MÂY (CLOUD SYNC) - ĐỂ CHẠY TRÊN NHIỀU THIẾT BỊ/IP
-        // Đã sửa lại đúng 100% mã API Key của bạn (có ký tự O và l)
         // =========================================================================
         const MY_FIREBASE_CONFIG = {
             "apiKey": "AIzaSyDWMkqROBBA0udi_AlTe3W2-c5fRIINApc",
@@ -356,8 +382,8 @@
             }
         }
 
-        // --- CƠ CHẾ OFFLINE FIRST (ƯU TIÊN LẤY DỮ LIỆU LOCAL ĐỂ HIỂN THỊ TỨC THÌ) ---
-        let userAccounts = [
+        // --- CƠ CHẾ OFFLINE FIRST VÀ QUẢN LÝ USER ĐỘNG ---
+        const baseUserAccounts = [
             { username: 'admin', password: 'admin@@', allowedIndices: 'all', canTick: true, canUntick: true },
             { username: 'admin1', password: 'asdasd', allowedIndices: 'all', canTick: true, canUntick: true },
             { username: 'buiquangmien', password: 'buiquangmien1', allowedIndices: [1, 2, 3, 4, 5, 6, 41], canTick: true, canUntick: true },
@@ -368,6 +394,22 @@
             { username: 'congtuan', password: 'congtuan6', allowedIndices: [36, 37, 38, 39, 40, 43], canTick: true, canUntick: true }
         ];
 
+        let allUsers = []; // Danh sách gộp: Base + Đăng ký mới
+        let registeredAccounts = []; // Danh sách tài khoản tự đăng ký
+        let localPerms = JSON.parse(localStorage.getItem('localUserPermissions')) || {};
+
+        function buildAllUsers() {
+            // Apply permissions cho các tài khoản gốc
+            const mergedBase = baseUserAccounts.map(u => ({ ...u, ...(localPerms[u.username] || {}) }));
+            allUsers = [...mergedBase, ...registeredAccounts];
+        }
+
+        // Tải sẵn danh sách User đăng ký offline (nếu có)
+        registeredAccounts = Object.keys(localPerms)
+            .filter(k => localPerms[k].isRegistered)
+            .map(k => ({ username: k, ...localPerms[k] }));
+        buildAllUsers();
+
         let firebaseUser = null;
         let unsubStatus = null;
         let unsubLogs = null;
@@ -375,8 +417,6 @@
         
         let doneItems = JSON.parse(localStorage.getItem('doneAccounts')) || {};
         let activityLogs = JSON.parse(localStorage.getItem('activityLogs')) || [];
-        const localPerms = JSON.parse(localStorage.getItem('localUserPermissions')) || {};
-        userAccounts = userAccounts.map(u => ({ ...u, ...(localPerms[u.username] || {}) }));
         
         if (!useFirebase) {
             setNetworkStatus('offline');
@@ -467,23 +507,35 @@
                 renderLogs();
             }, (error) => console.error("Lỗi đồng bộ nhật ký:", error));
 
+            // Lấy thông tin tài khoản tự đăng ký & phân quyền
             const permRef = collection(db, 'artifacts', appId, 'public', 'data', 'user_permissions');
             unsubPerms = onSnapshot(permRef, (snapshot) => {
-                snapshot.docChanges().forEach((change) => {
-                    const data = change.doc.data();
-                    const username = change.doc.id;
-                    const uIndex = userAccounts.findIndex(u => u.username === username);
-                    if (uIndex !== -1) {
-                        userAccounts[uIndex] = { ...userAccounts[uIndex], ...data };
-                        
-                        const currentLocalPerms = JSON.parse(localStorage.getItem('localUserPermissions')) || {};
-                        currentLocalPerms[username] = data;
-                        localStorage.setItem('localUserPermissions', JSON.stringify(currentLocalPerms));
+                let tempRegistered = [];
+                const newPerms = {};
+
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    newPerms[doc.id] = data;
+
+                    if (data.isRegistered) {
+                        tempRegistered.push({
+                            username: doc.id,
+                            password: data.password,
+                            allowedIndices: data.allowedIndices !== undefined ? data.allowedIndices : [],
+                            canTick: data.canTick !== undefined ? data.canTick : false,
+                            canUntick: data.canUntick !== undefined ? data.canUntick : false,
+                            isRegistered: true
+                        });
                     }
                 });
                 
+                localPerms = newPerms;
+                registeredAccounts = tempRegistered;
+                localStorage.setItem('localUserPermissions', JSON.stringify(localPerms));
+                buildAllUsers();
+                
                 if (currentUser && currentUser.username !== 'admin') {
-                    const updatedMe = userAccounts.find(u => u.username === currentUser.username);
+                    const updatedMe = allUsers.find(u => u.username === currentUser.username);
                     if (updatedMe) {
                         currentUser = updatedMe;
                         localStorage.setItem('app_currentUser', JSON.stringify(currentUser));
@@ -545,8 +597,11 @@
                 doneItems = JSON.parse(localStorage.getItem('doneAccounts')) || {};
                 activityLogs = JSON.parse(localStorage.getItem('activityLogs')) || [];
                 
-                const localPerms = JSON.parse(localStorage.getItem('localUserPermissions')) || {};
-                userAccounts = userAccounts.map(u => ({ ...u, ...(localPerms[u.username] || {}) }));
+                localPerms = JSON.parse(localStorage.getItem('localUserPermissions')) || {};
+                registeredAccounts = Object.keys(localPerms)
+                    .filter(k => localPerms[k].isRegistered)
+                    .map(k => ({ username: k, ...localPerms[k] }));
+                buildAllUsers();
             } else if (firebaseUser) {
                 try {
                     const statusRef = collection(db, 'artifacts', appId, 'public', 'data', 'account_status');
@@ -563,16 +618,30 @@
                     
                     const permRef = collection(db, 'artifacts', appId, 'public', 'data', 'user_permissions');
                     const permSnap = await getDocs(permRef);
-                    const currentLocalPerms = JSON.parse(localStorage.getItem('localUserPermissions')) || {};
+                    
+                    let tempRegistered = [];
+                    const newPerms = {};
+
                     permSnap.forEach(doc => {
                         const data = doc.data();
-                        const uIndex = userAccounts.findIndex(u => u.username === doc.id);
-                        if (uIndex !== -1) {
-                            userAccounts[uIndex] = { ...userAccounts[uIndex], ...data };
-                            currentLocalPerms[doc.id] = data;
+                        newPerms[doc.id] = data;
+                        if (data.isRegistered) {
+                            tempRegistered.push({
+                                username: doc.id,
+                                password: data.password,
+                                allowedIndices: data.allowedIndices !== undefined ? data.allowedIndices : [],
+                                canTick: data.canTick !== undefined ? data.canTick : false,
+                                canUntick: data.canUntick !== undefined ? data.canUntick : false,
+                                isRegistered: true
+                            });
                         }
                     });
-                    localStorage.setItem('localUserPermissions', JSON.stringify(currentLocalPerms));
+                    
+                    localPerms = newPerms;
+                    registeredAccounts = tempRegistered;
+                    localStorage.setItem('localUserPermissions', JSON.stringify(localPerms));
+                    buildAllUsers();
+
                 } catch(e) {
                     console.error("Lỗi khi Refresh dữ liệu:", e);
                 }
@@ -653,6 +722,64 @@
         let currentUser = null; 
         let isLoggedIn = false; 
 
+        // --- LOGIC ĐĂNG KÝ TÀI KHOẢN MỚI ---
+        window.openRegisterModal = function() {
+            document.getElementById('registerModal').classList.remove('hidden');
+            document.getElementById('regUsername').value = '';
+            document.getElementById('regPassword').value = '';
+            document.getElementById('regConfirmPassword').value = '';
+        };
+
+        window.closeRegisterModal = function() {
+            document.getElementById('registerModal').classList.add('hidden');
+        };
+
+        window.handleRegister = async function() {
+            const user = document.getElementById('regUsername').value.trim().toLowerCase();
+            const pass = document.getElementById('regPassword').value.trim();
+            const passConfirm = document.getElementById('regConfirmPassword').value.trim();
+
+            if (!user || !pass) return alert("Vui lòng điền đầy đủ tên đăng nhập và mật khẩu!");
+            if (pass !== passConfirm) return alert("Mật khẩu xác nhận không khớp!");
+
+            buildAllUsers();
+            if (allUsers.find(u => u.username === user)) {
+                return alert("Tên đăng nhập này đã tồn tại! Vui lòng chọn tên khác.");
+            }
+
+            // Mặc định tài khoản đăng ký mới sẽ bị khóa quyền xem, quyền tích
+            const newUserPerms = {
+                password: pass,
+                isRegistered: true,
+                allowedIndices: [], 
+                canTick: false,
+                canUntick: false,
+                createdAt: Date.now()
+            };
+
+            if (useFirebase && firebaseUser) {
+                try {
+                    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'user_permissions', user);
+                    await setDoc(docRef, newUserPerms, { merge: true });
+                    alert("Đăng ký thành công! Bạn có thể đăng nhập ngay.\n\nLưu ý: Bạn phải chờ Admin cấp quyền thì mới xem được dữ liệu.");
+                    window.closeRegisterModal();
+                } catch(e) {
+                    console.error("Lỗi đăng ký:", e);
+                    alert("Đăng ký thất bại: " + e.message);
+                }
+            } else {
+                // Lưu ngoại tuyến
+                localPerms[user] = newUserPerms;
+                localStorage.setItem('localUserPermissions', JSON.stringify(localPerms));
+                
+                registeredAccounts.push({ username: user, ...newUserPerms });
+                buildAllUsers();
+                
+                alert("Đăng ký thành công (Ngoại Tuyến)!\nLưu ý: Bạn phải chờ Admin cấp quyền thì mới xem được dữ liệu.");
+                window.closeRegisterModal();
+            }
+        };
+
         function showApp(userObj, isRestoring = false) {
             currentUser = userObj;
             isLoggedIn = !userObj.isGuest;
@@ -699,7 +826,9 @@
         function handleLogin() {
             const user = usernameInput.value.trim().toLowerCase();
             const pass = passwordInput.value.trim();
-            const matchedUser = userAccounts.find(u => u.username === user && u.password === pass);
+            
+            buildAllUsers(); // Lấy data mới nhất
+            const matchedUser = allUsers.find(u => u.username === user && u.password === pass);
 
             if (matchedUser) {
                 showApp(matchedUser); 
@@ -743,7 +872,9 @@
             if (savedUserStr) {
                 try {
                     const savedUser = JSON.parse(savedUserStr);
-                    const updatedRealUser = userAccounts.find(u => u.username === savedUser.username);
+                    
+                    buildAllUsers();
+                    const updatedRealUser = allUsers.find(u => u.username === savedUser.username);
                     const userToBoot = updatedRealUser ? updatedRealUser : savedUser;
 
                     if (userToBoot.username === 'admin') {
@@ -796,15 +927,17 @@
 
         function formatIndices(arr) {
             if (arr === 'all') return 'all';
+            if (Array.isArray(arr) && arr.length === 0) return 'none'; // Mới đký = rỗng
             if (Array.isArray(arr)) return arr.join(', ');
-            return '';
+            return 'none';
         }
 
         function parseIndices(str) {
             str = str.trim().toLowerCase();
-            if (str === 'all' || str === '') return 'all';
+            if (str === 'all') return 'all';
+            if (str === 'none' || str === '') return []; // Rỗng hoặc none = Khóa xem
             const arr = str.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
-            return arr.length > 0 ? arr : 'all';
+            return arr;
         }
 
         window.updateUserPermission = async function(username, field, valueElement) {
@@ -815,9 +948,9 @@
                 newValue = valueElement.checked;
             }
 
-            const uIndex = userAccounts.findIndex(u => u.username === username);
+            const uIndex = allUsers.findIndex(u => u.username === username);
             if(uIndex > -1) {
-                userAccounts[uIndex][field] = newValue;
+                allUsers[uIndex][field] = newValue;
             }
 
             if (useFirebase && firebaseUser) {
@@ -828,10 +961,15 @@
                     console.error("Lỗi cập nhật quyền Firebase:", e);
                 }
             } else {
-                const localPerms = JSON.parse(localStorage.getItem('localUserPermissions')) || {};
                 if(!localPerms[username]) localPerms[username] = {};
                 localPerms[username][field] = newValue;
                 localStorage.setItem('localUserPermissions', JSON.stringify(localPerms));
+                
+                // Cập nhật lại list đăng ký local
+                registeredAccounts = Object.keys(localPerms)
+                    .filter(k => localPerms[k].isRegistered)
+                    .map(k => ({ username: k, ...localPerms[k] }));
+                buildAllUsers();
             }
             renderTable(); 
         }
@@ -840,7 +978,8 @@
             const tbody = document.getElementById('adminPanelTableBody');
             tbody.innerHTML = '';
 
-            userAccounts.forEach(user => {
+            buildAllUsers();
+            allUsers.forEach(user => {
                 if (user.username === 'admin') return; 
 
                 const tr = document.createElement('tr');
@@ -849,24 +988,31 @@
                 const canTick = user.canTick !== false;
                 const canUntick = user.canUntick !== false;
                 const indicesStr = formatIndices(user.allowedIndices);
+                
+                // Thêm tag để Admin nhận diện được user đăng ký tự do
+                const isNewTag = user.isRegistered 
+                    ? '<span class="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded ml-2 shadow-sm font-bold align-middle">[Mới]</span>' 
+                    : '';
 
                 tr.innerHTML = `
-                    <td class="border border-gray-200 px-3 py-2 font-medium text-blue-700">${user.username}</td>
+                    <td class="border border-gray-200 px-3 py-2 font-medium text-blue-700">
+                        ${user.username} ${isNewTag}
+                    </td>
                     <td class="border border-gray-200 px-3 py-2">
                         <input type="text" value="${indicesStr}" 
                                onblur="window.updateUserPermission('${user.username}', 'allowedIndices', this)"
-                               placeholder="Nhập 1,2,3 hoặc all"
+                               placeholder="Nhập 1,2,3 hoặc all, none"
                                class="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
                     </td>
                     <td class="border border-gray-200 px-3 py-2 text-center bg-green-50/50">
                         <input type="checkbox" ${canTick ? 'checked' : ''} 
                                onchange="window.updateUserPermission('${user.username}', 'canTick', this)"
-                               class="w-4 h-4 cursor-pointer accent-green-600">
+                               class="w-4 h-4 cursor-pointer accent-green-600 hover:scale-110">
                     </td>
                     <td class="border border-gray-200 px-3 py-2 text-center bg-red-50/50">
                         <input type="checkbox" ${canUntick ? 'checked' : ''} 
                                onchange="window.updateUserPermission('${user.username}', 'canUntick', this)"
-                               class="w-4 h-4 cursor-pointer accent-red-600">
+                               class="w-4 h-4 cursor-pointer accent-red-600 hover:scale-110">
                     </td>
                 `;
                 tbody.appendChild(tr);
