@@ -32,8 +32,8 @@
     <!-- Màn hình đăng nhập -->
     <div id="loginScreen" class="max-w-md w-full mx-auto bg-white rounded-xl shadow-lg p-8">
         <div class="text-center mb-8">
-            <h1 class="text-2xl font-bold text-gray-800">Hệ Thống Quản Lý</h1>
-            <p class="text-gray-500 mt-2">Vui lòng đăng nhập để xem dữ liệu</p>
+            <h1 id="loginScreenTitle" class="text-2xl font-bold text-gray-800">Hệ Thống Quản Lý</h1>
+            <p id="loginScreenDesc" class="text-gray-500 mt-2">Vui lòng đăng nhập để xem dữ liệu</p>
         </div>
         
         <form id="loginForm" onsubmit="event.preventDefault();">
@@ -59,6 +59,21 @@
                 </button>
             </div>
         </form>
+
+        <!-- Bắt buộc cài đặt đồng bộ -->
+        <div id="setupFormContainer" class="hidden">
+            <div class="bg-orange-50 border border-orange-200 p-4 rounded-lg mb-4 text-sm text-orange-800">
+                <p class="font-bold mb-1">⚠️ Yêu cầu Bắt Buộc:</p>
+                <p>Bạn phải kết nối Server Đồng Bộ thì mới có thể đăng nhập và thao tác.</p>
+            </div>
+            <label class="block text-gray-700 text-sm font-bold mb-2">
+                Nhập mã Firebase Config:
+            </label>
+            <textarea id="mandatoryConfigInput" rows="6" class="w-full border border-gray-300 rounded-lg p-3 text-xs font-mono focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50 shadow-inner" placeholder='{\n  "apiKey": "AIzaSy...",\n  "authDomain": "...",\n  "projectId": "...",\n  "storageBucket": "...",\n  "messagingSenderId": "...",\n  "appId": "..."\n}'></textarea>
+            <button onclick="window.saveMandatoryConfig()" class="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline transition-colors" type="button">
+                Lưu Kết Nối & Tải Lại
+            </button>
+        </div>
     </div>
 
     <!-- Bảng dữ liệu chính (Ẩn mặc định) -->
@@ -196,12 +211,15 @@
         });
 
         // TỰ ĐỘNG SỬA LỖI JSON KHI LƯU
-        window.saveFirebaseConfig = function() {
-            let val = document.getElementById('firebaseConfigInput').value.trim();
+        window.saveFirebaseConfig = function(inputId = 'firebaseConfigInput') {
+            let val = document.getElementById(inputId).value.trim();
             if(!val) {
                 localStorage.removeItem('custom_firebase_config');
             } else {
                 try {
+                    // Sửa lỗi đánh máy từ OCR (O thay vì 0, l thay vì 1)
+                    val = val.replace(/ROBBA/g, 'R0BBA').replace(/AlTe3W2/g, 'A1Te3W2');
+                    
                     // Thử phân tích JSON chuẩn
                     JSON.parse(val); 
                     localStorage.setItem('custom_firebase_config', val);
@@ -224,6 +242,10 @@
             window.location.reload();
         }
 
+        window.saveMandatoryConfig = function() {
+            window.saveFirebaseConfig('mandatoryConfigInput');
+        }
+
         try {
             let configToUse = null;
             const customConfigStr = localStorage.getItem('custom_firebase_config');
@@ -236,6 +258,10 @@
             else if (customConfigStr) {
                 configToUse = JSON.parse(customConfigStr);
             }
+            // Ưu tiên 3: Cấu hình CỐ ĐỊNH trong file (Đã được vá lỗi để nhận diện)
+            else if (Object.keys(MY_FIREBASE_CONFIG).length > 0) {
+                configToUse = MY_FIREBASE_CONFIG;
+            }
 
             if (configToUse) {
                 app = initializeApp(configToUse);
@@ -245,6 +271,14 @@
             }
         } catch (error) {
             console.warn("Không thể kết nối Firebase Cloud.", error);
+        }
+
+        // --- Bắt buộc cấu hình Firebase trước khi thao tác ---
+        if (!useFirebase) {
+            document.getElementById('loginForm').classList.add('hidden');
+            document.getElementById('setupFormContainer').classList.remove('hidden');
+            document.getElementById('loginScreenTitle').innerText = "Cài Đặt Hệ Thống";
+            document.getElementById('loginScreenDesc').innerText = "Trạng thái: Chưa có kết nối Server";
         }
 
         // --- Cập nhật giao diện trạng thái mạng ---
