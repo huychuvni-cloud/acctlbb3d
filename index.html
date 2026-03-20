@@ -162,10 +162,7 @@
                 </div>
             </div>
             <div id="activityLogContainer" class="bg-gray-50 border border-gray-300 rounded-lg p-4 h-56 overflow-y-auto font-mono text-sm space-y-2 shadow-inner">
-                <div class="text-gray-500 italic flex items-center gap-2">
-                    <svg class="animate-spin h-4 w-4 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                    Đang kết nối hệ thống đồng bộ...
-                </div>
+                <!-- Nội dung được xử lý bằng JS -->
             </div>
         </div>
     </div>
@@ -346,6 +343,7 @@
             el.onclick = () => document.getElementById('firebaseConfigModal').classList.remove('hidden');
         }
 
+        // --- CƠ CHẾ OFFLINE FIRST (ƯU TIÊN LẤY DỮ LIỆU LOCAL ĐỂ HIỂN THỊ TỨC THÌ) ---
         // Dữ liệu User Mặc Định (Đã thêm biến canTick, canUntick để phân quyền Sửa/Xóa)
         let userAccounts = [
             { username: 'admin', password: 'admin@@', allowedIndices: 'all', canTick: true, canUntick: true },
@@ -363,21 +361,25 @@
         let unsubLogs = null;
         let unsubPerms = null;
         
-        let doneItems = {}; 
-        let activityLogs = []; 
+        // LUÔN TẢI TỪ LOCALSTORAGE TRƯỚC (XÓA BỎ THỜI GIAN CHỜ)
+        let doneItems = JSON.parse(localStorage.getItem('doneAccounts')) || {};
+        let activityLogs = JSON.parse(localStorage.getItem('activityLogs')) || [];
+        const localPerms = JSON.parse(localStorage.getItem('localUserPermissions')) || {};
+        userAccounts = userAccounts.map(u => ({ ...u, ...(localPerms[u.username] || {}) }));
         
         if (!useFirebase) {
             setNetworkStatus(false);
-            doneItems = JSON.parse(localStorage.getItem('doneAccounts')) || {};
-            activityLogs = JSON.parse(localStorage.getItem('activityLogs')) || [];
-            
-            // Tải quyền lưu tạm ở LocalStorage (nếu có)
-            const localPerms = JSON.parse(localStorage.getItem('localUserPermissions')) || {};
-            userAccounts = userAccounts.map(u => ({ ...u, ...(localPerms[u.username] || {}) }));
-
             document.getElementById('activityLogContainer').innerHTML = `
                 <div class="text-gray-600 bg-orange-50 border border-orange-200 p-3 rounded-lg text-sm">
                     ⚠️ <b>Cảnh báo: Bảng đang chạy ở chế độ Ngoại Tuyến (Offline).</b><br> Dữ liệu sẽ chỉ được lưu trên máy tính này.
+                </div>
+            `;
+        } else {
+            // Mặc định hiện loading nhỏ, nhưng dữ liệu bảng đã có sẵn nhờ LocalStorage
+            document.getElementById('activityLogContainer').innerHTML = `
+                <div class="text-gray-500 italic flex items-center gap-2">
+                    <svg class="animate-spin h-4 w-4 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    Đang đồng bộ dữ liệu mới nhất...
                 </div>
             `;
         }
@@ -406,6 +408,7 @@
                     }
                 } catch(e) { 
                     console.error("Firebase Auth Error:", e); 
+                    document.getElementById('activityLogContainer').innerHTML = `<div class="text-red-500 p-2">Lỗi kết nối Firebase: ${e.message}</div>`;
                 }
             };
             initAuth();
@@ -425,17 +428,18 @@
         function setupRealtimeListeners() {
             setNetworkStatus(true); 
 
-            // Nghe trạng thái tick ô
+            // Nghe trạng thái tick ô và GHI VÀO LOCALCACHE
             const statusRef = collection(db, 'artifacts', appId, 'public', 'data', 'account_status');
             unsubStatus = onSnapshot(statusRef, (snapshot) => {
                 snapshot.docChanges().forEach((change) => {
                     const data = change.doc.data();
                     doneItems[change.doc.id] = data.isDone;
                 });
+                localStorage.setItem('doneAccounts', JSON.stringify(doneItems)); // Cache
                 renderTable(); 
             }, (error) => console.error("Lỗi đồng bộ trạng thái:", error));
 
-            // Nghe nhật ký
+            // Nghe nhật ký và GHI VÀO LOCALCACHE
             const logRef = collection(db, 'artifacts', appId, 'public', 'data', 'activity_log');
             unsubLogs = onSnapshot(logRef, (snapshot) => {
                 activityLogs = [];
@@ -444,10 +448,11 @@
                 });
                 
                 activityLogs.sort((a, b) => b.timestamp - a.timestamp);
+                localStorage.setItem('activityLogs', JSON.stringify(activityLogs)); // Cache
                 renderLogs();
             }, (error) => console.error("Lỗi đồng bộ nhật ký:", error));
 
-            // Nghe phân quyền tài khoản từ Admin
+            // Nghe phân quyền tài khoản từ Admin và GHI VÀO LOCALCACHE
             const permRef = collection(db, 'artifacts', appId, 'public', 'data', 'user_permissions');
             unsubPerms = onSnapshot(permRef, (snapshot) => {
                 snapshot.docChanges().forEach((change) => {
@@ -456,6 +461,11 @@
                     const uIndex = userAccounts.findIndex(u => u.username === username);
                     if (uIndex !== -1) {
                         userAccounts[uIndex] = { ...userAccounts[uIndex], ...data };
+                        
+                        // Cache local perms
+                        const currentLocalPerms = JSON.parse(localStorage.getItem('localUserPermissions')) || {};
+                        currentLocalPerms[username] = data;
+                        localStorage.setItem('localUserPermissions', JSON.stringify(currentLocalPerms));
                     }
                 });
                 
@@ -482,7 +492,6 @@
             const filteredLogs = activityLogs.filter(log => getYYYYMMDD(log.timestamp) === selectedLogDate);
             
             if (filteredLogs.length === 0) {
-                if(!useFirebase) return; 
                 container.innerHTML = `<div class="text-gray-500 italic p-2">Chưa có hoạt động nào được ghi lại trong ngày ${selectedLogDate.split('-').reverse().join('/')}.</div>`;
                 return;
             }
@@ -517,25 +526,35 @@
             if (!useFirebase) {
                 doneItems = JSON.parse(localStorage.getItem('doneAccounts')) || {};
                 activityLogs = JSON.parse(localStorage.getItem('activityLogs')) || [];
+                
+                const localPerms = JSON.parse(localStorage.getItem('localUserPermissions')) || {};
+                userAccounts = userAccounts.map(u => ({ ...u, ...(localPerms[u.username] || {}) }));
             } else if (firebaseUser) {
                 try {
                     const statusRef = collection(db, 'artifacts', appId, 'public', 'data', 'account_status');
                     const statusSnap = await getDocs(statusRef);
                     statusSnap.forEach(doc => { doneItems[doc.id] = doc.data().isDone; });
+                    localStorage.setItem('doneAccounts', JSON.stringify(doneItems));
                     
                     const logRef = collection(db, 'artifacts', appId, 'public', 'data', 'activity_log');
                     const logSnap = await getDocs(logRef);
                     activityLogs = [];
                     logSnap.forEach(doc => { activityLogs.push({ id: doc.id, ...doc.data() }); });
                     activityLogs.sort((a, b) => b.timestamp - a.timestamp);
+                    localStorage.setItem('activityLogs', JSON.stringify(activityLogs));
                     
                     const permRef = collection(db, 'artifacts', appId, 'public', 'data', 'user_permissions');
                     const permSnap = await getDocs(permRef);
+                    const currentLocalPerms = JSON.parse(localStorage.getItem('localUserPermissions')) || {};
                     permSnap.forEach(doc => {
                         const data = doc.data();
                         const uIndex = userAccounts.findIndex(u => u.username === doc.id);
-                        if (uIndex !== -1) userAccounts[uIndex] = { ...userAccounts[uIndex], ...data };
+                        if (uIndex !== -1) {
+                            userAccounts[uIndex] = { ...userAccounts[uIndex], ...data };
+                            currentLocalPerms[doc.id] = data;
+                        }
                     });
+                    localStorage.setItem('localUserPermissions', JSON.stringify(currentLocalPerms));
                 } catch(e) {
                     console.error("Lỗi khi Refresh dữ liệu:", e);
                 }
@@ -564,6 +583,7 @@
 
             // Cập nhật giao diện lập tức 
             doneItems[id] = newState;
+            localStorage.setItem('doneAccounts', JSON.stringify(doneItems)); // Cache ngay lập tức
             renderTable();
 
             if (useFirebase && firebaseUser) {
@@ -586,10 +606,10 @@
                 } catch (error) {
                     console.error("Lỗi cập nhật server: ", error);
                     doneItems[id] = isCurrentlyDone;
+                    localStorage.setItem('doneAccounts', JSON.stringify(doneItems));
                     renderTable();
                 }
             } else {
-                localStorage.setItem('doneAccounts', JSON.stringify(doneItems));
                 const newLog = {
                     id: Date.now().toString(), timestamp: Date.now(),
                     username: currentUser.username, action: newState ? 'XONG' : 'BỎ',
@@ -655,6 +675,11 @@
             passwordInput.value = '';
             
             renderTable();
+            
+            // Xóa loading spinner nếu đã có log local
+            if(activityLogs.length > 0) {
+                 renderLogs();
+            }
         }
 
         function handleLogin() {
