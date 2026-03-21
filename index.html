@@ -118,7 +118,7 @@
     </div>
 
     <!-- Bảng dữ liệu chính (Ẩn mặc định) -->
-    <div id="mainApp" class="hidden max-w-6xl mx-auto w-full bg-white rounded-xl shadow-lg p-6 overflow-hidden">
+    <div id="mainApp" class="hidden max-w-full mx-auto w-full bg-white rounded-xl shadow-lg p-6 overflow-hidden">
         
         <!-- Header & Controls -->
         <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
@@ -162,9 +162,11 @@
                         <th class="border border-black px-3 py-2 text-center font-bold w-12">STT</th>
                         <th class="border border-black px-3 py-2 text-center font-bold w-16">Xong</th>
                         <th class="border border-black px-3 py-2 text-left font-bold w-48">Username TNT</th>
-                        <th class="border border-black px-3 py-2 text-center font-bold w-64">Passwords TNT</th>
-                        <th class="border border-black px-3 py-2 text-left font-bold w-24">Tên NV (Cũ)</th>
-                        <th class="border border-black px-3 py-2 text-left font-bold w-32">Tên NV (Mới)</th>
+                        <th class="border border-black px-3 py-2 text-center font-bold w-48">Passwords TNT</th>
+                        <th class="border border-black px-3 py-2 text-left font-bold w-32">Tên NV (Cũ)</th>
+                        <th class="border border-black px-3 py-2 text-left font-bold w-40">Tên NV (Mới)</th>
+                        <th class="border border-black px-3 py-2 text-left font-bold w-24">Phái</th>
+                        <th class="border border-black px-3 py-2 text-left font-bold w-24">Thuộc tính</th>
                         <th class="border border-black px-3 py-2 text-left font-bold w-48">Username TC</th>
                         <th class="border border-black px-3 py-2 text-center font-bold w-40">Passwords TC</th>
                     </tr>
@@ -206,7 +208,7 @@
 
     <!-- Modal Quản Lý Phân Quyền & Tài Khoản (Dành cho Admin) -->
     <div id="adminPanelModal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-xl shadow-2xl max-w-4xl w-full p-6 border border-gray-200 flex flex-col max-h-[90vh]">
+        <div class="bg-white rounded-xl shadow-2xl max-w-5xl w-full p-6 border border-gray-200 flex flex-col max-h-[90vh]">
             <div class="flex justify-between items-center mb-4 border-b border-gray-100 pb-3">
                 <h3 class="text-xl font-bold text-gray-800 flex items-center gap-2">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-purple-600"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
@@ -227,8 +229,8 @@
                         <table class="w-full text-sm border-collapse text-left">
                             <thead class="sticky top-0 bg-gray-50 shadow-sm z-10">
                                 <tr>
-                                    <th class="border-b border-r border-gray-300 px-3 py-2 font-bold w-1/5 text-gray-700">Tài Khoản</th>
-                                    <th class="border-b border-r border-gray-300 px-3 py-2 font-bold w-2/5 text-gray-700" title="Nhập danh sách số cách nhau bởi dấu phẩy, hoặc nhập 'all'">STT Được Xem</th>
+                                    <th class="border-b border-r border-gray-300 px-3 py-2 font-bold w-1/4 text-gray-700">Tài Khoản</th>
+                                    <th class="border-b border-r border-gray-300 px-3 py-2 font-bold w-1/2 text-gray-700" title="Nhập danh sách số cách nhau bởi dấu phẩy, hoặc nhập 'all'">STT Được Xem</th>
                                     <th class="border-b border-r border-gray-300 px-3 py-2 font-bold text-center text-xs text-gray-700">Sửa</th>
                                     <th class="border-b border-r border-gray-300 px-3 py-2 font-bold text-center text-xs text-gray-700">Xóa</th>
                                     <th class="border-b border-gray-300 px-3 py-2 font-bold text-center text-xs text-gray-700">Mật Khẩu</th>
@@ -259,10 +261,14 @@
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-600"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/></svg>
                     Thêm Dữ Liệu Bảng Mới
                 </h4>
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
                     <input type="text" id="newAcc_userTnt" placeholder="User Sv Cũ (Tùy chọn)" class="border border-gray-300 rounded px-2 py-1.5 focus:ring-1 focus:ring-blue-500 outline-none">
                     <input type="text" id="newAcc_passTnt" placeholder="Pass Sv Cũ (Tùy chọn)" class="border border-gray-300 rounded px-2 py-1.5 focus:ring-1 focus:ring-blue-500 outline-none">
                     <input type="text" id="newAcc_oldName" placeholder="Tên NV Cũ (Tùy chọn)" class="border border-gray-300 rounded px-2 py-1.5 focus:ring-1 focus:ring-blue-500 outline-none">
+                    
+                    <input type="text" id="newAcc_phai" placeholder="Phái (Tùy chọn)" class="border border-gray-300 rounded px-2 py-1.5 focus:ring-1 focus:ring-blue-500 outline-none">
+                    <input type="text" id="newAcc_thuocTinh" placeholder="Thuộc tính (Tùy chọn)" class="border border-gray-300 rounded px-2 py-1.5 focus:ring-1 focus:ring-blue-500 outline-none">
+                    
                     <select id="newAcc_color" class="border border-gray-300 rounded px-2 py-1.5 focus:ring-1 focus:ring-blue-500 outline-none">
                         <option value="white">⚪ Màu Trắng</option>
                         <option value="blue">🔵 Màu Xanh</option>
@@ -271,6 +277,7 @@
                         <option value="pink">🔴 Màu Hồng</option>
                         <option value="purple">🟣 Màu Tím</option>
                     </select>
+                    
                     <input type="text" id="newAcc_userTc" placeholder="User Sv Mới* (Bắt buộc)" class="border border-blue-400 bg-blue-50 rounded px-2 py-1.5 focus:ring-1 focus:ring-blue-600 outline-none">
                     <input type="text" id="newAcc_passTc" placeholder="Pass Sv Mới* (Bắt buộc)" class="border border-blue-400 bg-blue-50 rounded px-2 py-1.5 focus:ring-1 focus:ring-blue-600 outline-none">
                     <input type="text" id="newAcc_newName" placeholder="Tên NV Mới* (Bắt buộc)" class="border border-blue-400 bg-blue-50 rounded px-2 py-1.5 focus:ring-1 focus:ring-blue-600 outline-none">
@@ -1277,6 +1284,10 @@
             const userTc = document.getElementById('newAcc_userTc').value.trim();
             const passTc = document.getElementById('newAcc_passTc').value.trim();
             const newName = document.getElementById('newAcc_newName').value.trim();
+            
+            // Xử lý dữ liệu hai cột mới
+            const phai = document.getElementById('newAcc_phai').value.trim();
+            const thuocTinh = document.getElementById('newAcc_thuocTinh').value.trim();
 
             if (!userTc || !passTc || !newName) {
                 alert("Vui lòng nhập đầy đủ Username, Password và Tên NV cho Server Mới (các ô màu xanh)!");
@@ -1291,6 +1302,8 @@
                 userTc: userTc,
                 passTc: passTc,
                 newName: newName,
+                phai: phai,
+                thuocTinh: thuocTinh,
                 color: document.getElementById('newAcc_color').value
             };
 
@@ -1312,6 +1325,8 @@
                     document.getElementById('newAcc_userTc').value = '';
                     document.getElementById('newAcc_passTc').value = '';
                     document.getElementById('newAcc_newName').value = '';
+                    document.getElementById('newAcc_phai').value = '';
+                    document.getElementById('newAcc_thuocTinh').value = '';
                     alert("Thêm tài khoản vào bảng thành công!");
                 } catch(e) {
                     console.error("Lỗi thêm tài khoản bảng:", e);
@@ -1527,6 +1542,8 @@
                         passTnt: edited.passTnt !== undefined ? edited.passTnt : row.passTnt,
                         oldName: edited.oldName !== undefined ? edited.oldName : row.oldName,
                         newName: edited.newName !== undefined ? edited.newName : row.newName,
+                        phai: edited.phai !== undefined ? edited.phai : row.phai,
+                        thuocTinh: edited.thuocTinh !== undefined ? edited.thuocTinh : row.thuocTinh,
                         userTc: edited.userTc !== undefined ? edited.userTc : row.userTc,
                         passTc: edited.passTc !== undefined ? edited.passTc : row.passTc
                     };
@@ -1573,6 +1590,8 @@
                 const safePassTnt = (row.passTnt || '').replace(/'/g, "\\'");
                 const safeOldName = (row.oldName || '').replace(/'/g, "\\'");
                 const safeNewName = (row.newName || '').replace(/'/g, "\\'");
+                const safePhai = (row.phai || '').replace(/'/g, "\\'");
+                const safeThuocTinh = (row.thuocTinh || '').replace(/'/g, "\\'");
                 const safeUserTc  = (row.userTc || '').replace(/'/g, "\\'");
                 const safePassTc  = (row.passTc || '').replace(/'/g, "\\'");
 
@@ -1610,6 +1629,8 @@
                     </td>
                     <td ${editAttr('oldName', safeOldName, 'Tên NV (Cũ)')} class="border border-black px-3 py-1 font-medium ${textOpacityClass} ${editableCls}">${row.oldName || ''}</td>
                     <td ${editAttr('newName', safeNewName, 'Tên NV (Mới)')} class="border border-black px-3 py-1 font-bold text-blue-800 ${textOpacityClass} ${editableCls}">${row.newName || ''}</td>
+                    <td ${editAttr('phai', safePhai, 'Phái')} class="border border-black px-3 py-1 font-medium ${textOpacityClass} ${editableCls}">${row.phai || ''}</td>
+                    <td ${editAttr('thuocTinh', safeThuocTinh, 'Thuộc tính')} class="border border-black px-3 py-1 font-medium ${textOpacityClass} ${editableCls}">${row.thuocTinh || ''}</td>
                     <td ${editAttr('userTc', safeUserTc, 'Username TC')} class="border border-black px-3 py-1 whitespace-nowrap ${!isLoggedIn ? 'text-center' : ''} ${textOpacityClass} ${editableCls}">
                         ${isLoggedIn ? createCopyableCell(row.userTc || '', 'left') : '<span class="text-gray-600 font-mono tracking-widest text-lg">*****</span>'}
                     </td>
