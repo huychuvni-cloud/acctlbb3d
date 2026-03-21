@@ -164,19 +164,8 @@
         <!-- Bảng dữ liệu -->
         <div class="overflow-x-auto border-2 border-black rounded-sm shadow-sm">
             <table class="w-full text-sm border-collapse">
-                <thead>
-                    <tr class="bg-white">
-                        <th class="border border-black px-3 py-2 text-center font-bold w-12">STT</th>
-                        <th class="border border-black px-3 py-2 text-center font-bold w-16">Xong</th>
-                        <th class="border border-black px-3 py-2 text-left font-bold w-48">Username TNT</th>
-                        <th class="border border-black px-3 py-2 text-center font-bold w-48">Passwords TNT</th>
-                        <th class="border border-black px-3 py-2 text-left font-bold w-32">Tên NV (Cũ)</th>
-                        <th class="border border-black px-3 py-2 text-left font-bold w-40">Tên NV (Mới)</th>
-                        <th class="border border-black px-3 py-2 text-left font-bold w-32">Phái</th>
-                        <th class="border border-black px-3 py-2 text-left font-bold w-32">Thuộc tính</th>
-                        <th class="border border-black px-3 py-2 text-left font-bold w-48">Username TC</th>
-                        <th class="border border-black px-3 py-2 text-center font-bold w-40">Passwords TC</th>
-                    </tr>
+                <thead id="tableHead">
+                    <!-- Phần thead được render động bằng JS -->
                 </thead>
                 <tbody id="tableBody">
                     <!-- Nội dung bảng sẽ được render bằng JavaScript -->
@@ -621,6 +610,7 @@
 
         // TRẠNG THÁI NHẬT KÝ (MAIN + ADMIN)
         let doneItems = JSON.parse(localStorage.getItem('doneAccounts')) || {};
+        let deletedAccountsMap = JSON.parse(localStorage.getItem('deletedAccountsMap')) || {}; // CƠ CHẾ XOÁ
         let activityLogs = JSON.parse(localStorage.getItem('activityLogs')) || [];
         let adminActivityLogs = JSON.parse(localStorage.getItem('adminActivityLogs')) || [];
 
@@ -636,6 +626,7 @@
 
         let firebaseUser = null;
         let unsubStatus = null;
+        let unsubDeleted = null;
         let unsubLogs = null;
         let unsubAdminLogs = null;
         let unsubPerms = null;
@@ -720,6 +711,7 @@
                     setupRealtimeListeners();
                 } else {
                     if (unsubStatus) unsubStatus();
+                    if (unsubDeleted) unsubDeleted();
                     if (unsubLogs) unsubLogs();
                     if (unsubAdminLogs) unsubAdminLogs();
                     if (unsubPerms) unsubPerms();
@@ -762,6 +754,16 @@
                     doneItems[change.doc.id] = data.isDone;
                 });
                 localStorage.setItem('doneAccounts', JSON.stringify(doneItems)); 
+                renderTable(); 
+            }, (error) => window.handleFirestoreError(error));
+
+            // Sync: Các tài khoản bị xóa (Blacklist)
+            const deletedRef = collection(db, 'artifacts', appId, 'public', 'data', 'deleted_accounts');
+            unsubDeleted = onSnapshot(deletedRef, (snapshot) => {
+                snapshot.docChanges().forEach((change) => {
+                    deletedAccountsMap[change.doc.id] = true;
+                });
+                localStorage.setItem('deletedAccountsMap', JSON.stringify(deletedAccountsMap)); 
                 renderTable(); 
             }, (error) => window.handleFirestoreError(error));
 
@@ -894,6 +896,10 @@
                     const newName = log.details?.newName || 'N/A';
                     logTextHtml = `<span class="text-gray-600">đã thêm</span> <span class="font-bold text-blue-600">tài khoản mới</span> <span class="text-gray-600">vào bảng (Tên NV Mới: <span class="font-bold">${newName}</span>)</span>`;
                 }
+                else if (log.action === 'XÓA') {
+                    const safeName = log.details?.name || 'N/A';
+                    logTextHtml = `<span class="text-gray-600">đã</span> <span class="font-bold text-red-600">XÓA</span> <span class="text-gray-600">nhân vật</span> <span class="font-bold text-black border-b border-black leading-none">${safeName}</span> <span class="text-gray-600">(STT cũ: ${log.displayStt})</span>`;
+                }
 
                 const div = document.createElement('div');
                 div.className = "flex items-center gap-2 border-b border-gray-200 pb-2 mb-2 last:border-0 hover:bg-white p-1 rounded transition-colors";
@@ -952,6 +958,7 @@
 
             if (!useFirebase) {
                 doneItems = JSON.parse(localStorage.getItem('doneAccounts')) || {};
+                deletedAccountsMap = JSON.parse(localStorage.getItem('deletedAccountsMap')) || {};
                 activityLogs = JSON.parse(localStorage.getItem('activityLogs')) || [];
                 adminActivityLogs = JSON.parse(localStorage.getItem('adminActivityLogs')) || [];
                 customAccounts = JSON.parse(localStorage.getItem('customAccounts')) || [];
@@ -968,6 +975,12 @@
                     const statusSnap = await getDocs(statusRef);
                     statusSnap.forEach(doc => { doneItems[doc.id] = doc.data().isDone; });
                     localStorage.setItem('doneAccounts', JSON.stringify(doneItems));
+
+                    const deletedRef = collection(db, 'artifacts', appId, 'public', 'data', 'deleted_accounts');
+                    const deletedSnap = await getDocs(deletedRef);
+                    deletedAccountsMap = {};
+                    deletedSnap.forEach(doc => { deletedAccountsMap[doc.id] = true; });
+                    localStorage.setItem('deletedAccountsMap', JSON.stringify(deletedAccountsMap));
                     
                     const logRef = collection(db, 'artifacts', appId, 'public', 'data', 'activity_log');
                     const logSnap = await getDocs(logRef);
@@ -1635,6 +1648,50 @@
                 renderTable();
             }
         }
+        
+        // --- HÀM XÓA TÀI KHOẢN (CHỈ DÀNH CHO ADMIN) ---
+        window.deleteAccount = async function(id, name) {
+            if (!currentUser || currentUser.username !== 'admin') return;
+            if (!confirm(`CẢNH BÁO: Bạn có chắc chắn muốn xóa hoàn toàn nhân vật "${name}" khỏi bảng không? Hành động này không thể hoàn tác.`)) return;
+
+            let displayStt = id;
+            if(isGrouped && window.globalGroupedIndexMap) {
+                 displayStt = window.globalGroupedIndexMap[id] || id;
+            }
+
+            if (useFirebase && firebaseUser) {
+                try {
+                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'deleted_accounts', id.toString()), {
+                        deletedAt: Date.now(),
+                        deletedBy: currentUser.username
+                    });
+                    
+                    await window.logAction('main', {
+                        timestamp: Date.now(),
+                        username: currentUser.username,
+                        action: 'XÓA',
+                        displayStt: displayStt,
+                        details: { name: name }
+                    });
+                } catch(e) {
+                    console.error("Lỗi xóa tài khoản:", e);
+                    window.handleFirestoreError(e);
+                }
+            } else {
+                deletedAccountsMap[id] = true;
+                localStorage.setItem('deletedAccountsMap', JSON.stringify(deletedAccountsMap));
+                
+                await window.logAction('main', {
+                    timestamp: Date.now(),
+                    username: currentUser.username,
+                    action: 'XÓA',
+                    displayStt: displayStt,
+                    details: { name: name }
+                });
+                
+                renderTable();
+            }
+        }
 
         function renderAdminPanel() {
             const tbody = document.getElementById('adminPanelTableBody');
@@ -1744,6 +1801,7 @@
         const checkIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-green-700"><path d="M20 6 9 17l-5-5"/></svg>`;
         const paintIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m19 11-8-8-8.6 8.6a2 2 0 0 0 0 2.8l5.2 5.2c.8.8 2 .8 2.8 0L19 11Z"/><path d="m5 2 5 5"/><path d="M2 13h15"/><path d="M22 20a2 2 0 1 1-4 0c0-1.6 1.7-2.4 2-4 .3 1.6 2 2.4 2 4Z"/></svg>`;
         const sortIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/></svg>`;
+        const trashIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-red-500 hover:text-red-700 transition-colors"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>`;
 
         let isGrouped = true;
         window.globalGroupedIndexMap = {};
@@ -1786,26 +1844,49 @@
         }
 
         function renderTable() {
+            const tableHead = document.getElementById('tableHead');
             const tableBody = document.getElementById('tableBody');
+            
+            const isAdmin = currentUser && currentUser.username === 'admin';
+
+            // Dựng linh động thead để thêm cột "Xóa" cho Admin
+            tableHead.innerHTML = `
+                <tr class="bg-white">
+                    <th class="border border-black px-3 py-2 text-center font-bold w-12">STT</th>
+                    <th class="border border-black px-3 py-2 text-center font-bold w-16">Xong</th>
+                    <th class="border border-black px-3 py-2 text-left font-bold w-48">Username TNT</th>
+                    <th class="border border-black px-3 py-2 text-center font-bold w-48">Passwords TNT</th>
+                    <th class="border border-black px-3 py-2 text-left font-bold w-32">Tên NV (Cũ)</th>
+                    <th class="border border-black px-3 py-2 text-left font-bold w-40">Tên NV (Mới)</th>
+                    <th class="border border-black px-3 py-2 text-left font-bold w-32">Phái</th>
+                    <th class="border border-black px-3 py-2 text-left font-bold w-32">Thuộc tính</th>
+                    <th class="border border-black px-3 py-2 text-left font-bold w-48">Username TC</th>
+                    <th class="border border-black px-3 py-2 text-center font-bold w-40">Passwords TC</th>
+                    ${isAdmin ? '<th class="border border-black px-2 py-2 text-center font-bold w-10 text-red-600">Xóa</th>' : ''}
+                </tr>
+            `;
+
             tableBody.innerHTML = '';
 
-            let finalData = [...rawData, ...customAccounts].map(row => {
-                const edited = editedNamesMap[row.id];
-                if (edited) {
-                    return {
-                        ...row,
-                        userTnt: edited.userTnt !== undefined ? edited.userTnt : row.userTnt,
-                        passTnt: edited.passTnt !== undefined ? edited.passTnt : row.passTnt,
-                        oldName: edited.oldName !== undefined ? edited.oldName : row.oldName,
-                        newName: edited.newName !== undefined ? edited.newName : row.newName,
-                        phai: edited.phai !== undefined ? edited.phai : row.phai,
-                        thuocTinh: edited.thuocTinh !== undefined ? edited.thuocTinh : row.thuocTinh,
-                        userTc: edited.userTc !== undefined ? edited.userTc : row.userTc,
-                        passTc: edited.passTc !== undefined ? edited.passTc : row.passTc
-                    };
-                }
-                return row;
-            });
+            let finalData = [...rawData, ...customAccounts]
+                .filter(row => !deletedAccountsMap[row.id]) // Lọc bỏ các tài khoản đã bị xóa
+                .map(row => {
+                    const edited = editedNamesMap[row.id];
+                    if (edited) {
+                        return {
+                            ...row,
+                            userTnt: edited.userTnt !== undefined ? edited.userTnt : row.userTnt,
+                            passTnt: edited.passTnt !== undefined ? edited.passTnt : row.passTnt,
+                            oldName: edited.oldName !== undefined ? edited.oldName : row.oldName,
+                            newName: edited.newName !== undefined ? edited.newName : row.newName,
+                            phai: edited.phai !== undefined ? edited.phai : row.phai,
+                            thuocTinh: edited.thuocTinh !== undefined ? edited.thuocTinh : row.thuocTinh,
+                            userTc: edited.userTc !== undefined ? edited.userTc : row.userTc,
+                            passTc: edited.passTc !== undefined ? edited.passTc : row.passTc
+                        };
+                    }
+                    return row;
+                });
 
             const groupedIndexMap = {};
             let referenceData = [...finalData].sort((a, b) => {
@@ -1838,7 +1919,6 @@
 
             document.getElementById('footerInfo').innerText = `Tổng cộng: ${displayData.length} tài khoản`;
 
-            const isAdmin = currentUser && currentUser.username === 'admin';
             const editableCls = isAdmin ? 'editable-cell' : '';
 
             displayData.forEach((row) => {
@@ -1892,6 +1972,15 @@
                         ${thuocTinhList.map(t => `<option value="${t}" ${safeThuocTinh === t ? 'selected' : ''}>${t}</option>`).join('')}
                        </select>`
                     : (safeThuocTinh || '');
+                    
+                // Ô nút bấm Xóa (Chỉ Admin)
+                const deleteColHtml = isAdmin 
+                    ? `<td class="border border-black px-1 py-1 text-center bg-red-50/50">
+                         <button onclick="window.deleteAccount('${row.id}', '${safeNewName || safeOldName || 'Chưa có tên'}')" class="p-1 hover:bg-red-200 rounded transition-colors" title="Xóa nhân vật này khỏi bảng">
+                            ${trashIcon}
+                         </button>
+                       </td>` 
+                    : '';
 
                 tr.innerHTML = `
                     <td class="border border-black px-3 py-1 text-center font-medium">
@@ -1922,6 +2011,7 @@
                     <td ${editAttr('passTc', safePassTc, 'Password TC')} class="border border-black px-3 py-1 text-center ${textOpacityClass} ${editableCls}">
                         ${isLoggedIn ? createCopyableCell(row.passTc || '', 'center') : '<span class="text-gray-600 font-mono tracking-widest text-lg">*****</span>'}
                     </td>
+                    ${deleteColHtml}
                 `;
                 tableBody.appendChild(tr);
             });
