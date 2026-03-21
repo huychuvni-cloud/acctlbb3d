@@ -26,7 +26,7 @@
             background: #94a3b8;
         }
         /* Tùy chỉnh modal phân quyền */
-        #adminPanelModal, #registerModal {
+        #adminPanelModal, #registerModal, #addMyAccModal {
             backdrop-filter: blur(4px);
         }
         /* Hiệu ứng cho ô tên được phép chỉnh sửa (Chỉ Admin) */
@@ -137,7 +137,14 @@
                 </div>
             </div>
             
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2 flex-wrap justify-end">
+                
+                <!-- Nút Thêm Tài Khoản Mới (Cho User) -->
+                <button id="addMyAccBtn" onclick="window.openAddMyAccModal()" class="hidden flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all shadow-sm active:scale-95 bg-green-600 text-white hover:bg-green-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                    <span>Thêm Nhân Vật</span>
+                </button>
+
                 <!-- Nút Quản lý Phân Quyền (Chỉ dành cho admin) -->
                 <button id="adminPanelBtn" onclick="window.openAdminPanel()" class="hidden flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all shadow-sm active:scale-95 bg-purple-600 text-white hover:bg-purple-700">
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
@@ -202,6 +209,99 @@
             </div>
             <div id="activityLogContainer" class="bg-gray-50 border border-gray-300 rounded-lg p-4 h-56 overflow-y-auto font-mono text-sm space-y-2 shadow-inner">
                 <!-- Nội dung được xử lý bằng JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Thêm Tài Khoản (Dành cho Nhân viên) -->
+    <div id="addMyAccModal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full p-6 border border-gray-200">
+            <div class="flex justify-between items-center mb-4 border-b border-gray-100 pb-3">
+                <h3 class="text-xl font-bold text-gray-800 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-green-600"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                    Thêm Nhân Vật Của Tôi
+                </h3>
+                <button onclick="window.closeAddMyAccModal()" class="p-2 text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded-full transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                </button>
+            </div>
+            
+            <p class="text-sm text-gray-600 mb-4">Các nhân vật được bạn thêm tại đây sẽ tự động hiển thị trên bảng và bạn có toàn quyền đánh dấu hoàn thành cho chúng.</p>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                <div>
+                    <label class="block text-gray-700 font-bold mb-1">User Sv Cũ</label>
+                    <input type="text" id="myAcc_userTnt" class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-green-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-bold mb-1">Pass Sv Cũ</label>
+                    <input type="text" id="myAcc_passTnt" class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-green-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-bold mb-1">Tên NV Cũ</label>
+                    <input type="text" id="myAcc_oldName" class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-green-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-bold mb-1">Màu Sắc Nhóm</label>
+                    <select id="myAcc_color" class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-green-500 outline-none">
+                        <option value="white">⚪ Màu Trắng</option>
+                        <option value="blue">🔵 Màu Xanh</option>
+                        <option value="orange">🟠 Màu Cam</option>
+                        <option value="yellow">🟡 Màu Vàng</option>
+                        <option value="pink">🔴 Màu Hồng</option>
+                        <option value="purple">🟣 Màu Tím</option>
+                    </select>
+                </div>
+                
+                <div class="col-span-1 sm:col-span-2 my-2 border-t border-gray-200"></div>
+
+                <div>
+                    <label class="block text-gray-700 font-bold mb-1">Phái</label>
+                    <select id="myAcc_phai" class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-green-500 outline-none">
+                        <option value="">-- Chọn Phái --</option>
+                        <option value="CÁI BANG">CÁI BANG</option>
+                        <option value="ĐÀO HOA">ĐÀO HOA</option>
+                        <option value="ĐƯỜNG MÔN">ĐƯỜNG MÔN</option>
+                        <option value="MINH GIÁO">MINH GIÁO</option>
+                        <option value="MỘ DUNG">MỘ DUNG</option>
+                        <option value="NGA MI">NGA MI</option>
+                        <option value="QUỶ CỐC">QUỶ CỐC</option>
+                        <option value="THIÊN LONG">THIÊN LONG</option>
+                        <option value="THIÊN SƠN">THIÊN SƠN</option>
+                        <option value="THIẾU LÂM">THIẾU LÂM</option>
+                        <option value="TIÊU DAO">TIÊU DAO</option>
+                        <option value="TINH TÚC">TINH TÚC</option>
+                        <option value="VÕ ĐANG">VÕ ĐANG</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-bold mb-1">Thuộc tính</label>
+                    <select id="myAcc_thuocTinh" class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-green-500 outline-none">
+                        <option value="">-- Chọn Thuộc tính --</option>
+                        <option value="BĂNG">BĂNG</option>
+                        <option value="ĐỘC">ĐỘC</option>
+                        <option value="HOẢ">HOẢ</option>
+                        <option value="HUYỀN">HUYỀN</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-blue-700 font-bold mb-1">User Sv Mới <span class="text-red-500">*</span></label>
+                    <input type="text" id="myAcc_userTc" class="w-full border border-blue-400 bg-blue-50 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-blue-700 font-bold mb-1">Pass Sv Mới <span class="text-red-500">*</span></label>
+                    <input type="text" id="myAcc_passTc" class="w-full border border-blue-400 bg-blue-50 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <div class="col-span-1 sm:col-span-2">
+                    <label class="block text-blue-700 font-bold mb-1">Tên NV Mới <span class="text-red-500">*</span></label>
+                    <input type="text" id="myAcc_newName" class="w-full border border-blue-400 bg-blue-50 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+            </div>
+
+            <div class="mt-6 flex justify-end gap-3">
+                <button onclick="window.closeAddMyAccModal()" class="px-5 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors font-medium">Hủy</button>
+                <button onclick="window.userAddNewAccount()" class="px-5 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium shadow-sm active:scale-95">Thêm Nhân Vật</button>
             </div>
         </div>
     </div>
@@ -308,7 +408,7 @@
                     <input type="text" id="newAcc_userTc" placeholder="User Sv Mới* (Bắt buộc)" class="border border-blue-400 bg-blue-50 rounded px-2 py-1.5 focus:ring-1 focus:ring-blue-600 outline-none">
                     <input type="text" id="newAcc_passTc" placeholder="Pass Sv Mới* (Bắt buộc)" class="border border-blue-400 bg-blue-50 rounded px-2 py-1.5 focus:ring-1 focus:ring-blue-600 outline-none">
                     <input type="text" id="newAcc_newName" placeholder="Tên NV Mới* (Bắt buộc)" class="border border-blue-400 bg-blue-50 rounded px-2 py-1.5 focus:ring-1 focus:ring-blue-600 outline-none">
-                    <button onclick="window.addNewSystemAccount()" class="bg-blue-600 text-white font-bold rounded px-2 py-1.5 hover:bg-blue-700 transition-colors shadow-sm">Thêm Vào Bảng</button>
+                    <button onclick="window.adminAddNewSystemAccount()" class="bg-blue-600 text-white font-bold rounded px-2 py-1.5 hover:bg-blue-700 transition-colors shadow-sm">Thêm Vào Bảng</button>
                 </div>
             </div>
 
@@ -732,7 +832,7 @@
                 }
             }, (error) => window.handleFirestoreError(error));
 
-            // Sync: Thêm Tài Khoản (Admin)
+            // Sync: Thêm Tài Khoản
             const customAccRef = collection(db, 'artifacts', appId, 'public', 'data', 'custom_accounts');
             unsubCustomAcc = onSnapshot(customAccRef, (snapshot) => {
                 customAccounts = [];
@@ -743,7 +843,7 @@
                 renderTable();
             }, (error) => window.handleFirestoreError(error));
 
-            // Sync: Sửa Thông Tin (Admin)
+            // Sync: Sửa Thông Tin 
             const editedNamesRef = collection(db, 'artifacts', appId, 'public', 'data', 'edited_names');
             unsubEditedNames = onSnapshot(editedNamesRef, (snapshot) => {
                 editedNamesMap = {};
@@ -941,7 +1041,12 @@
 
             const isCurrentlyDone = !!doneItems[id];
             
-            if (currentUser.username !== 'admin' && currentUser.username !== 'admin1') {
+            // Check nếu người dùng là Owner (người tự thêm dòng này)
+            const rowData = [...rawData, ...customAccounts].find(r => r.id.toString() === id.toString());
+            const isOwner = rowData && rowData.owner === currentUser.username;
+            
+            // Bypass quyền toàn cục nếu là Owner của dòng đó
+            if (currentUser.username !== 'admin' && currentUser.username !== 'admin1' && !isOwner) {
                 if (isCurrentlyDone && currentUser.canUntick === false) return; 
                 if (!isCurrentlyDone && currentUser.canTick === false) return; 
             }
@@ -996,6 +1101,7 @@
         const viewModeText = document.getElementById('viewModeText');
         const activityLogSection = document.getElementById('activityLogSection');
         const adminPanelBtn = document.getElementById('adminPanelBtn');
+        const addMyAccBtn = document.getElementById('addMyAccBtn');
 
         let currentUser = null; 
         let isLoggedIn = false; 
@@ -1058,7 +1164,7 @@
                 action: 'ĐĂNG KÝ'
             });
 
-            alert("Đăng ký thành công! Bạn có thể đăng nhập ngay.\n\nLưu ý: Bạn phải chờ Admin cấp quyền thì mới xem được dữ liệu.");
+            alert("Đăng ký thành công! Bạn có thể đăng nhập ngay.");
             window.closeRegisterModal();
         };
 
@@ -1073,6 +1179,7 @@
             
             adminPanelBtn.classList.add('hidden'); 
             activityLogSection.classList.add('hidden'); 
+            addMyAccBtn.classList.add('hidden');
 
             if (userObj.isGuest) {
                 viewModeText.innerText = "Chế độ: Khách (Đã ẩn thông tin nhạy cảm)";
@@ -1085,9 +1192,11 @@
                     activityLogSection.classList.remove('hidden');
                     adminPanelBtn.classList.remove('hidden');
                 }
+                addMyAccBtn.classList.remove('hidden');
             } else {
                 viewModeText.innerText = `Chế độ: Nhân viên (${userObj.username}) - Theo giới hạn`;
                 viewModeText.className = "text-sm font-medium text-blue-600";
+                addMyAccBtn.classList.remove('hidden');
             }
 
             loginScreen.classList.add('hidden');
@@ -1145,6 +1254,7 @@
             errorMessage.classList.add('hidden');
             activityLogSection.classList.add('hidden');
             adminPanelBtn.classList.add('hidden');
+            addMyAccBtn.classList.add('hidden');
         }
 
         logoutBtn.addEventListener('click', handleLogout);
@@ -1321,8 +1431,8 @@
             "BĂNG", "ĐỘC", "HOẢ", "HUYỀN"
         ];
 
-        // --- HÀM THÊM TÀI KHOẢN DATA MỚI (DÀNH CHO ADMIN) ---
-        window.addNewSystemAccount = async function() {
+        // --- HÀM THÊM TÀI KHOẢN DATA MỚI DÀNH CHO ADMIN ---
+        window.adminAddNewSystemAccount = async function() {
             const userTc = document.getElementById('newAcc_userTc').value.trim();
             const passTc = document.getElementById('newAcc_passTc').value.trim();
             const newName = document.getElementById('newAcc_newName').value.trim();
@@ -1348,7 +1458,6 @@
                 color: document.getElementById('newAcc_color').value
             };
 
-            // Ghi Log Thêm mới vào Bảng chính
             await window.logAction('main', {
                 timestamp: Date.now(),
                 username: currentUser.username,
@@ -1380,6 +1489,78 @@
                 alert("Thêm tài khoản vào bảng thành công (Ngoại tuyến)!");
             }
         }
+
+        // --- HÀM THÊM TÀI KHOẢN DATA MỚI DÀNH CHO USER ---
+        window.openAddMyAccModal = function() {
+            document.getElementById('addMyAccModal').classList.remove('hidden');
+        }
+        window.closeAddMyAccModal = function() {
+            document.getElementById('addMyAccModal').classList.add('hidden');
+        }
+
+        window.userAddNewAccount = async function() {
+            if (!currentUser) return;
+
+            const userTc = document.getElementById('myAcc_userTc').value.trim();
+            const passTc = document.getElementById('myAcc_passTc').value.trim();
+            const newName = document.getElementById('myAcc_newName').value.trim();
+            
+            const phai = document.getElementById('myAcc_phai').value.trim();
+            const thuocTinh = document.getElementById('myAcc_thuocTinh').value.trim();
+
+            if (!userTc || !passTc || !newName) {
+                alert("Vui lòng nhập đầy đủ Username, Password và Tên NV cho Server Mới (các ô màu xanh)!");
+                return;
+            }
+
+            const newAcc = {
+                id: Date.now(),
+                userTnt: document.getElementById('myAcc_userTnt').value.trim(),
+                passTnt: document.getElementById('myAcc_passTnt').value.trim(),
+                oldName: document.getElementById('myAcc_oldName').value.trim(),
+                userTc: userTc,
+                passTc: passTc,
+                newName: newName,
+                phai: phai,
+                thuocTinh: thuocTinh,
+                color: document.getElementById('myAcc_color').value,
+                owner: currentUser.username // Gán chủ sở hữu để luôn có quyền xem/sửa
+            };
+
+            await window.logAction('main', {
+                timestamp: Date.now(),
+                username: currentUser.username,
+                action: 'THÊM MỚI',
+                displayStt: 'N/A', 
+                details: { newName: newName }
+            });
+
+            if (useFirebase && firebaseUser) {
+                try {
+                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'custom_accounts', newAcc.id.toString()), newAcc);
+                    document.getElementById('myAcc_userTnt').value = '';
+                    document.getElementById('myAcc_passTnt').value = '';
+                    document.getElementById('myAcc_oldName').value = '';
+                    document.getElementById('myAcc_userTc').value = '';
+                    document.getElementById('myAcc_passTc').value = '';
+                    document.getElementById('myAcc_newName').value = '';
+                    document.getElementById('myAcc_phai').value = '';
+                    document.getElementById('myAcc_thuocTinh').value = '';
+                    alert("Đã thêm nhân vật thành công!");
+                    window.closeAddMyAccModal();
+                } catch(e) {
+                    console.error("Lỗi thêm tài khoản bảng:", e);
+                    window.handleFirestoreError(e);
+                }
+            } else {
+                customAccounts.push(newAcc);
+                localStorage.setItem('customAccounts', JSON.stringify(customAccounts));
+                renderTable();
+                alert("Đã thêm nhân vật thành công (Ngoại tuyến)!");
+                window.closeAddMyAccModal();
+            }
+        }
+
 
         // --- HÀM SỬA CHUNG CHO CÁC TEXT FIELD (DÀNH CHO ADMIN) ---
         window.promptEditField = async function(id, field, oldVal, fieldLabel) {
@@ -1640,7 +1821,10 @@
 
             let displayData = [...finalData];
             if (currentUser && currentUser.allowedIndices !== 'all') {
-                displayData = displayData.filter(row => currentUser.allowedIndices.includes(groupedIndexMap[row.id]));
+                displayData = displayData.filter(row => 
+                    currentUser.allowedIndices.includes(groupedIndexMap[row.id]) ||
+                    row.owner === currentUser.username // Hiển thị dòng do user này tạo
+                );
             }
 
             if (isGrouped) {
@@ -1677,12 +1861,16 @@
                 const textOpacityClass = isDone ? 'opacity-40' : '';
 
                 let canInteract = true;
+                const isOwner = row.owner === currentUser?.username;
+                
                 if (!isLoggedIn || currentUser.isGuest) {
                     canInteract = false;
-                } else if (currentUser.username !== 'admin' && currentUser.username !== 'admin1') {
+                } else if (currentUser.username !== 'admin' && currentUser.username !== 'admin1' && !isOwner) {
+                    // Nếu không phải là chủ sở hữu và không phải admin, áp dụng quyền từ bảng
                     if (isDone && currentUser.canUntick === false) canInteract = false;
                     if (!isDone && currentUser.canTick === false) canInteract = false;
                 }
+                // Nếu isOwner === true, canInteract giữ nguyên là true (Được phép sửa/xóa thoải mái)
 
                 const disabledStatus = !canInteract ? 'disabled' : '';
                 const cursorClass = !canInteract 
