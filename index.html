@@ -165,8 +165,8 @@
                         <th class="border border-black px-3 py-2 text-center font-bold w-48">Passwords TNT</th>
                         <th class="border border-black px-3 py-2 text-left font-bold w-32">Tên NV (Cũ)</th>
                         <th class="border border-black px-3 py-2 text-left font-bold w-40">Tên NV (Mới)</th>
-                        <th class="border border-black px-3 py-2 text-left font-bold w-24">Phái</th>
-                        <th class="border border-black px-3 py-2 text-left font-bold w-24">Thuộc tính</th>
+                        <th class="border border-black px-3 py-2 text-left font-bold w-32">Phái</th>
+                        <th class="border border-black px-3 py-2 text-left font-bold w-32">Thuộc tính</th>
                         <th class="border border-black px-3 py-2 text-left font-bold w-48">Username TC</th>
                         <th class="border border-black px-3 py-2 text-center font-bold w-40">Passwords TC</th>
                     </tr>
@@ -266,8 +266,30 @@
                     <input type="text" id="newAcc_passTnt" placeholder="Pass Sv Cũ (Tùy chọn)" class="border border-gray-300 rounded px-2 py-1.5 focus:ring-1 focus:ring-blue-500 outline-none">
                     <input type="text" id="newAcc_oldName" placeholder="Tên NV Cũ (Tùy chọn)" class="border border-gray-300 rounded px-2 py-1.5 focus:ring-1 focus:ring-blue-500 outline-none">
                     
-                    <input type="text" id="newAcc_phai" placeholder="Phái (Tùy chọn)" class="border border-gray-300 rounded px-2 py-1.5 focus:ring-1 focus:ring-blue-500 outline-none">
-                    <input type="text" id="newAcc_thuocTinh" placeholder="Thuộc tính (Tùy chọn)" class="border border-gray-300 rounded px-2 py-1.5 focus:ring-1 focus:ring-blue-500 outline-none">
+                    <!-- Form Phái & Thuộc tính (Cập nhật dạng dropdown) -->
+                    <select id="newAcc_phai" class="border border-gray-300 rounded px-2 py-1.5 focus:ring-1 focus:ring-blue-500 outline-none">
+                        <option value="">-- Chọn Phái --</option>
+                        <option value="CÁI BANG">CÁI BANG</option>
+                        <option value="ĐÀO HOA">ĐÀO HOA</option>
+                        <option value="ĐƯỜNG MÔN">ĐƯỜNG MÔN</option>
+                        <option value="MINH GIÁO">MINH GIÁO</option>
+                        <option value="MỘ DUNG">MỘ DUNG</option>
+                        <option value="NGA MI">NGA MI</option>
+                        <option value="QUỶ CỐC">QUỶ CỐC</option>
+                        <option value="THIÊN LONG">THIÊN LONG</option>
+                        <option value="THIÊN SƠN">THIÊN SƠN</option>
+                        <option value="THIẾU LÂM">THIẾU LÂM</option>
+                        <option value="TIÊU DAO">TIÊU DAO</option>
+                        <option value="TINH TÚC">TINH TÚC</option>
+                        <option value="VÕ ĐANG">VÕ ĐANG</option>
+                    </select>
+                    <select id="newAcc_thuocTinh" class="border border-gray-300 rounded px-2 py-1.5 focus:ring-1 focus:ring-blue-500 outline-none">
+                        <option value="">-- Chọn Thuộc tính --</option>
+                        <option value="BĂNG">BĂNG</option>
+                        <option value="ĐỘC">ĐỘC</option>
+                        <option value="HOẢ">HOẢ</option>
+                        <option value="HUYỀN">HUYỀN</option>
+                    </select>
                     
                     <select id="newAcc_color" class="border border-gray-300 rounded px-2 py-1.5 focus:ring-1 focus:ring-blue-500 outline-none">
                         <option value="white">⚪ Màu Trắng</option>
@@ -1279,13 +1301,22 @@
             }
         }
 
+        // --- DANH SÁCH DROPDOWN CHO PHÁI VÀ THUỘC TÍNH ---
+        const phaiList = [
+            "CÁI BANG", "ĐÀO HOA", "ĐƯỜNG MÔN", "MINH GIÁO", "MỘ DUNG", 
+            "NGA MI", "QUỶ CỐC", "THIÊN LONG", "THIÊN SƠN", "THIẾU LÂM", 
+            "TIÊU DAO", "TINH TÚC", "VÕ ĐANG"
+        ];
+        const thuocTinhList = [
+            "BĂNG", "ĐỘC", "HOẢ", "HUYỀN"
+        ];
+
         // --- HÀM THÊM TÀI KHOẢN DATA MỚI (DÀNH CHO ADMIN) ---
         window.addNewSystemAccount = async function() {
             const userTc = document.getElementById('newAcc_userTc').value.trim();
             const passTc = document.getElementById('newAcc_passTc').value.trim();
             const newName = document.getElementById('newAcc_newName').value.trim();
             
-            // Xử lý dữ liệu hai cột mới
             const phai = document.getElementById('newAcc_phai').value.trim();
             const thuocTinh = document.getElementById('newAcc_thuocTinh').value.trim();
 
@@ -1312,7 +1343,7 @@
                 timestamp: Date.now(),
                 username: currentUser.username,
                 action: 'THÊM MỚI',
-                displayStt: 'N/A', // Mới thêm chưa có STT liền
+                displayStt: 'N/A', 
                 details: { newName: newName }
             });
 
@@ -1340,7 +1371,7 @@
             }
         }
 
-        // --- HÀM SỬA TẤT CẢ THÔNG TIN BẢNG DÀNH CHO ADMIN ---
+        // --- HÀM SỬA CHUNG CHO CÁC TEXT FIELD (DÀNH CHO ADMIN) ---
         window.promptEditField = async function(id, field, oldVal, fieldLabel) {
             if (!currentUser || currentUser.username !== 'admin') return;
             
@@ -1354,7 +1385,6 @@
                  displayStt = window.globalGroupedIndexMap[id] || id;
             }
 
-            // Ghi Log Sửa Thông Tin vào Bảng chính
             await window.logAction('main', {
                 timestamp: Date.now(),
                 username: currentUser.username,
@@ -1375,6 +1405,41 @@
             } else {
                 if(!editedNamesMap[id]) editedNamesMap[id] = {};
                 editedNamesMap[id][field] = finalVal;
+                localStorage.setItem('editedNamesMap', JSON.stringify(editedNamesMap));
+                renderTable();
+            }
+        }
+
+        // --- HÀM CẬP NHẬT CHO CÁC TRƯỜNG DẠNG DROPDOWN TỰ ĐỘNG ---
+        window.updateDropdownField = async function(id, field, newVal, oldVal, fieldLabel) {
+            if (!currentUser || currentUser.username !== 'admin') return;
+            if (newVal === oldVal) return;
+            
+            let displayStt = id;
+            if(isGrouped && window.globalGroupedIndexMap) {
+                 displayStt = window.globalGroupedIndexMap[id] || id;
+            }
+
+            await window.logAction('main', {
+                timestamp: Date.now(),
+                username: currentUser.username,
+                action: 'SỬA THÔNG TIN',
+                displayStt: displayStt,
+                details: { field: fieldLabel, oldVal: oldVal || 'trống', newVal: newVal || 'trống' }
+            });
+
+            if (useFirebase && firebaseUser) {
+                try {
+                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'edited_names', id.toString()), {
+                        [field]: newVal
+                    }, { merge: true });
+                } catch(e) {
+                    console.error("Lỗi sửa thông tin dropdown:", e);
+                    window.handleFirestoreError(e);
+                }
+            } else {
+                if(!editedNamesMap[id]) editedNamesMap[id] = {};
+                editedNamesMap[id][field] = newVal;
                 localStorage.setItem('editedNamesMap', JSON.stringify(editedNamesMap));
                 renderTable();
             }
@@ -1590,8 +1655,8 @@
                 const safePassTnt = (row.passTnt || '').replace(/'/g, "\\'");
                 const safeOldName = (row.oldName || '').replace(/'/g, "\\'");
                 const safeNewName = (row.newName || '').replace(/'/g, "\\'");
-                const safePhai = (row.phai || '').replace(/'/g, "\\'");
-                const safeThuocTinh = (row.thuocTinh || '').replace(/'/g, "\\'");
+                const safePhai = (row.phai || '');
+                const safeThuocTinh = (row.thuocTinh || '');
                 const safeUserTc  = (row.userTc || '').replace(/'/g, "\\'");
                 const safePassTc  = (row.passTc || '').replace(/'/g, "\\'");
 
@@ -1614,6 +1679,22 @@
                     ? 'cursor-not-allowed opacity-50 grayscale' 
                     : 'cursor-pointer accent-green-600 hover:scale-110 transition-transform';
 
+                // Dropdown Phái inline cho Admin
+                const phaiDropdown = isAdmin 
+                    ? `<select onchange="window.updateDropdownField('${row.id}', 'phai', this.value, '${safePhai}', 'Phái')" class="w-full bg-transparent outline-none cursor-pointer text-black ${textOpacityClass}">
+                        <option value="">--</option>
+                        ${phaiList.map(p => `<option value="${p}" ${safePhai === p ? 'selected' : ''}>${p}</option>`).join('')}
+                       </select>`
+                    : (safePhai || '');
+
+                // Dropdown Thuộc tính inline cho Admin
+                const thuocTinhDropdown = isAdmin 
+                    ? `<select onchange="window.updateDropdownField('${row.id}', 'thuocTinh', this.value, '${safeThuocTinh}', 'Thuộc tính')" class="w-full bg-transparent outline-none cursor-pointer text-black ${textOpacityClass}">
+                        <option value="">--</option>
+                        ${thuocTinhList.map(t => `<option value="${t}" ${safeThuocTinh === t ? 'selected' : ''}>${t}</option>`).join('')}
+                       </select>`
+                    : (safeThuocTinh || '');
+
                 tr.innerHTML = `
                     <td class="border border-black px-3 py-1 text-center font-medium">
                         ${displayStt}
@@ -1629,8 +1710,14 @@
                     </td>
                     <td ${editAttr('oldName', safeOldName, 'Tên NV (Cũ)')} class="border border-black px-3 py-1 font-medium ${textOpacityClass} ${editableCls}">${row.oldName || ''}</td>
                     <td ${editAttr('newName', safeNewName, 'Tên NV (Mới)')} class="border border-black px-3 py-1 font-bold text-blue-800 ${textOpacityClass} ${editableCls}">${row.newName || ''}</td>
-                    <td ${editAttr('phai', safePhai, 'Phái')} class="border border-black px-3 py-1 font-medium ${textOpacityClass} ${editableCls}">${row.phai || ''}</td>
-                    <td ${editAttr('thuocTinh', safeThuocTinh, 'Thuộc tính')} class="border border-black px-3 py-1 font-medium ${textOpacityClass} ${editableCls}">${row.thuocTinh || ''}</td>
+                    
+                    <td class="border border-black px-1 py-1 font-medium ${textOpacityClass} ${editableCls}" title="${isAdmin ? 'Chọn phái' : ''}">
+                        ${phaiDropdown}
+                    </td>
+                    <td class="border border-black px-1 py-1 font-medium ${textOpacityClass} ${editableCls}" title="${isAdmin ? 'Chọn thuộc tính' : ''}">
+                        ${thuocTinhDropdown}
+                    </td>
+                    
                     <td ${editAttr('userTc', safeUserTc, 'Username TC')} class="border border-black px-3 py-1 whitespace-nowrap ${!isLoggedIn ? 'text-center' : ''} ${textOpacityClass} ${editableCls}">
                         ${isLoggedIn ? createCopyableCell(row.userTc || '', 'left') : '<span class="text-gray-600 font-mono tracking-widest text-lg">*****</span>'}
                     </td>
