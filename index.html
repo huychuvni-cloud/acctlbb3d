@@ -161,6 +161,24 @@
             </div>
         </div>
 
+        <!-- Khung tìm kiếm và thống kê (Chỉ Admin) -->
+        <div id="adminFilterSection" class="hidden mb-4 p-4 bg-indigo-50 border border-indigo-200 rounded-lg shadow-sm">
+            <div class="flex flex-col md:flex-row gap-6 items-start">
+                <div class="w-full md:w-1/4 shrink-0">
+                    <label class="block text-indigo-800 text-sm font-bold mb-2 flex items-center gap-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                        Tìm kiếm nâng cao
+                    </label>
+                    <input type="text" id="adminSearchInput" oninput="window.renderTable()" class="w-full border border-indigo-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none shadow-inner" placeholder="Nhập Phái, Thuộc tính, Tên...">
+                </div>
+                <div class="w-full md:w-3/4">
+                    <div id="adminStatsContainer" class="flex flex-wrap gap-2 text-sm">
+                        <!-- Thống kê sẽ render ở đây bằng JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Bảng dữ liệu -->
         <div class="overflow-x-auto border-2 border-black rounded-sm shadow-sm">
             <table class="w-full text-sm border-collapse">
@@ -437,7 +455,7 @@
         import { getFirestore, collection, doc, setDoc, onSnapshot, addDoc, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // =========================================================================
-        // CẤU HÌNH ĐỒNG BỘ ĐÁM MÂY (CLOUD SYNC)
+        // 1. KHAI BÁO DỮ LIỆU & HẰNG SỐ
         // =========================================================================
         const MY_FIREBASE_CONFIG = {
             "apiKey": "AIzaSyDWMkqROBBA0udi_AlTe3W2-c5fRIINApc",
@@ -449,73 +467,161 @@
             "appId": "1:373171969429:web:e6e65ccdf8c70b06dd6a9c"
         };
 
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'shared-account-manager-v1';
+
+        const rawData = [
+            { id: 1, userTnt: 'vankhanh4', passTnt: '123123 (or 123456 check lại)', oldName: 'NữYTá', newName: 'NhượcThủy', userTc: 'tcvankhanh4', passTc: 'a123123a', color: 'orange' },
+            { id: 2, userTnt: 'vankhanh5', passTnt: '123123', oldName: 'BácSỹGià', newName: 'VôNhai', userTc: 'tcvankhanh5', passTc: 'a123123a', color: 'orange' },
+            { id: 3, userTnt: 'baolamka21', passTnt: 'baolamka2021', oldName: 'ZzCakezZ', newName: 'LăngHư', userTc: 'tcbaolamka21', passTc: 'a123123a', color: 'orange' },
+            { id: 4, userTnt: 'botao1989', passTnt: 'botao1989', oldName: 'BốTạo', newName: 'NgạoThiên', userTc: 'tcbotao1989', passTc: 'a123123a', color: 'orange' },
+            { id: 5, userTnt: 't26115', passTnt: '123456aa', oldName: 'zVôKỵ', newName: 'VôKỵ', userTc: 'tct26115', passTc: 'a123123a', color: 'pink' },
+            { id: 6, userTnt: 't26113', passTnt: '123456aa', oldName: 'zNgữYên', newName: 'NgữYên', userTc: 'tct26113', passTc: 'a123123a', color: 'pink' },
+            { id: 7, userTnt: 't26120', passTnt: '123456aa', oldName: 'zTiêuPhong', newName: 'TiêuPhong', userTc: 'tct26120', passTc: 'a123123a', color: 'pink' },
+            { id: 8, userTnt: 't26121', passTnt: '123456aa', oldName: 'TiểuLongNữ', newName: 'LongNữ', userTc: 'tct26121', passTc: 'a123123a', color: 'pink' },
+            { id: 9, userTnt: 'thienlong05', passTnt: '123456aa', oldName: 'ThanhLong', newName: 'ThanhLong', userTc: 'tcthienlong05', passTc: 'a123123a', color: 'pink' },
+            { id: 10, userTnt: 'thienlong06', passTnt: '123456aa', oldName: 'ThầnLong', newName: 'ThầnLong', userTc: 'tcthienlong06', passTc: 'a123123a', color: 'pink' },
+            { id: 11, userTnt: 'ongtao1989', passTnt: 'ongtao1989', oldName: 'TônMỹMỹ', newName: 'MẫnMẫn', userTc: 'tcongtao1989', passTc: 'a123123a', color: 'orange' },
+            { id: 12, userTnt: 'vankhanh3', passTnt: '25251325', oldName: 'TiểuNạiHà', newName: 'NạiHà', userTc: 'tcvankhanh3', passTc: 'a123123a', color: 'orange' },
+            { id: 13, userTnt: 'cchtp06', passTnt: 'a123123', oldName: 'San', newName: 'NhạcSan', userTc: 'tccchtp06', passTc: 'a123123a', color: 'yellow' },
+            { id: 14, userTnt: 'admin0', passTnt: 'admin123', oldName: 'ICBM', newName: 'PháThiên', userTc: 'tcadmin0', passTc: 'a123123a', color: 'blue' },
+            { id: 15, userTnt: 'admin1', passTnt: 'admin123', oldName: 'iskander', newName: 'PhiMộc', userTc: 'tcadmin1', passTc: 'a123123a', color: 'blue' },
+            { id: 16, userTnt: 'admin2', passTnt: 'admin123', oldName: 'Tomahawk', newName: 'KinhLôi', userTc: 'tcadmin2', passTc: 'a123123a', color: 'blue' },
+            { id: 17, userTnt: 'admin3', passTnt: 'admin123', oldName: 'Oreshnik', newName: 'ĐộcCô', userTc: 'tcadmin3', passTc: 'a123123a', color: 'blue' },
+            { id: 18, userTnt: 'admin4', passTnt: 'admin123', oldName: 'Kinzhal', newName: 'KiếmMa', userTc: 'tcadmin4', passTc: 'a123123a', color: 'blue' },
+            { id: 19, userTnt: 'admin5', passTnt: 'admin123', oldName: 'Rs28Sarmat', newName: 'CửuTinh', userTc: 'tcadmin5', passTc: 'a123123a', color: 'blue' },
+            { id: 20, userTnt: 'Tuanbmt002', passTnt: '123456a', oldName: 'Cronos', newName: 'ThiênTôn', userTc: 'tctuanbmt002', passTc: 'a123123a', color: 'white' },
+            { id: 21, userTnt: 'huychu7297', passTnt: 'huychu7290', oldName: 'Hera', newName: 'HuyềnNữ', userTc: 'tchuychu7297', passTc: 'a123123a', color: 'yellow' },
+            { id: 22, userTnt: 'vankhanh', passTnt: '123456', oldName: 'ThiênVũ', newName: 'ThiênVũ', userTc: 'tcvankhanh', passTc: 'a123123a', color: 'orange' },
+            { id: 23, userTnt: 'Tuanbmt003', passTnt: '123456a', oldName: 'Hades', newName: 'MinhVương', userTc: 'tctuanbmt003', passTc: 'a123123a', color: 'white' },
+            { id: 24, userTnt: 'binhhang44', passTnt: 'congvan1', oldName: 'MáTạo', newName: 'TửHà', userTc: 'tcbinhhang44', passTc: 'a123123a', color: 'orange' },
+            { id: 25, userTnt: 'otao1989', passTnt: 'otao1989', oldName: 'BàTổCô', newName: 'ĐồngLão', userTc: 'tcotao1989', passTc: 'a123123a', color: 'orange' },
+            { id: 26, userTnt: 'metao1989', passTnt: 'metao1989', oldName: 'Shin', newName: 'VôẢnh', userTc: 'tcmetao1989', passTc: 'a123123a', color: 'orange' },
+            { id: 27, userTnt: 'cchtp07', passTnt: 'a123123', oldName: 'Nikita', newName: 'PhiYến', userTc: 'tccchtp07', passTc: 'a123123a', color: 'yellow' },
+            { id: 28, userTnt: 'huychu729', passTnt: 'huychu7290', oldName: 'Mia', newName: 'LạcNhạn', userTc: 'tchuychu729', passTc: 'a123123a', color: 'yellow' },
+            { id: 29, userTnt: 'huychu7291', passTnt: 'huychu7290', oldName: 'Gin', newName: 'TrườngPhong', userTc: 'tchuychu7291', passTc: 'a123123a', color: 'yellow' },
+            { id: 30, userTnt: 'huychu7292', passTnt: 'huychu7290', oldName: 'Tonic', newName: 'TiêuGiao', userTc: 'tchuychu7292', passTc: 'a123123a', color: 'yellow' },
+            { id: 31, userTnt: 'Tuanbmt02', passTnt: '123456a', oldName: 'Nyx', newName: 'DạĐế', userTc: 'tctuanbmt02', passTc: 'a123123a', color: 'white' },
+            { id: 32, userTnt: 'Tuanbmt001', passTnt: '123456a', oldName: 'Kraken', newName: 'BíchHải', userTc: 'tctuanbmt001', passTc: 'a123123a', color: 'white' },
+            { id: 33, userTnt: 'huychu7296', passTnt: 'huychu7290', oldName: 'Yi', newName: 'LưuTinh', userTc: 'tchuychu7296', passTc: 'a123123a', color: 'yellow' },
+            { id: 34, userTnt: 'Tuanbmt03', passTnt: '123456a', oldName: 'Hebe', newName: 'TốTố', userTc: 'tctuanbmt03', passTc: 'a123123a', color: 'white' },
+            { id: 35, userTnt: 'huychu7295', passTnt: 'huychu7290', oldName: 'Zhao', newName: 'TriệuMẫn', userTc: 'tchuychu7295', passTc: 'a123123a', color: 'yellow' },
+            { id: 36, userTnt: 'huychu7294', passTnt: 'huychu7290', oldName: 'YanYan', newName: 'YếnYến', userTc: 'tchuychu7294', passTc: 'a123123a', color: 'yellow' },
+            { id: 37, userTnt: 'daucongan3', passTnt: 'congancauke9', oldName: 'NHỊLONG', newName: 'NhịLong', userTc: 'tcdaucongan3', passTc: 'a123123a', color: 'purple' },
+            { id: 38, userTnt: 'huychu7293', passTnt: 'huychu7290', oldName: 'Neo', newName: 'HưVô', userTc: 'tchuychu7293', passTc: 'a123123a', color: 'yellow' },
+            { id: 39, userTnt: 'binhhang33', passTnt: 'congvan1', oldName: 'MẹTạo', newName: 'MạcSầu', userTc: 'tcbinhhang33', passTc: 'a123123a', color: 'orange' },
+            { id: 40, userTnt: 'cchtp05', passTnt: 'a123123', oldName: 'Lusi05', newName: 'LưuLy', userTc: 'tccchtp05', passTc: 'a123123a', color: 'yellow' },
+            { id: 41, userTnt: 'admin11', passTnt: 'admin123', oldName: 'Dạ Quân Lâm', newName: 'QuânLâm', userTc: 'tcadmin11', passTc: 'a123123a', color: 'white' },
+            { id: 42, userTnt: 'Vungocnha2', passTnt: 'Vungocnha2', oldName: 'Yến Thập Tam', newName: 'ThậpTam', userTc: 'tcvungocnha2', passTc: 'a123123a', color: 'white' },
+            { id: 43, userTnt: 'Tuanbmt005', passTnt: '123456a', oldName: 'Iris', newName: 'BăngThu', userTc: 'tctuanbmt005', passTc: 'a123123a', color: 'white' }
+        ];
+
+        const baseUserAccounts = [
+            { username: 'admin', password: 'admin@@', allowedIndices: 'all', canTick: true, canUntick: true },
+            { username: 'admin1', password: 'asdasd', allowedIndices: 'all', canTick: true, canUntick: true },
+            { username: 'buiquangmien', password: 'buiquangmien1', allowedIndices: [1, 2, 3, 4, 5, 6, 41], canTick: true, canUntick: true },
+            { username: 'trannam', password: 'trannam2', allowedIndices: [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17], canTick: true, canUntick: true },
+            { username: 'phamthao', password: 'phamthao3', allowedIndices: [18, 19, 20, 21, 22, 23], canTick: true, canUntick: true },
+            { username: 'huychu', password: 'huychu4', allowedIndices: [24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 43], canTick: true, canUntick: true },
+            { username: 'buivandau', password: 'buivandau 5', allowedIndices: [35], canTick: true, canUntick: true },
+            { username: 'congtuan', password: 'congtuan6', allowedIndices: [36, 37, 38, 39, 40, 43], canTick: true, canUntick: true }
+        ];
+
+        const colorWeight = { 'blue': 1, 'orange': 2, 'pink': 3, 'yellow': 4, 'purple': 5, 'white': 6 };
+        const colorClasses = { 'blue': 'bg-[#99c1de]', 'pink': 'bg-[#dfb6b2]', 'orange': 'bg-[#f8d49a]', 'yellow': 'bg-[#ffff00]', 'purple': 'bg-[#d6c3df]', 'white': 'bg-white' };
+        
+        const phaiList = [ "CÁI BANG", "ĐÀO HOA", "ĐƯỜNG MÔN", "MINH GIÁO", "MỘ DUNG", "NGA MI", "QUỶ CỐC", "THIÊN LONG", "THIÊN SƠN", "THIẾU LÂM", "TIÊU DAO", "TINH TÚC", "VÕ ĐANG" ];
+        const thuocTinhList = [ "BĂNG", "ĐỘC", "HOẢ", "HUYỀN" ];
+
+        const copyIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-600"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>`;
+        const checkIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-green-700"><path d="M20 6 9 17l-5-5"/></svg>`;
+        const paintIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m19 11-8-8-8.6 8.6a2 2 0 0 0 0 2.8l5.2 5.2c.8.8 2 .8 2.8 0L19 11Z"/><path d="m5 2 5 5"/><path d="M2 13h15"/><path d="M22 20a2 2 0 1 1-4 0c0-1.6 1.7-2.4 2-4 .3 1.6 2 2.4 2 4Z"/></svg>`;
+        const sortIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/></svg>`;
+        const trashIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-red-500 hover:text-red-700 transition-colors"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>`;
+
+        // =========================================================================
+        // 2. KHAI BÁO BIẾN TOÀN CỤC (STATE)
+        // =========================================================================
         let app, auth, db;
         let useFirebase = false;
         let isUsingCanvasConfig = false;
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'shared-account-manager-v1';
 
-        window.saveFirebaseConfig = function(inputId = 'firebaseConfigInput') {
-            let val = document.getElementById(inputId).value.trim();
-            if(!val) {
-                localStorage.removeItem('custom_firebase_config');
-            } else {
-                try {
-                    JSON.parse(val); 
-                    localStorage.setItem('custom_firebase_config', val);
-                } catch(e) {
-                    try {
-                        let fixedVal = val.replace(/'/g, '"'); 
-                        fixedVal = fixedVal.replace(/([{,]\s*)([a-zA-Z0-9_]+)\s*:/g, '$1"$2":');
-                        JSON.parse(fixedVal); 
-                        localStorage.setItem('custom_firebase_config', fixedVal);
-                        alert("Hệ thống đã tự động định dạng lại mã của bạn thành JSON chuẩn và lưu thành công!");
-                    } catch(err2) {
-                        alert("Mã bạn nhập bị thiếu hoặc sai quá nhiều. Vui lòng kiểm tra lại (đảm bảo copy đủ dấu { }).");
-                        return;
-                    }
-                }
+        let isGrouped = true;
+        window.globalGroupedIndexMap = {};
+        let currentUser = null; 
+        let isLoggedIn = false; 
+
+        let doneItems = JSON.parse(localStorage.getItem('doneAccounts')) || {};
+        let deletedAccountsMap = JSON.parse(localStorage.getItem('deletedAccountsMap')) || {}; 
+        let activityLogs = JSON.parse(localStorage.getItem('activityLogs')) || [];
+        let adminActivityLogs = JSON.parse(localStorage.getItem('adminActivityLogs')) || [];
+        let customAccounts = JSON.parse(localStorage.getItem('customAccounts')) || [];
+        let editedNamesMap = JSON.parse(localStorage.getItem('editedNamesMap')) || {};
+        let localPerms = JSON.parse(localStorage.getItem('localUserPermissions')) || {};
+
+        let allUsers = []; 
+        let registeredAccounts = []; 
+
+        let firebaseUser = null;
+        let unsubStatus = null;
+        let unsubDeleted = null;
+        let unsubLogs = null;
+        let unsubAdminLogs = null;
+        let unsubPerms = null;
+        let unsubCustomAcc = null;
+        let unsubEditedNames = null;
+
+        // =========================================================================
+        // 3. KHỞI TẠO STATE BAN ĐẦU
+        // =========================================================================
+        function buildAllUsers() {
+            const mergedBase = baseUserAccounts.map(u => ({ ...u, ...(localPerms[u.username] || {}) }));
+            allUsers = [...mergedBase, ...registeredAccounts].filter(u => !u.isDeleted);
+        }
+
+        registeredAccounts = Object.keys(localPerms)
+            .filter(k => localPerms[k].isRegistered)
+            .map(k => ({ username: k, ...localPerms[k] }));
+        buildAllUsers();
+
+        // =========================================================================
+        // 4. KHAI BÁO CÁC HÀM GIAO DIỆN (WINDOW)
+        // =========================================================================
+        window.handleCopy = function(text, buttonElement) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.position = "fixed";
+            textArea.style.top = "-9999px";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                buttonElement.innerHTML = checkIcon;
+                setTimeout(() => {
+                    buttonElement.innerHTML = copyIcon;
+                }, 2000);
+            } catch (err) {
+                console.error('Lỗi khi sao chép', err);
             }
-            window.location.reload();
+            document.body.removeChild(textArea);
+        };
+
+        function createCopyableCell(text, align = 'left') {
+            const alignmentClass = align === 'center' ? 'justify-center gap-2' : 'justify-between';
+            return `
+                <div class="flex items-center group ${alignmentClass}">
+                    <span>${text}</span>
+                    <button
+                        onclick="event.stopPropagation(); window.handleCopy('${text.replace(/'/g, "\\'")}', this)"
+                        class="copy-btn opacity-0 transition-opacity p-1 rounded hover:bg-black/10 focus:opacity-100 ml-1"
+                        title="Sao chép"
+                    >
+                        ${copyIcon}
+                    </button>
+                </div>
+            `;
         }
 
-        window.saveMandatoryConfig = function() {
-            window.saveFirebaseConfig('mandatoryConfigInput');
-        }
-
-        try {
-            let configToUse = null;
-            const customConfigStr = localStorage.getItem('custom_firebase_config');
-            
-            if (Object.keys(MY_FIREBASE_CONFIG).length > 0 && MY_FIREBASE_CONFIG.apiKey) {
-                configToUse = MY_FIREBASE_CONFIG;
-                localStorage.removeItem('custom_firebase_config'); 
-            } 
-            else if (typeof __firebase_config !== 'undefined' && __firebase_config && __firebase_config !== '{}') {
-                configToUse = JSON.parse(__firebase_config);
-                isUsingCanvasConfig = true;
-            } 
-            else if (customConfigStr) {
-                configToUse = JSON.parse(customConfigStr);
-            }
-
-            if (configToUse) {
-                app = initializeApp(configToUse);
-                auth = getAuth(app);
-                db = getFirestore(app);
-                useFirebase = true;
-            }
-        } catch (error) {
-            console.warn("Không thể kết nối Firebase Cloud.", error);
-        }
-
-        if (!useFirebase) {
-            document.getElementById('loginForm').classList.add('hidden');
-            document.getElementById('setupFormContainer').classList.remove('hidden');
-            document.getElementById('loginScreenTitle').innerText = "Cài Đặt Hệ Thống";
-            document.getElementById('loginScreenDesc').innerText = "Trạng thái: Chưa có kết nối Server";
-        }
-
-        // --- XỬ LÝ LỖI FIRESTORE QUYỀN TRUY CẬP ---
         window.handleFirestoreError = function(error) {
             if (error && error.code === 'permission-denied') {
                 setNetworkStatus('error', 'Lỗi phân quyền Database (Rules)');
@@ -540,191 +646,8 @@
             } else {
                 console.error("Firestore Error:", error);
             }
-        }
+        };
 
-        function setNetworkStatus(status, errMsg = '') {
-            const el = document.getElementById('networkStatus');
-            if (!el) return;
-
-            if (status === 'online') {
-                el.innerHTML = `
-                    <span class="relative flex h-2 w-2">
-                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                      <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                    </span>
-                    <span class="text-green-700">Đã đồng bộ Cloud</span>
-                `;
-                el.className = "flex items-center gap-1.5 text-xs font-bold bg-green-50 px-2.5 py-0.5 rounded-full border border-green-200 cursor-pointer hover:bg-green-100 transition-colors";
-                el.title = "Kết nối Server thành công";
-                el.onclick = () => document.getElementById('firebaseConfigModal').classList.remove('hidden');
-            } 
-            else if (status === 'error') {
-                el.innerHTML = `
-                    <span class="w-2 h-2 rounded-full bg-red-500"></span>
-                    <span class="text-red-700">Lỗi Kết Nối</span>
-                `;
-                el.className = "flex items-center gap-1.5 text-xs font-bold bg-red-50 px-2.5 py-0.5 rounded-full border border-red-200 cursor-pointer hover:bg-red-100 transition-colors";
-                el.title = errMsg;
-                el.onclick = () => {
-                    alert("LỖI KẾT NỐI SERVER:\n" + errMsg);
-                    if(errMsg.includes('auth/api-key-not-valid')) {
-                        localStorage.removeItem('custom_firebase_config');
-                        window.location.reload();
-                    }
-                };
-            }
-            else if (status === 'connecting') {
-                el.innerHTML = `
-                    <span class="w-2 h-2 rounded-full bg-gray-400"></span>
-                    <span class="text-gray-600">Đang kết nối...</span>
-                `;
-                el.className = "flex items-center gap-1.5 text-xs font-bold bg-gray-100 px-2.5 py-0.5 rounded-full border border-gray-200 cursor-wait";
-                el.onclick = null;
-            } 
-            else {
-                el.innerHTML = `
-                    <span class="w-2 h-2 rounded-full bg-orange-400"></span>
-                    <span class="text-orange-700">Lưu Ngoại tuyến (Local)</span>
-                `;
-                el.className = "flex items-center gap-1.5 text-xs font-bold bg-orange-50 px-2.5 py-0.5 rounded-full border border-orange-200 cursor-pointer hover:bg-orange-100 transition-colors hover:shadow-sm";
-                el.onclick = () => document.getElementById('firebaseConfigModal').classList.remove('hidden');
-            }
-        }
-
-        // --- CƠ CHẾ OFFLINE FIRST VÀ QUẢN LÝ USER ĐỘNG ---
-        const baseUserAccounts = [
-            { username: 'admin', password: 'admin@@', allowedIndices: 'all', canTick: true, canUntick: true },
-            { username: 'admin1', password: 'asdasd', allowedIndices: 'all', canTick: true, canUntick: true },
-            { username: 'buiquangmien', password: 'buiquangmien1', allowedIndices: [1, 2, 3, 4, 5, 6, 41], canTick: true, canUntick: true },
-            { username: 'trannam', password: 'trannam2', allowedIndices: [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17], canTick: true, canUntick: true },
-            { username: 'phamthao', password: 'phamthao3', allowedIndices: [18, 19, 20, 21, 22, 23], canTick: true, canUntick: true },
-            { username: 'huychu', password: 'huychu4', allowedIndices: [24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 43], canTick: true, canUntick: true },
-            { username: 'buivandau', password: 'buivandau 5', allowedIndices: [35], canTick: true, canUntick: true },
-            { username: 'congtuan', password: 'congtuan6', allowedIndices: [36, 37, 38, 39, 40, 43], canTick: true, canUntick: true }
-        ];
-
-        let allUsers = []; 
-        let registeredAccounts = []; 
-        let localPerms = JSON.parse(localStorage.getItem('localUserPermissions')) || {};
-
-        let customAccounts = JSON.parse(localStorage.getItem('customAccounts')) || [];
-        let editedNamesMap = JSON.parse(localStorage.getItem('editedNamesMap')) || {};
-
-        // TRẠNG THÁI NHẬT KÝ (MAIN + ADMIN)
-        let doneItems = JSON.parse(localStorage.getItem('doneAccounts')) || {};
-        let deletedAccountsMap = JSON.parse(localStorage.getItem('deletedAccountsMap')) || {}; 
-        let activityLogs = JSON.parse(localStorage.getItem('activityLogs')) || [];
-        let adminActivityLogs = JSON.parse(localStorage.getItem('adminActivityLogs')) || [];
-
-        function buildAllUsers() {
-            const mergedBase = baseUserAccounts.map(u => ({ ...u, ...(localPerms[u.username] || {}) }));
-            // Chỉ hiển thị các tài khoản KHÔNG bị xóa (isDeleted = true/false/undefined)
-            allUsers = [...mergedBase, ...registeredAccounts].filter(u => !u.isDeleted);
-        }
-
-        registeredAccounts = Object.keys(localPerms)
-            .filter(k => localPerms[k].isRegistered)
-            .map(k => ({ username: k, ...localPerms[k] }));
-        buildAllUsers();
-
-        let firebaseUser = null;
-        let unsubStatus = null;
-        let unsubDeleted = null;
-        let unsubLogs = null;
-        let unsubAdminLogs = null;
-        let unsubPerms = null;
-        let unsubCustomAcc = null;
-        let unsubEditedNames = null;
-        
-        if (!useFirebase) {
-            setNetworkStatus('offline');
-            document.getElementById('activityLogContainer').innerHTML = `
-                <div class="text-gray-600 bg-orange-50 border border-orange-200 p-3 rounded-lg text-sm">
-                    ⚠️ <b>Cảnh báo: Bảng đang chạy ở chế độ Ngoại Tuyến (Offline).</b><br> Dữ liệu sẽ chỉ được lưu trên máy tính này.
-                </div>
-            `;
-        }
-
-        function getYYYYMMDD(timestamp) {
-            const d = new Date(timestamp);
-            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-        }
-
-        // Lọc ngày cho Nhật ký chính
-        const logDateFilter = document.getElementById('logDateFilter');
-        let selectedLogDate = getYYYYMMDD(Date.now()); 
-        logDateFilter.value = selectedLogDate;
-
-        logDateFilter.addEventListener('change', (e) => {
-            selectedLogDate = e.target.value;
-            renderLogs();
-        });
-
-        // Lọc ngày cho Nhật ký phân quyền
-        const adminLogDateFilter = document.getElementById('adminLogDateFilter');
-        let selectedAdminLogDate = getYYYYMMDD(Date.now()); 
-        if(adminLogDateFilter) {
-            adminLogDateFilter.value = selectedAdminLogDate;
-            adminLogDateFilter.addEventListener('change', (e) => {
-                selectedAdminLogDate = e.target.value;
-                renderAdminLogs();
-            });
-        }
-        
-        if (useFirebase) {
-            setNetworkStatus('connecting'); 
-            const initAuth = async () => {
-                try {
-                    if (isUsingCanvasConfig && typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                        await signInWithCustomToken(auth, __initial_auth_token);
-                    } else {
-                        await signInAnonymously(auth);
-                    }
-                } catch(e) { 
-                    console.error("Firebase Auth Error:", e); 
-                    setNetworkStatus('error', e.message); 
-                    
-                    if(e.code === 'auth/api-key-not-valid') {
-                        alert("Mã API Key của bạn không hợp lệ. Vui lòng kiểm tra lại đoạn cấu hình Firebase.");
-                        localStorage.removeItem('custom_firebase_config');
-                        window.location.reload();
-                    } else {
-                        const container = document.getElementById('activityLogContainer');
-                        if(container) {
-                            let helperText = "";
-                            if (e.message.includes('unauthorized-domain')) {
-                                helperText = `Hãy vào Firebase -> Authentication -> Settings -> Authorized domains -> Thêm <b>${window.location.hostname}</b> vào danh sách.`;
-                            } else {
-                                helperText = "Hãy đảm bảo bạn đã bật tính năng 'Anonymous Auth' trong Firebase.";
-                            }
-                            
-                            container.innerHTML = `<div class="text-red-600 bg-red-50 border border-red-200 p-3 rounded-lg text-sm">
-                                ⚠️ <b>Lỗi kết nối Máy chủ:</b> ${e.message}<br><br>
-                                👉 <b>Cách khắc phục:</b><br>${helperText}
-                            </div>`;
-                        }
-                    }
-                }
-            };
-            initAuth();
-
-            onAuthStateChanged(auth, (user) => {
-                firebaseUser = user;
-                if (user) {
-                    setupRealtimeListeners();
-                } else {
-                    if (unsubStatus) unsubStatus();
-                    if (unsubDeleted) unsubDeleted();
-                    if (unsubLogs) unsubLogs();
-                    if (unsubAdminLogs) unsubAdminLogs();
-                    if (unsubPerms) unsubPerms();
-                    if (unsubCustomAcc) unsubCustomAcc();
-                    if (unsubEditedNames) unsubEditedNames();
-                }
-            });
-        }
-
-        // --- HÀM GHI NHẬT KÝ CHUNG TRÊN TOÀN HỆ THỐNG ---
         window.logAction = async function(type, payload) {
             const collectionName = type === 'main' ? 'activity_log' : 'admin_activity_log';
             const storageKey = type === 'main' ? 'activityLogs' : 'adminActivityLogs';
@@ -735,141 +658,251 @@
                     await addDoc(collection(db, 'artifacts', appId, 'public', 'data', collectionName), payload);
                 } catch (e) {
                     console.error("Lỗi ghi log:", e);
+                    window.handleFirestoreError(e);
                 }
             } else {
                 payload.id = Date.now().toString();
                 logArray.unshift(payload);
                 localStorage.setItem(storageKey, JSON.stringify(logArray));
-                if(type === 'main') renderLogs();
-                if(type === 'admin') renderAdminLogs();
+                if(type === 'main') window.renderLogs();
+                if(type === 'admin') window.renderAdminLogs();
             }
-        }
+        };
 
-        function setupRealtimeListeners() {
-            setNetworkStatus('online'); 
-
-            // Sync: Trạng thái tick
-            const statusRef = collection(db, 'artifacts', appId, 'public', 'data', 'account_status');
-            unsubStatus = onSnapshot(statusRef, (snapshot) => {
-                snapshot.docChanges().forEach((change) => {
-                    const data = change.doc.data();
-                    doneItems[change.doc.id] = data.isDone;
-                });
-                localStorage.setItem('doneAccounts', JSON.stringify(doneItems)); 
-                renderTable(); 
-            }, (error) => window.handleFirestoreError(error));
-
-            // Sync: Các tài khoản bị xóa (Blacklist)
-            const deletedRef = collection(db, 'artifacts', appId, 'public', 'data', 'deleted_accounts');
-            unsubDeleted = onSnapshot(deletedRef, (snapshot) => {
-                snapshot.docChanges().forEach((change) => {
-                    deletedAccountsMap[change.doc.id] = true;
-                });
-                localStorage.setItem('deletedAccountsMap', JSON.stringify(deletedAccountsMap)); 
-                renderTable(); 
-            }, (error) => window.handleFirestoreError(error));
-
-            // Sync: Nhật ký Chính
-            const logRef = collection(db, 'artifacts', appId, 'public', 'data', 'activity_log');
-            unsubLogs = onSnapshot(logRef, (snapshot) => {
-                activityLogs = [];
-                snapshot.forEach(doc => {
-                    activityLogs.push({ id: doc.id, ...doc.data() });
-                });
-                activityLogs.sort((a, b) => b.timestamp - a.timestamp);
-                localStorage.setItem('activityLogs', JSON.stringify(activityLogs)); 
-                renderLogs();
-            }, (error) => window.handleFirestoreError(error));
-
-            // Sync: Nhật ký Phân quyền Admin
-            const adminLogRef = collection(db, 'artifacts', appId, 'public', 'data', 'admin_activity_log');
-            unsubAdminLogs = onSnapshot(adminLogRef, (snapshot) => {
-                adminActivityLogs = [];
-                snapshot.forEach(doc => {
-                    adminActivityLogs.push({ id: doc.id, ...doc.data() });
-                });
-                adminActivityLogs.sort((a, b) => b.timestamp - a.timestamp);
-                localStorage.setItem('adminActivityLogs', JSON.stringify(adminActivityLogs));
-                if(!document.getElementById('adminPanelModal').classList.contains('hidden')) {
-                    renderAdminLogs();
-                }
-            }, (error) => window.handleFirestoreError(error));
-
-            // Sync: Quyền Admin
-            const permRef = collection(db, 'artifacts', appId, 'public', 'data', 'user_permissions');
-            unsubPerms = onSnapshot(permRef, (snapshot) => {
-                let tempRegistered = [];
-                const newPerms = {};
-
-                snapshot.forEach(doc => {
-                    const data = doc.data();
-                    newPerms[doc.id] = data;
-
-                    if (data.isRegistered) {
-                        tempRegistered.push({
-                            username: doc.id,
-                            password: data.password,
-                            allowedIndices: data.allowedIndices !== undefined ? data.allowedIndices : [],
-                            canTick: data.canTick !== undefined ? data.canTick : false,
-                            canUntick: data.canUntick !== undefined ? data.canUntick : false,
-                            isRegistered: true,
-                            isLocked: data.isLocked || false,
-                            isDeleted: data.isDeleted || false
-                        });
-                    }
-                });
-                
-                localPerms = newPerms;
-                registeredAccounts = tempRegistered;
-                localStorage.setItem('localUserPermissions', JSON.stringify(localPerms));
-                buildAllUsers();
-                
-                // AUTO LOGOUT nếu tài khoản bị khóa/xóa
-                if (currentUser && currentUser.username !== 'admin' && !currentUser.isGuest) {
-                    // Kiểm tra xem user hiện tại còn tồn tại trong list không (bị lọc mất do isDeleted) hoặc bị isLocked
-                    const updatedMe = allUsers.find(u => u.username === currentUser.username);
-                    if (!updatedMe || updatedMe.isLocked) {
-                        alert("Tài khoản của bạn đã bị KHÓA hoặc XÓA bởi Quản trị viên.");
-                        handleLogout();
-                    } else {
-                        currentUser = updatedMe;
-                        localStorage.setItem('app_currentUser', JSON.stringify(currentUser));
-                    }
-                }
-                
-                renderTable();
-                if(!document.getElementById('adminPanelModal').classList.contains('hidden')) {
-                    renderAdminPanel();
-                }
-            }, (error) => window.handleFirestoreError(error));
-
-            // Sync: Thêm Tài Khoản
-            const customAccRef = collection(db, 'artifacts', appId, 'public', 'data', 'custom_accounts');
-            unsubCustomAcc = onSnapshot(customAccRef, (snapshot) => {
-                customAccounts = [];
-                snapshot.forEach(doc => {
-                    customAccounts.push({ id: doc.id, ...doc.data() });
-                });
-                localStorage.setItem('customAccounts', JSON.stringify(customAccounts));
-                renderTable();
-            }, (error) => window.handleFirestoreError(error));
-
-            // Sync: Sửa Thông Tin 
-            const editedNamesRef = collection(db, 'artifacts', appId, 'public', 'data', 'edited_names');
-            unsubEditedNames = onSnapshot(editedNamesRef, (snapshot) => {
-                editedNamesMap = {};
-                snapshot.forEach(doc => {
-                    editedNamesMap[doc.id] = doc.data();
-                });
-                localStorage.setItem('editedNamesMap', JSON.stringify(editedNamesMap));
-                renderTable();
-            }, (error) => window.handleFirestoreError(error));
-        }
-
-        // --- RENDER NHẬT KÝ HỆ THỐNG ---
-        function renderLogs() {
-            const container = document.getElementById('activityLogContainer');
+        window.renderTable = function() {
+            const tableHead = document.getElementById('tableHead');
+            const tableBody = document.getElementById('tableBody');
             
+            const isAdmin = currentUser && currentUser.username === 'admin';
+
+            if(tableHead) {
+                tableHead.innerHTML = `
+                    <tr class="bg-white">
+                        <th class="border border-black px-3 py-2 text-center font-bold w-12">STT</th>
+                        <th class="border border-black px-3 py-2 text-center font-bold w-16">Xong</th>
+                        <th class="border border-black px-3 py-2 text-left font-bold w-48">Username TNT</th>
+                        <th class="border border-black px-3 py-2 text-center font-bold w-48">Passwords TNT</th>
+                        <th class="border border-black px-3 py-2 text-left font-bold w-32">Tên NV (Cũ)</th>
+                        <th class="border border-black px-3 py-2 text-left font-bold w-40">Tên NV (Mới)</th>
+                        <th class="border border-black px-3 py-2 text-left font-bold w-32">Phái</th>
+                        <th class="border border-black px-3 py-2 text-left font-bold w-32">Thuộc tính</th>
+                        <th class="border border-black px-3 py-2 text-left font-bold w-48">Username TC</th>
+                        <th class="border border-black px-3 py-2 text-center font-bold w-40">Passwords TC</th>
+                        ${isAdmin ? '<th class="border border-black px-2 py-2 text-center font-bold w-10 text-red-600">Xóa</th>' : ''}
+                    </tr>
+                `;
+            }
+
+            if(tableBody) tableBody.innerHTML = '';
+
+            let finalData = [...rawData, ...customAccounts]
+                .filter(row => !deletedAccountsMap[row.id])
+                .map(row => {
+                    const edited = editedNamesMap[row.id];
+                    if (edited) {
+                        return {
+                            ...row,
+                            userTnt: edited.userTnt !== undefined ? edited.userTnt : row.userTnt,
+                            passTnt: edited.passTnt !== undefined ? edited.passTnt : row.passTnt,
+                            oldName: edited.oldName !== undefined ? edited.oldName : row.oldName,
+                            newName: edited.newName !== undefined ? edited.newName : row.newName,
+                            phai: edited.phai !== undefined ? edited.phai : row.phai,
+                            thuocTinh: edited.thuocTinh !== undefined ? edited.thuocTinh : row.thuocTinh,
+                            userTc: edited.userTc !== undefined ? edited.userTc : row.userTc,
+                            passTc: edited.passTc !== undefined ? edited.passTc : row.passTc
+                        };
+                    }
+                    return row;
+                });
+
+            const groupedIndexMap = {};
+            let referenceData = [...finalData].sort((a, b) => {
+                if (colorWeight[a.color] !== colorWeight[b.color]) {
+                    return colorWeight[a.color] - colorWeight[b.color];
+                }
+                return parseInt(a.id) - parseInt(b.id);
+            });
+            referenceData.forEach((row, index) => {
+                groupedIndexMap[row.id] = index + 1; 
+            });
+            window.globalGroupedIndexMap = groupedIndexMap; 
+
+            let displayData = [...finalData];
+            if (currentUser && currentUser.allowedIndices !== 'all') {
+                displayData = displayData.filter(row => 
+                    currentUser.allowedIndices.includes(groupedIndexMap[row.id]) ||
+                    row.owner === currentUser.username 
+                );
+            }
+
+            if (isAdmin) {
+                const searchInput = document.getElementById('adminSearchInput');
+                const searchTerm = searchInput ? searchInput.value.trim().toLowerCase() : '';
+                
+                if (searchTerm) {
+                    displayData = displayData.filter(row => {
+                        const matchPhai = (row.phai || '').toLowerCase().includes(searchTerm);
+                        const matchThuocTinh = (row.thuocTinh || '').toLowerCase().includes(searchTerm);
+                        const matchNewName = (row.newName || '').toLowerCase().includes(searchTerm);
+                        const matchOldName = (row.oldName || '').toLowerCase().includes(searchTerm);
+                        return matchPhai || matchThuocTinh || matchNewName || matchOldName;
+                    });
+                }
+
+                const statsContainer = document.getElementById('adminStatsContainer');
+                if (statsContainer) {
+                    let phaiCount = {};
+                    let thuocTinhCount = {};
+                    
+                    displayData.forEach(row => {
+                        const p = row.phai || 'Chưa rõ';
+                        const t = row.thuocTinh || 'Chưa rõ';
+                        phaiCount[p] = (phaiCount[p] || 0) + 1;
+                        thuocTinhCount[t] = (thuocTinhCount[t] || 0) + 1;
+                    });
+
+                    let phaiHtml = Object.entries(phaiCount)
+                        .filter(([k]) => k !== 'Chưa rõ')
+                        .map(([k, v]) => `<div class="bg-white px-2 py-1 rounded shadow-sm border border-indigo-100 flex justify-between"><span class="font-bold">${k}:</span> <span>${v}</span></div>`).join('');
+                    
+                    let thuocTinhHtml = Object.entries(thuocTinhCount)
+                        .filter(([k]) => k !== 'Chưa rõ')
+                        .map(([k, v]) => `<div class="bg-white px-2 py-1 rounded shadow-sm border border-indigo-100 flex justify-between"><span class="font-bold text-red-600">${k}:</span> <span>${v}</span></div>`).join('');
+
+                    if (phaiHtml || thuocTinhHtml) {
+                        statsContainer.innerHTML = `
+                            <div class="col-span-full font-bold text-indigo-800 mb-1 border-b border-indigo-200 pb-1">Thống kê kết quả (${displayData.length} nhân vật):</div>
+                            ${phaiHtml}
+                            ${thuocTinhHtml}
+                        `;
+                    } else {
+                        statsContainer.innerHTML = `<div class="col-span-full text-indigo-600 italic mt-2">Tổng kết quả: ${displayData.length} nhân vật (Chưa có dữ liệu Phái/Thuộc tính)</div>`;
+                    }
+                }
+            }
+
+            if (isGrouped) {
+                displayData.sort((a, b) => {
+                    if (colorWeight[a.color] !== colorWeight[b.color]) {
+                        return colorWeight[a.color] - colorWeight[b.color];
+                    }
+                    return parseInt(a.id) - parseInt(b.id);
+                });
+            }
+
+            const footerInfo = document.getElementById('footerInfo');
+            if(footerInfo) footerInfo.innerText = `Tổng cộng: ${displayData.length} tài khoản`;
+
+            const editableCls = isAdmin ? 'editable-cell' : '';
+
+            displayData.forEach((row) => {
+                const tr = document.createElement('tr');
+                tr.className = `${colorClasses[row.color]} hover:brightness-95 transition-all duration-150`;
+
+                const safeUserTnt = (row.userTnt || '').replace(/'/g, "\\'");
+                const safePassTnt = (row.passTnt || '').replace(/'/g, "\\'");
+                const safeOldName = (row.oldName || '').replace(/'/g, "\\'");
+                const safeNewName = (row.newName || '').replace(/'/g, "\\'");
+                const safePhai = (row.phai || '');
+                const safeThuocTinh = (row.thuocTinh || '');
+                const safeUserTc  = (row.userTc || '').replace(/'/g, "\\'");
+                const safePassTc  = (row.passTc || '').replace(/'/g, "\\'");
+
+                const editAttr = (field, safeVal, label) => isAdmin ? `title="Click để sửa thông tin (Admin)" onclick="window.promptEditField('${row.id}', '${field}', '${safeVal}', '${label}')"` : '';
+
+                const displayStt = isGrouped ? groupedIndexMap[row.id] : row.id;
+                const isDone = doneItems[row.id];
+                const textOpacityClass = isDone ? 'opacity-40' : '';
+
+                let canInteract = true;
+                const isOwner = row.owner === currentUser?.username;
+                
+                if (!isLoggedIn || currentUser.isGuest) {
+                    canInteract = false;
+                } else if (currentUser.username !== 'admin' && currentUser.username !== 'admin1' && !isOwner) {
+                    if (isDone && currentUser.canUntick === false) canInteract = false;
+                    if (!isDone && currentUser.canTick === false) canInteract = false;
+                }
+
+                const disabledStatus = !canInteract ? 'disabled' : '';
+                const cursorClass = !canInteract 
+                    ? 'cursor-not-allowed opacity-50 grayscale' 
+                    : 'cursor-pointer accent-green-600 hover:scale-110 transition-transform';
+
+                const phaiDropdown = isAdmin 
+                    ? `<select onchange="window.updateDropdownField('${row.id}', 'phai', this.value, '${safePhai}', 'Phái')" class="w-full bg-transparent outline-none cursor-pointer text-black ${textOpacityClass}">
+                        <option value="">--</option>
+                        ${phaiList.map(p => `<option value="${p}" ${safePhai === p ? 'selected' : ''}>${p}</option>`).join('')}
+                       </select>`
+                    : (safePhai || '');
+
+                const thuocTinhDropdown = isAdmin 
+                    ? `<select onchange="window.updateDropdownField('${row.id}', 'thuocTinh', this.value, '${safeThuocTinh}', 'Thuộc tính')" class="w-full bg-transparent outline-none cursor-pointer text-black ${textOpacityClass}">
+                        <option value="">--</option>
+                        ${thuocTinhList.map(t => `<option value="${t}" ${safeThuocTinh === t ? 'selected' : ''}>${t}</option>`).join('')}
+                       </select>`
+                    : (safeThuocTinh || '');
+                    
+                const deleteColHtml = isAdmin 
+                    ? `<td class="border border-black px-1 py-1 text-center bg-red-50/50">
+                         <button onclick="window.deleteAccount('${row.id}', '${safeNewName || safeOldName || 'Chưa có tên'}', this)" class="p-1 hover:bg-red-200 rounded transition-colors" title="Xóa nhân vật này khỏi bảng">
+                            ${trashIcon}
+                         </button>
+                       </td>` 
+                    : '';
+
+                tr.innerHTML = `
+                    <td class="border border-black px-3 py-1 text-center font-medium">
+                        ${displayStt}
+                    </td>
+                    <td class="border border-black px-3 py-1 text-center bg-white/20">
+                        <input type="checkbox" onchange="window.toggleDone('${row.id}')" ${isDone ? 'checked' : ''} ${disabledStatus} class="w-4 h-4 ${cursorClass}">
+                    </td>
+                    <td ${editAttr('userTnt', safeUserTnt, 'Username TNT')} class="border border-black px-3 py-1 whitespace-nowrap ${!isLoggedIn ? 'text-center' : ''} ${textOpacityClass} ${editableCls}">
+                        ${isLoggedIn ? createCopyableCell(row.userTnt || '', 'left') : '<span class="text-gray-600 font-mono tracking-widest text-lg">*****</span>'}
+                    </td>
+                    <td ${editAttr('passTnt', safePassTnt, 'Password TNT')} class="border border-black px-3 py-1 text-center ${textOpacityClass} ${editableCls}">
+                        ${isLoggedIn ? createCopyableCell(row.passTnt || '', 'center') : '<span class="text-gray-600 font-mono tracking-widest text-lg">*****</span>'}
+                    </td>
+                    <td ${editAttr('oldName', safeOldName, 'Tên NV (Cũ)')} class="border border-black px-3 py-1 font-medium ${textOpacityClass} ${editableCls}">${row.oldName || ''}</td>
+                    <td ${editAttr('newName', safeNewName, 'Tên NV (Mới)')} class="border border-black px-3 py-1 font-bold text-blue-800 ${textOpacityClass} ${editableCls}">${row.newName || ''}</td>
+                    
+                    <td class="border border-black px-1 py-1 font-medium ${textOpacityClass} ${editableCls}" title="${isAdmin ? 'Chọn phái' : ''}">
+                        ${phaiDropdown}
+                    </td>
+                    <td class="border border-black px-1 py-1 font-medium ${textOpacityClass} ${editableCls}" title="${isAdmin ? 'Chọn thuộc tính' : ''}">
+                        ${thuocTinhDropdown}
+                    </td>
+                    
+                    <td ${editAttr('userTc', safeUserTc, 'Username TC')} class="border border-black px-3 py-1 whitespace-nowrap ${!isLoggedIn ? 'text-center' : ''} ${textOpacityClass} ${editableCls}">
+                        ${isLoggedIn ? createCopyableCell(row.userTc || '', 'left') : '<span class="text-gray-600 font-mono tracking-widest text-lg">*****</span>'}
+                    </td>
+                    <td ${editAttr('passTc', safePassTc, 'Password TC')} class="border border-black px-3 py-1 text-center ${textOpacityClass} ${editableCls}">
+                        ${isLoggedIn ? createCopyableCell(row.passTc || '', 'center') : '<span class="text-gray-600 font-mono tracking-widest text-lg">*****</span>'}
+                    </td>
+                    ${deleteColHtml}
+                `;
+                if(tableBody) tableBody.appendChild(tr);
+            });
+            
+            const toggleBtn = document.getElementById('toggleBtn');
+            const toggleIcon = document.getElementById('toggleIcon');
+            const toggleText = document.getElementById('toggleText');
+
+            if (isGrouped && toggleBtn && toggleIcon && toggleText) {
+                toggleBtn.className = "flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium transition-all shadow-sm active:scale-95 bg-blue-600 text-white hover:bg-blue-700";
+                toggleIcon.innerHTML = paintIcon;
+                toggleText.innerText = "Đang hiển thị: Gom Nhóm Màu";
+            } else if(toggleBtn && toggleIcon && toggleText) {
+                toggleBtn.className = "flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium transition-all shadow-sm active:scale-95 bg-gray-200 text-gray-800 hover:bg-gray-300";
+                toggleIcon.innerHTML = sortIcon;
+                toggleText.innerText = "Đang hiển thị: Thứ Tự Gốc";
+            }
+        };
+
+        window.renderLogs = function() {
+            const container = document.getElementById('activityLogContainer');
+            if(!container) return;
             const isError = document.getElementById('networkStatus').classList.contains('bg-red-50');
             if(!isError) container.innerHTML = '';
 
@@ -919,10 +952,9 @@
                 `;
                 container.appendChild(div);
             });
-        }
+        };
 
-        // --- RENDER NHẬT KÝ PHÂN QUYỀN (CHỈ ADMIN) ---
-        function renderAdminLogs() {
+        window.renderAdminLogs = function() {
             const container = document.getElementById('adminLogContainer');
             if(!container) return;
             container.innerHTML = '';
@@ -963,7 +995,70 @@
                 div.innerHTML = `<span class="text-gray-400 mr-1">[${timeString}]</span> ${textHtml}`;
                 container.appendChild(div);
             });
-        }
+        };
+
+        window.renderAdminPanel = function() {
+            const tbody = document.getElementById('adminPanelTableBody');
+            if(!tbody) return;
+            tbody.innerHTML = '';
+
+            buildAllUsers();
+            allUsers.forEach(user => {
+                if (user.username === 'admin') return; 
+
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-blue-50 transition-colors border-b border-gray-100";
+                
+                const canTick = user.canTick !== false;
+                const canUntick = user.canUntick !== false;
+                const isLocked = !!user.isLocked;
+                const indicesStr = formatIndices(user.allowedIndices);
+                
+                const isNewTag = user.isRegistered 
+                    ? '<span class="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded ml-2 shadow-sm font-bold align-middle">[Mới]</span>' 
+                    : '';
+
+                tr.innerHTML = `
+                    <td class="border-r border-gray-200 px-2 py-2 font-medium text-blue-700">
+                        ${user.username} ${isNewTag}
+                    </td>
+                    <td class="border-r border-gray-200 px-2 py-2">
+                        <input type="text" value="${indicesStr}" 
+                               onblur="window.updateUserPermission('${user.username}', 'allowedIndices', this)"
+                               placeholder="Nhập 1,2,3 hoặc all, none"
+                               class="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
+                    </td>
+                    <td class="border-r border-gray-200 px-1 py-2 text-center bg-green-50/50">
+                        <input type="checkbox" ${canTick ? 'checked' : ''} 
+                               onchange="window.updateUserPermission('${user.username}', 'canTick', this)"
+                               class="w-4 h-4 cursor-pointer accent-green-600 hover:scale-110">
+                    </td>
+                    <td class="border-r border-gray-200 px-1 py-2 text-center bg-red-50/50">
+                        <input type="checkbox" ${canUntick ? 'checked' : ''} 
+                               onchange="window.updateUserPermission('${user.username}', 'canUntick', this)"
+                               class="w-4 h-4 cursor-pointer accent-red-600 hover:scale-110">
+                    </td>
+                    <td class="border-r border-gray-200 px-2 py-2 text-center bg-yellow-50/50">
+                        <button onclick="window.resetUserPassword('${user.username}')" class="bg-yellow-500 hover:bg-yellow-600 text-white text-[10px] font-bold py-1 px-2 rounded shadow-sm transition-colors">Reset</button>
+                    </td>
+                    <td class="border-r border-gray-200 px-1 py-2 text-center bg-orange-50/50">
+                        <input type="checkbox" ${isLocked ? 'checked' : ''} 
+                               onchange="window.updateUserPermission('${user.username}', 'isLocked', this)"
+                               class="w-4 h-4 cursor-pointer accent-orange-600 hover:scale-110" title="Khóa tài khoản này">
+                    </td>
+                    <td class="border-gray-200 px-1 py-2 text-center bg-red-100/50">
+                        <button onclick="window.deleteSystemUser('${user.username}', this)" class="p-1 bg-red-500 hover:bg-red-600 text-white rounded shadow-sm transition-colors mx-auto block" title="Xóa tài khoản này">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        };
+
+        // =========================================================================
+        // 5. ĐỊNH NGHĨA FIREBASE SYNC & EVENT TRONG WINDOW (CHỐNG LỖI)
+        // =========================================================================
 
         window.forceRefresh = async function() {
             const icon = document.getElementById('refreshLogIcon');
@@ -986,33 +1081,28 @@
                 buildAllUsers();
             } else if (firebaseUser) {
                 try {
-                    const statusRef = collection(db, 'artifacts', appId, 'public', 'data', 'account_status');
-                    const statusSnap = await getDocs(statusRef);
+                    const statusSnap = await getDocs(collection(db, 'artifacts', appId, 'public', 'data', 'account_status'));
                     statusSnap.forEach(doc => { doneItems[doc.id] = doc.data().isDone; });
                     localStorage.setItem('doneAccounts', JSON.stringify(doneItems));
 
-                    const deletedRef = collection(db, 'artifacts', appId, 'public', 'data', 'deleted_accounts');
-                    const deletedSnap = await getDocs(deletedRef);
+                    const deletedSnap = await getDocs(collection(db, 'artifacts', appId, 'public', 'data', 'deleted_accounts'));
                     deletedAccountsMap = {};
                     deletedSnap.forEach(doc => { deletedAccountsMap[doc.id] = true; });
                     localStorage.setItem('deletedAccountsMap', JSON.stringify(deletedAccountsMap));
                     
-                    const logRef = collection(db, 'artifacts', appId, 'public', 'data', 'activity_log');
-                    const logSnap = await getDocs(logRef);
+                    const logSnap = await getDocs(collection(db, 'artifacts', appId, 'public', 'data', 'activity_log'));
                     activityLogs = [];
                     logSnap.forEach(doc => { activityLogs.push({ id: doc.id, ...doc.data() }); });
                     activityLogs.sort((a, b) => b.timestamp - a.timestamp);
                     localStorage.setItem('activityLogs', JSON.stringify(activityLogs));
                     
-                    const adminLogRef = collection(db, 'artifacts', appId, 'public', 'data', 'admin_activity_log');
-                    const adminLogSnap = await getDocs(adminLogRef);
+                    const adminLogSnap = await getDocs(collection(db, 'artifacts', appId, 'public', 'data', 'admin_activity_log'));
                     adminActivityLogs = [];
                     adminLogSnap.forEach(doc => { adminActivityLogs.push({ id: doc.id, ...doc.data() }); });
                     adminActivityLogs.sort((a, b) => b.timestamp - a.timestamp);
                     localStorage.setItem('adminActivityLogs', JSON.stringify(adminActivityLogs));
 
-                    const permRef = collection(db, 'artifacts', appId, 'public', 'data', 'user_permissions');
-                    const permSnap = await getDocs(permRef);
+                    const permSnap = await getDocs(collection(db, 'artifacts', appId, 'public', 'data', 'user_permissions'));
                     let tempRegistered = [];
                     const newPerms = {};
                     permSnap.forEach(doc => {
@@ -1024,9 +1114,7 @@
                                 allowedIndices: data.allowedIndices !== undefined ? data.allowedIndices : [],
                                 canTick: data.canTick !== undefined ? data.canTick : false,
                                 canUntick: data.canUntick !== undefined ? data.canUntick : false,
-                                isRegistered: true,
-                                isLocked: data.isLocked || false,
-                                isDeleted: data.isDeleted || false
+                                isRegistered: true, isLocked: data.isLocked || false, isDeleted: data.isDeleted || false
                             });
                         }
                     });
@@ -1035,7 +1123,6 @@
                     localStorage.setItem('localUserPermissions', JSON.stringify(localPerms));
                     buildAllUsers();
 
-                    // AUTO LOGOUT nếu tài khoản bị khóa/xóa (trường hợp load lại cục bộ)
                     if (currentUser && currentUser.username !== 'admin' && !currentUser.isGuest) {
                         const updatedMe = allUsers.find(u => u.username === currentUser.username);
                         if (!updatedMe || updatedMe.isLocked) {
@@ -1044,14 +1131,12 @@
                         }
                     }
 
-                    const cAccRef = collection(db, 'artifacts', appId, 'public', 'data', 'custom_accounts');
-                    const cAccSnap = await getDocs(cAccRef);
+                    const cAccSnap = await getDocs(collection(db, 'artifacts', appId, 'public', 'data', 'custom_accounts'));
                     customAccounts = [];
                     cAccSnap.forEach(doc => customAccounts.push({ id: doc.id, ...doc.data() }));
                     localStorage.setItem('customAccounts', JSON.stringify(customAccounts));
 
-                    const eNameRef = collection(db, 'artifacts', appId, 'public', 'data', 'edited_names');
-                    const eNameSnap = await getDocs(eNameRef);
+                    const eNameSnap = await getDocs(collection(db, 'artifacts', appId, 'public', 'data', 'edited_names'));
                     editedNamesMap = {};
                     eNameSnap.forEach(doc => editedNamesMap[doc.id] = doc.data());
                     localStorage.setItem('editedNamesMap', JSON.stringify(editedNamesMap));
@@ -1062,11 +1147,11 @@
                 }
             }
 
-            renderTable();
-            renderLogs();
+            window.renderTable();
+            window.renderLogs();
             if(!document.getElementById('adminPanelModal').classList.contains('hidden')) {
-                renderAdminPanel();
-                renderAdminLogs();
+                window.renderAdminPanel();
+                window.renderAdminLogs();
             }
 
             setTimeout(() => { 
@@ -1075,16 +1160,13 @@
             }, 600);
         };
 
-        window.toggleDone = async (id) => {
+        window.toggleDone = async function(id) {
             if (!isLoggedIn || !currentUser || currentUser.isGuest) return;
 
             const isCurrentlyDone = !!doneItems[id];
-            
-            // Check nếu người dùng là Owner (người tự thêm dòng này)
             const rowData = [...rawData, ...customAccounts].find(r => r.id.toString() === id.toString());
             const isOwner = rowData && rowData.owner === currentUser.username;
             
-            // Bypass quyền toàn cục nếu là Owner của dòng đó
             if (currentUser.username !== 'admin' && currentUser.username !== 'admin1' && !isOwner) {
                 if (isCurrentlyDone && currentUser.canUntick === false) return; 
                 if (!isCurrentlyDone && currentUser.canTick === false) return; 
@@ -1098,9 +1180,8 @@
 
             doneItems[id] = newState;
             localStorage.setItem('doneAccounts', JSON.stringify(doneItems)); 
-            renderTable();
+            window.renderTable();
 
-            // Cập nhật Firebase
             if (useFirebase && firebaseUser) {
                 try {
                     await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'account_status', id.toString()), {
@@ -1113,12 +1194,11 @@
                     window.handleFirestoreError(error);
                     doneItems[id] = isCurrentlyDone;
                     localStorage.setItem('doneAccounts', JSON.stringify(doneItems));
-                    renderTable();
+                    window.renderTable();
                     return;
                 }
             }
             
-            // Ghi log chung
             await window.logAction('main', {
                 timestamp: Date.now(),
                 username: currentUser.username,
@@ -1128,24 +1208,6 @@
             });
         };
 
-        // --- CÁC THÀNH PHẦN LOGIC GIAO DIỆN ---
-        const loginScreen = document.getElementById('loginScreen');
-        const mainApp = document.getElementById('mainApp');
-        const loginBtn = document.getElementById('loginBtn');
-        const guestBtn = document.getElementById('guestBtn');
-        const logoutBtn = document.getElementById('logoutBtn');
-        const usernameInput = document.getElementById('username');
-        const passwordInput = document.getElementById('password');
-        const errorMessage = document.getElementById('errorMessage');
-        const viewModeText = document.getElementById('viewModeText');
-        const activityLogSection = document.getElementById('activityLogSection');
-        const adminPanelBtn = document.getElementById('adminPanelBtn');
-        const addMyAccBtn = document.getElementById('addMyAccBtn');
-
-        let currentUser = null; 
-        let isLoggedIn = false; 
-
-        // --- LOGIC ĐĂNG KÝ TÀI KHOẢN MỚI ---
         window.openRegisterModal = function() {
             document.getElementById('registerModal').classList.remove('hidden');
             document.getElementById('regUsername').value = '';
@@ -1197,7 +1259,6 @@
                 buildAllUsers();
             }
 
-            // Ghi log cho Admin
             try {
                 await window.logAction('admin', {
                     timestamp: Date.now(),
@@ -1211,179 +1272,14 @@
             window.closeRegisterModal();
         };
 
-        function showApp(userObj, isRestoring = false) {
-            currentUser = userObj;
-            isLoggedIn = !userObj.isGuest;
-            
-            if (!isRestoring) {
-                localStorage.setItem('app_currentUser', JSON.stringify(userObj));
-                localStorage.setItem('app_lastActivity', Date.now().toString());
-            }
-            
-            adminPanelBtn.classList.add('hidden'); 
-            activityLogSection.classList.add('hidden'); 
-            addMyAccBtn.classList.add('hidden');
-
-            if (userObj.isGuest) {
-                viewModeText.innerText = "Chế độ: Khách (Đã ẩn thông tin nhạy cảm)";
-                viewModeText.className = "text-sm font-medium text-orange-600";
-            } else if (userObj.allowedIndices === 'all') {
-                viewModeText.innerText = "Chế độ: Quản trị viên (Xem tất cả)";
-                viewModeText.className = "text-sm font-medium text-green-600";
-                
-                if (userObj.username === 'admin') {
-                    activityLogSection.classList.remove('hidden');
-                    adminPanelBtn.classList.remove('hidden');
-                }
-                addMyAccBtn.classList.remove('hidden');
-            } else {
-                viewModeText.innerText = `Chế độ: Nhân viên (${userObj.username}) - Theo giới hạn`;
-                viewModeText.className = "text-sm font-medium text-blue-600";
-                addMyAccBtn.classList.remove('hidden');
-            }
-
-            loginScreen.classList.add('hidden');
-            mainApp.classList.remove('hidden');
-            document.body.classList.remove('justify-center');
-            errorMessage.classList.add('hidden');
-            
-            usernameInput.value = '';
-            passwordInput.value = '';
-            
-            renderTable();
-            
-            if(activityLogs.length > 0) {
-                 renderLogs();
-            }
-        }
-
-        function handleLogin() {
-            const user = usernameInput.value.trim().toLowerCase();
-            const pass = passwordInput.value.trim();
-            
-            buildAllUsers(); // Lấy data mới nhất
-            const matchedUser = allUsers.find(u => u.username === user && u.password === pass);
-
-            if (matchedUser) {
-                if (matchedUser.isLocked) {
-                    alert("Tài khoản này đã bị KHÓA. Vui lòng liên hệ Quản trị viên.");
-                    return;
-                }
-                showApp(matchedUser); 
-            } else {
-                errorMessage.classList.remove('hidden');
-            }
-        }
-
-        loginBtn.addEventListener('click', handleLogin);
-        
-        guestBtn.addEventListener('click', () => {
-            showApp({ username: 'Khách', allowedIndices: 'all', isGuest: true }); 
-        });
-        
-        passwordInput.addEventListener('keypress', function (e) {
-            if (e.key === 'Enter') handleLogin();
-        });
-        usernameInput.addEventListener('keypress', function (e) {
-            if (e.key === 'Enter') passwordInput.focus();
-        });
-
-        function handleLogout() {
-            currentUser = null;
-            isLoggedIn = false;
-            
-            localStorage.removeItem('app_currentUser');
-            localStorage.removeItem('app_lastActivity');
-            
-            mainApp.classList.add('hidden');
-            loginScreen.classList.remove('hidden');
-            document.body.classList.add('justify-center');
-            errorMessage.classList.add('hidden');
-            activityLogSection.classList.add('hidden');
-            adminPanelBtn.classList.add('hidden');
-            addMyAccBtn.classList.add('hidden');
-        }
-
-        logoutBtn.addEventListener('click', handleLogout);
-
-        function checkSession() {
-            const savedUserStr = localStorage.getItem('app_currentUser');
-            if (savedUserStr) {
-                try {
-                    const savedUser = JSON.parse(savedUserStr);
-                    
-                    buildAllUsers();
-                    const updatedRealUser = allUsers.find(u => u.username === savedUser.username);
-                    const userToBoot = updatedRealUser ? updatedRealUser : savedUser;
-
-                    // Nếu user đã bị xóa hoặc khóa, văng ra
-                    if (userToBoot.username !== 'admin' && !userToBoot.isGuest && (userToBoot.isDeleted || userToBoot.isLocked)) {
-                        handleLogout();
-                        return;
-                    }
-
-                    if (userToBoot.username === 'admin') {
-                        showApp(userToBoot, true); 
-                    } else {
-                        const lastActivity = parseInt(localStorage.getItem('app_lastActivity') || '0', 10);
-                        if (Date.now() - lastActivity > 5 * 60 * 1000) { 
-                            handleLogout();
-                        } else {
-                            localStorage.setItem('app_lastActivity', Date.now().toString());
-                            showApp(userToBoot, true);
-                        }
-                    }
-                } catch (e) {
-                    handleLogout();
-                }
-            }
-        }
-
-        function resetInactivityTimer() {
-            if (currentUser && currentUser.username !== 'admin') {
-                localStorage.setItem('app_lastActivity', Date.now().toString());
-            }
-        }
-
-        window.addEventListener('mousemove', resetInactivityTimer);
-        window.addEventListener('keydown', resetInactivityTimer);
-        window.addEventListener('click', resetInactivityTimer);
-        window.addEventListener('scroll', resetInactivityTimer);
-
-        setInterval(() => {
-            if (currentUser && currentUser.username !== 'admin') {
-                const lastActivity = parseInt(localStorage.getItem('app_lastActivity') || '0', 10);
-                if (Date.now() - lastActivity > 5 * 60 * 1000) {
-                    alert("Phiên đăng nhập đã hết hạn do không hoạt động (5 phút). Vui lòng đăng nhập lại.");
-                    handleLogout();
-                }
-            }
-        }, 10000);
-
-        // --- CÁC HÀM XỬ LÝ PHÂN QUYỀN ADMIN ---
         window.openAdminPanel = function() {
             document.getElementById('adminPanelModal').classList.remove('hidden');
-            renderAdminPanel();
-            renderAdminLogs();
+            window.renderAdminPanel();
+            window.renderAdminLogs();
         }
 
         window.closeAdminPanel = function() {
             document.getElementById('adminPanelModal').classList.add('hidden');
-        }
-
-        function formatIndices(arr) {
-            if (arr === 'all') return 'all';
-            if (Array.isArray(arr) && arr.length === 0) return 'none'; 
-            if (Array.isArray(arr)) return arr.join(', ');
-            return 'none';
-        }
-
-        function parseIndices(str) {
-            str = str.trim().toLowerCase();
-            if (str === 'all') return 'all';
-            if (str === 'none' || str === '') return []; 
-            const arr = str.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
-            return arr;
         }
 
         window.updateUserPermission = async function(username, field, valueElement) {
@@ -1399,7 +1295,6 @@
                 allUsers[uIndex][field] = newValue;
             }
 
-            // Ghi log Admin
             try {
                 await window.logAction('admin', {
                     timestamp: Date.now(),
@@ -1427,10 +1322,9 @@
                     .map(k => ({ username: k, ...localPerms[k] }));
                 buildAllUsers();
             }
-            renderAdminPanel(); 
+            window.renderTable(); 
         }
 
-        // --- HÀM CẤP LẠI MẬT KHẨU (DÀNH CHO ADMIN) ---
         window.resetUserPassword = async function(username) {
             if (!currentUser || currentUser.username !== 'admin') return;
 
@@ -1445,7 +1339,6 @@
                     allUsers[uIndex].password = finalPass;
                 }
 
-                // Ghi log Admin
                 try {
                     await window.logAction('admin', {
                         timestamp: Date.now(),
@@ -1478,21 +1371,17 @@
             }
         }
         
-        // --- HÀM XÓA TÀI KHOẢN ĐĂNG NHẬP (DÀNH CHO ADMIN) ---
         window.deleteSystemUser = async function(username, btnElement) {
             if (!currentUser || currentUser.username !== 'admin') return;
             if (!confirm(`CẢNH BÁO: Bạn có chắc chắn muốn XÓA HOÀN TOÀN tài khoản truy cập '${username}' không?\nTài khoản này sẽ không thể đăng nhập lại được nữa.`)) return;
 
-            // Xóa tức thì khỏi giao diện (Optimistic UI)
             if (btnElement) {
                 const row = btnElement.closest('tr');
                 if (row) row.style.display = 'none';
             }
 
-            // Xác định xem tài khoản gốc hay đăng ký
             const isBaseUser = baseUserAccounts.some(u => u.username === username);
 
-            // Ghi log Admin
             try {
                 await window.logAction('admin', {
                     timestamp: Date.now(),
@@ -1505,17 +1394,14 @@
             if (useFirebase && firebaseUser) {
                 try {
                     if (isBaseUser) {
-                        // Soft delete cho tài khoản hệ thống gốc
                         await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_permissions', username), { isDeleted: true }, { merge: true });
                     } else {
-                        // Hard delete (xóa hẳn khỏi Database) cho tài khoản đăng ký tự do
                         await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_permissions', username));
                     }
                 } catch(e) {
                     console.error("Lỗi xóa tài khoản Firebase:", e);
                     alert("Lỗi không thể xóa tài khoản. Chi tiết: " + e.message);
                     window.handleFirestoreError(e);
-                    // Hiện lại dòng nếu lỗi
                     if (btnElement) {
                         const row = btnElement.closest('tr');
                         if (row) row.style.display = '';
@@ -1530,27 +1416,15 @@
                 }
                 localStorage.setItem('localUserPermissions', JSON.stringify(localPerms));
                 
-                // Cập nhật mảng registeredAccounts nếu offline
                 registeredAccounts = Object.keys(localPerms)
                     .filter(k => localPerms[k].isRegistered)
                     .map(k => ({ username: k, ...localPerms[k] }));
 
                 buildAllUsers();
-                renderAdminPanel();
+                window.renderAdminPanel();
             }
         }
 
-        // --- DANH SÁCH DROPDOWN CHO PHÁI VÀ THUỘC TÍNH ---
-        const phaiList = [
-            "CÁI BANG", "ĐÀO HOA", "ĐƯỜNG MÔN", "MINH GIÁO", "MỘ DUNG", 
-            "NGA MI", "QUỶ CỐC", "THIÊN LONG", "THIÊN SƠN", "THIẾU LÂM", 
-            "TIÊU DAO", "TINH TÚC", "VÕ ĐANG"
-        ];
-        const thuocTinhList = [
-            "BĂNG", "ĐỘC", "HOẢ", "HUYỀN"
-        ];
-
-        // --- HÀM THÊM TÀI KHOẢN DATA MỚI DÀNH CHO ADMIN ---
         window.adminAddNewSystemAccount = async function() {
             const userTc = document.getElementById('newAcc_userTc').value.trim();
             const passTc = document.getElementById('newAcc_passTc').value.trim();
@@ -1606,12 +1480,11 @@
             } else {
                 customAccounts.push(newAcc);
                 localStorage.setItem('customAccounts', JSON.stringify(customAccounts));
-                renderTable();
+                window.renderTable();
                 alert("Thêm tài khoản vào bảng thành công (Ngoại tuyến)!");
             }
         }
 
-        // --- HÀM THÊM TÀI KHOẢN DATA MỚI DÀNH CHO USER ---
         window.openAddMyAccModal = function() {
             document.getElementById('addMyAccModal').classList.remove('hidden');
         }
@@ -1645,7 +1518,7 @@
                 phai: phai,
                 thuocTinh: thuocTinh,
                 color: document.getElementById('myAcc_color').value,
-                owner: currentUser.username // Gán chủ sở hữu để luôn có quyền xem/sửa
+                owner: currentUser.username
             };
 
             try {
@@ -1678,14 +1551,12 @@
             } else {
                 customAccounts.push(newAcc);
                 localStorage.setItem('customAccounts', JSON.stringify(customAccounts));
-                renderTable();
+                window.renderTable();
                 alert("Đã thêm nhân vật thành công (Ngoại tuyến)!");
                 window.closeAddMyAccModal();
             }
         }
 
-
-        // --- HÀM SỬA CHUNG CHO CÁC TEXT FIELD (DÀNH CHO ADMIN) ---
         window.promptEditField = async function(id, field, oldVal, fieldLabel) {
             if (!currentUser || currentUser.username !== 'admin') return;
             
@@ -1715,18 +1586,17 @@
                         [field]: finalVal
                     }, { merge: true });
                 } catch(e) {
-                    console.error("Lỗi sửa thông tin:", e);
+                    console.error("Lỗi sửa thông:" , e);
                     window.handleFirestoreError(e);
                 }
             } else {
                 if(!editedNamesMap[id]) editedNamesMap[id] = {};
                 editedNamesMap[id][field] = finalVal;
                 localStorage.setItem('editedNamesMap', JSON.stringify(editedNamesMap));
-                renderTable();
+                window.renderTable();
             }
         }
 
-        // --- HÀM CẬP NHẬT CHO CÁC TRƯỜNG DẠNG DROPDOWN TỰ ĐỘNG ---
         window.updateDropdownField = async function(id, field, newVal, oldVal, fieldLabel) {
             if (!currentUser || currentUser.username !== 'admin') return;
             if (newVal === oldVal) return;
@@ -1759,16 +1629,14 @@
                 if(!editedNamesMap[id]) editedNamesMap[id] = {};
                 editedNamesMap[id][field] = newVal;
                 localStorage.setItem('editedNamesMap', JSON.stringify(editedNamesMap));
-                renderTable();
+                window.renderTable();
             }
         }
         
-        // --- HÀM XÓA NHÂN VẬT KHỎI BẢNG CHÍNH (CHỈ DÀNH CHO ADMIN) ---
         window.deleteAccount = async function(id, name, btnElement) {
             if (!currentUser || currentUser.username !== 'admin') return;
             if (!confirm(`CẢNH BÁO: Bạn có chắc chắn muốn xóa hoàn toàn nhân vật "${name}" khỏi bảng không? Hành động này không thể hoàn tác.`)) return;
 
-            // Optimistic UI update
             if(btnElement) {
                 const row = btnElement.closest('tr');
                 if(row) row.style.display = 'none';
@@ -1799,7 +1667,6 @@
                     console.error("Lỗi xóa nhân vật:", e);
                     alert("Lỗi không thể xóa: " + e.message);
                     window.handleFirestoreError(e);
-                    // Rollback UI
                     if(btnElement) {
                         const row = btnElement.closest('tr');
                         if(row) row.style.display = '';
@@ -1808,363 +1675,177 @@
             } else {
                 deletedAccountsMap[id] = true;
                 localStorage.setItem('deletedAccountsMap', JSON.stringify(deletedAccountsMap));
-                renderTable();
+                window.renderTable();
             }
         }
 
-        function renderAdminPanel() {
-            const tbody = document.getElementById('adminPanelTableBody');
-            tbody.innerHTML = '';
+        // =========================================================================
+        // 6. CÁC HÀM LOGIC GIAO DIỆN CHÍNH
+        // =========================================================================
 
-            buildAllUsers();
-            allUsers.forEach(user => {
-                if (user.username === 'admin') return; 
-
-                const tr = document.createElement('tr');
-                tr.className = "hover:bg-blue-50 transition-colors border-b border-gray-100";
-                
-                const canTick = user.canTick !== false;
-                const canUntick = user.canUntick !== false;
-                const isLocked = !!user.isLocked;
-                const indicesStr = formatIndices(user.allowedIndices);
-                
-                const isNewTag = user.isRegistered 
-                    ? '<span class="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded ml-2 shadow-sm font-bold align-middle">[Mới]</span>' 
-                    : '';
-
-                tr.innerHTML = `
-                    <td class="border-r border-gray-200 px-2 py-2 font-medium text-blue-700">
-                        ${user.username} ${isNewTag}
-                    </td>
-                    <td class="border-r border-gray-200 px-2 py-2">
-                        <input type="text" value="${indicesStr}" 
-                               onblur="window.updateUserPermission('${user.username}', 'allowedIndices', this)"
-                               placeholder="Nhập 1,2,3 hoặc all, none"
-                               class="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
-                    </td>
-                    <td class="border-r border-gray-200 px-1 py-2 text-center bg-green-50/50">
-                        <input type="checkbox" ${canTick ? 'checked' : ''} 
-                               onchange="window.updateUserPermission('${user.username}', 'canTick', this)"
-                               class="w-4 h-4 cursor-pointer accent-green-600 hover:scale-110">
-                    </td>
-                    <td class="border-r border-gray-200 px-1 py-2 text-center bg-red-50/50">
-                        <input type="checkbox" ${canUntick ? 'checked' : ''} 
-                               onchange="window.updateUserPermission('${user.username}', 'canUntick', this)"
-                               class="w-4 h-4 cursor-pointer accent-red-600 hover:scale-110">
-                    </td>
-                    <td class="border-r border-gray-200 px-2 py-2 text-center bg-yellow-50/50">
-                        <button onclick="window.resetUserPassword('${user.username}')" class="bg-yellow-500 hover:bg-yellow-600 text-white text-[10px] font-bold py-1 px-2 rounded shadow-sm transition-colors">Reset</button>
-                    </td>
-                    <td class="border-r border-gray-200 px-1 py-2 text-center bg-orange-50/50">
-                        <input type="checkbox" ${isLocked ? 'checked' : ''} 
-                               onchange="window.updateUserPermission('${user.username}', 'isLocked', this)"
-                               class="w-4 h-4 cursor-pointer accent-orange-600 hover:scale-110" title="Khóa tài khoản này">
-                    </td>
-                    <td class="border-gray-200 px-1 py-2 text-center bg-red-100/50">
-                        <button onclick="window.deleteSystemUser('${user.username}', this)" class="p-1 bg-red-500 hover:bg-red-600 text-white rounded shadow-sm transition-colors mx-auto block" title="Xóa tài khoản này">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
-                        </button>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-
-
-        // Dữ liệu bảng (Raw Mặc định)
-        const rawData = [
-            { id: 1, userTnt: 'vankhanh4', passTnt: '123123 (or 123456 check lại)', oldName: 'NữYTá', newName: 'NhượcThủy', userTc: 'tcvankhanh4', passTc: 'a123123a', color: 'orange' },
-            { id: 2, userTnt: 'vankhanh5', passTnt: '123123', oldName: 'BácSỹGià', newName: 'VôNhai', userTc: 'tcvankhanh5', passTc: 'a123123a', color: 'orange' },
-            { id: 3, userTnt: 'baolamka21', passTnt: 'baolamka2021', oldName: 'ZzCakezZ', newName: 'LăngHư', userTc: 'tcbaolamka21', passTc: 'a123123a', color: 'orange' },
-            { id: 4, userTnt: 'botao1989', passTnt: 'botao1989', oldName: 'BốTạo', newName: 'NgạoThiên', userTc: 'tcbotao1989', passTc: 'a123123a', color: 'orange' },
-            { id: 5, userTnt: 't26115', passTnt: '123456aa', oldName: 'zVôKỵ', newName: 'VôKỵ', userTc: 'tct26115', passTc: 'a123123a', color: 'pink' },
-            { id: 6, userTnt: 't26113', passTnt: '123456aa', oldName: 'zNgữYên', newName: 'NgữYên', userTc: 'tct26113', passTc: 'a123123a', color: 'pink' },
-            { id: 7, userTnt: 't26120', passTnt: '123456aa', oldName: 'zTiêuPhong', newName: 'TiêuPhong', userTc: 'tct26120', passTc: 'a123123a', color: 'pink' },
-            { id: 8, userTnt: 't26121', passTnt: '123456aa', oldName: 'TiểuLongNữ', newName: 'LongNữ', userTc: 'tct26121', passTc: 'a123123a', color: 'pink' },
-            { id: 9, userTnt: 'thienlong05', passTnt: '123456aa', oldName: 'ThanhLong', newName: 'ThanhLong', userTc: 'tcthienlong05', passTc: 'a123123a', color: 'pink' },
-            { id: 10, userTnt: 'thienlong06', passTnt: '123456aa', oldName: 'ThầnLong', newName: 'ThầnLong', userTc: 'tcthienlong06', passTc: 'a123123a', color: 'pink' },
-            { id: 11, userTnt: 'ongtao1989', passTnt: 'ongtao1989', oldName: 'TônMỹMỹ', newName: 'MẫnMẫn', userTc: 'tcongtao1989', passTc: 'a123123a', color: 'orange' },
-            { id: 12, userTnt: 'vankhanh3', passTnt: '25251325', oldName: 'TiểuNạiHà', newName: 'NạiHà', userTc: 'tcvankhanh3', passTc: 'a123123a', color: 'orange' },
-            { id: 13, userTnt: 'cchtp06', passTnt: 'a123123', oldName: 'San', newName: 'NhạcSan', userTc: 'tccchtp06', passTc: 'a123123a', color: 'yellow' },
-            { id: 14, userTnt: 'admin0', passTnt: 'admin123', oldName: 'ICBM', newName: 'PháThiên', userTc: 'tcadmin0', passTc: 'a123123a', color: 'blue' },
-            { id: 15, userTnt: 'admin1', passTnt: 'admin123', oldName: 'iskander', newName: 'PhiMộc', userTc: 'tcadmin1', passTc: 'a123123a', color: 'blue' },
-            { id: 16, userTnt: 'admin2', passTnt: 'admin123', oldName: 'Tomahawk', newName: 'KinhLôi', userTc: 'tcadmin2', passTc: 'a123123a', color: 'blue' },
-            { id: 17, userTnt: 'admin3', passTnt: 'admin123', oldName: 'Oreshnik', newName: 'ĐộcCô', userTc: 'tcadmin3', passTc: 'a123123a', color: 'blue' },
-            { id: 18, userTnt: 'admin4', passTnt: 'admin123', oldName: 'Kinzhal', newName: 'KiếmMa', userTc: 'tcadmin4', passTc: 'a123123a', color: 'blue' },
-            { id: 19, userTnt: 'admin5', passTnt: 'admin123', oldName: 'Rs28Sarmat', newName: 'CửuTinh', userTc: 'tcadmin5', passTc: 'a123123a', color: 'blue' },
-            { id: 20, userTnt: 'Tuanbmt002', passTnt: '123456a', oldName: 'Cronos', newName: 'ThiênTôn', userTc: 'tctuanbmt002', passTc: 'a123123a', color: 'white' },
-            { id: 21, userTnt: 'huychu7297', passTnt: 'huychu7290', oldName: 'Hera', newName: 'HuyềnNữ', userTc: 'tchuychu7297', passTc: 'a123123a', color: 'yellow' },
-            { id: 22, userTnt: 'vankhanh', passTnt: '123456', oldName: 'ThiênVũ', newName: 'ThiênVũ', userTc: 'tcvankhanh', passTc: 'a123123a', color: 'orange' },
-            { id: 23, userTnt: 'Tuanbmt003', passTnt: '123456a', oldName: 'Hades', newName: 'MinhVương', userTc: 'tctuanbmt003', passTc: 'a123123a', color: 'white' },
-            { id: 24, userTnt: 'binhhang44', passTnt: 'congvan1', oldName: 'MáTạo', newName: 'TửHà', userTc: 'tcbinhhang44', passTc: 'a123123a', color: 'orange' },
-            { id: 25, userTnt: 'otao1989', passTnt: 'otao1989', oldName: 'BàTổCô', newName: 'ĐồngLão', userTc: 'tcotao1989', passTc: 'a123123a', color: 'orange' },
-            { id: 26, userTnt: 'metao1989', passTnt: 'metao1989', oldName: 'Shin', newName: 'VôẢnh', userTc: 'tcmetao1989', passTc: 'a123123a', color: 'orange' },
-            { id: 27, userTnt: 'cchtp07', passTnt: 'a123123', oldName: 'Nikita', newName: 'PhiYến', userTc: 'tccchtp07', passTc: 'a123123a', color: 'yellow' },
-            { id: 28, userTnt: 'huychu729', passTnt: 'huychu7290', oldName: 'Mia', newName: 'LạcNhạn', userTc: 'tchuychu729', passTc: 'a123123a', color: 'yellow' },
-            { id: 29, userTnt: 'huychu7291', passTnt: 'huychu7290', oldName: 'Gin', newName: 'TrườngPhong', userTc: 'tchuychu7291', passTc: 'a123123a', color: 'yellow' },
-            { id: 30, userTnt: 'huychu7292', passTnt: 'huychu7290', oldName: 'Tonic', newName: 'TiêuGiao', userTc: 'tchuychu7292', passTc: 'a123123a', color: 'yellow' },
-            { id: 31, userTnt: 'Tuanbmt02', passTnt: '123456a', oldName: 'Nyx', newName: 'DạĐế', userTc: 'tctuanbmt02', passTc: 'a123123a', color: 'white' },
-            { id: 32, userTnt: 'Tuanbmt001', passTnt: '123456a', oldName: 'Kraken', newName: 'BíchHải', userTc: 'tctuanbmt001', passTc: 'a123123a', color: 'white' },
-            { id: 33, userTnt: 'huychu7296', passTnt: 'huychu7290', oldName: 'Yi', newName: 'LưuTinh', userTc: 'tchuychu7296', passTc: 'a123123a', color: 'yellow' },
-            { id: 34, userTnt: 'Tuanbmt03', passTnt: '123456a', oldName: 'Hebe', newName: 'TốTố', userTc: 'tctuanbmt03', passTc: 'a123123a', color: 'white' },
-            { id: 35, userTnt: 'huychu7295', passTnt: 'huychu7290', oldName: 'Zhao', newName: 'TriệuMẫn', userTc: 'tchuychu7295', passTc: 'a123123a', color: 'yellow' },
-            { id: 36, userTnt: 'huychu7294', passTnt: 'huychu7290', oldName: 'YanYan', newName: 'YếnYến', userTc: 'tchuychu7294', passTc: 'a123123a', color: 'yellow' },
-            { id: 37, userTnt: 'daucongan3', passTnt: 'congancauke9', oldName: 'NHỊLONG', newName: 'NhịLong', userTc: 'tcdaucongan3', passTc: 'a123123a', color: 'purple' },
-            { id: 38, userTnt: 'huychu7293', passTnt: 'huychu7290', oldName: 'Neo', newName: 'HưVô', userTc: 'tchuychu7293', passTc: 'a123123a', color: 'yellow' },
-            { id: 39, userTnt: 'binhhang33', passTnt: 'congvan1', oldName: 'MẹTạo', newName: 'MạcSầu', userTc: 'tcbinhhang33', passTc: 'a123123a', color: 'orange' },
-            { id: 40, userTnt: 'cchtp05', passTnt: 'a123123', oldName: 'Lusi05', newName: 'LưuLy', userTc: 'tccchtp05', passTc: 'a123123a', color: 'yellow' },
-            { id: 41, userTnt: 'admin11', passTnt: 'admin123', oldName: 'Dạ Quân Lâm', newName: 'QuânLâm', userTc: 'tcadmin11', passTc: 'a123123a', color: 'white' },
-            { id: 42, userTnt: 'Vungocnha2', passTnt: 'Vungocnha2', oldName: 'Yến Thập Tam', newName: 'ThậpTam', userTc: 'tcvungocnha2', passTc: 'a123123a', color: 'white' },
-            { id: 43, userTnt: 'Tuanbmt005', passTnt: '123456a', oldName: 'Iris', newName: 'BăngThu', userTc: 'tctuanbmt005', passTc: 'a123123a', color: 'white' }
-        ];
-
-        const colorWeight = {
-            'blue': 1, 'orange': 2, 'pink': 3, 'yellow': 4, 'purple': 5, 'white': 6
-        };
-
-        const colorClasses = {
-            'blue': 'bg-[#99c1de]', 'pink': 'bg-[#dfb6b2]', 'orange': 'bg-[#f8d49a]',
-            'yellow': 'bg-[#ffff00]', 'purple': 'bg-[#d6c3df]', 'white': 'bg-white'
-        };
-
-        const copyIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-600"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>`;
-        const checkIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-green-700"><path d="M20 6 9 17l-5-5"/></svg>`;
-        const paintIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m19 11-8-8-8.6 8.6a2 2 0 0 0 0 2.8l5.2 5.2c.8.8 2 .8 2.8 0L19 11Z"/><path d="m5 2 5 5"/><path d="M2 13h15"/><path d="M22 20a2 2 0 1 1-4 0c0-1.6 1.7-2.4 2-4 .3 1.6 2 2.4 2 4Z"/></svg>`;
-        const sortIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/></svg>`;
-        const trashIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-red-500 hover:text-red-700 transition-colors"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>`;
-
-        let isGrouped = true;
-        window.globalGroupedIndexMap = {};
-
-        window.handleCopy = function(text, buttonElement) {
-            const textArea = document.createElement("textarea");
-            textArea.value = text;
-            textArea.style.position = "fixed";
-            textArea.style.top = "-9999px";
-            document.body.appendChild(textArea);
-            textArea.focus();
-            textArea.select();
-            try {
-                document.execCommand('copy');
-                buttonElement.innerHTML = checkIcon;
-                setTimeout(() => {
-                    buttonElement.innerHTML = copyIcon;
-                }, 2000);
-            } catch (err) {
-                console.error('Lỗi khi sao chép', err);
-            }
-            document.body.removeChild(textArea);
-        }
-
-        // Tách biệt việc Bấm để Sửa (TD) và Bấm để Copy (Button)
-        function createCopyableCell(text, align = 'left') {
-            const alignmentClass = align === 'center' ? 'justify-center gap-2' : 'justify-between';
-            return `
-                <div class="flex items-center group ${alignmentClass}">
-                    <span>${text}</span>
-                    <button
-                        onclick="event.stopPropagation(); window.handleCopy('${text.replace(/'/g, "\\'")}', this)"
-                        class="copy-btn opacity-0 transition-opacity p-1 rounded hover:bg-black/10 focus:opacity-100 ml-1"
-                        title="Sao chép"
-                    >
-                        ${copyIcon}
-                    </button>
-                </div>
-            `;
-        }
-
-        function renderTable() {
-            const tableHead = document.getElementById('tableHead');
-            const tableBody = document.getElementById('tableBody');
+        function showApp(userObj, isRestoring = false) {
+            currentUser = userObj;
+            isLoggedIn = !userObj.isGuest;
             
-            const isAdmin = currentUser && currentUser.username === 'admin';
-
-            // Dựng linh động thead để thêm cột "Xóa" cho Admin
-            tableHead.innerHTML = `
-                <tr class="bg-white">
-                    <th class="border border-black px-3 py-2 text-center font-bold w-12">STT</th>
-                    <th class="border border-black px-3 py-2 text-center font-bold w-16">Xong</th>
-                    <th class="border border-black px-3 py-2 text-left font-bold w-48">Username TNT</th>
-                    <th class="border border-black px-3 py-2 text-center font-bold w-48">Passwords TNT</th>
-                    <th class="border border-black px-3 py-2 text-left font-bold w-32">Tên NV (Cũ)</th>
-                    <th class="border border-black px-3 py-2 text-left font-bold w-40">Tên NV (Mới)</th>
-                    <th class="border border-black px-3 py-2 text-left font-bold w-32">Phái</th>
-                    <th class="border border-black px-3 py-2 text-left font-bold w-32">Thuộc tính</th>
-                    <th class="border border-black px-3 py-2 text-left font-bold w-48">Username TC</th>
-                    <th class="border border-black px-3 py-2 text-center font-bold w-40">Passwords TC</th>
-                    ${isAdmin ? '<th class="border border-black px-2 py-2 text-center font-bold w-10 text-red-600">Xóa</th>' : ''}
-                </tr>
-            `;
-
-            tableBody.innerHTML = '';
-
-            let finalData = [...rawData, ...customAccounts]
-                .filter(row => !deletedAccountsMap[row.id]) // Lọc bỏ các tài khoản đã bị xóa
-                .map(row => {
-                    const edited = editedNamesMap[row.id];
-                    if (edited) {
-                        return {
-                            ...row,
-                            userTnt: edited.userTnt !== undefined ? edited.userTnt : row.userTnt,
-                            passTnt: edited.passTnt !== undefined ? edited.passTnt : row.passTnt,
-                            oldName: edited.oldName !== undefined ? edited.oldName : row.oldName,
-                            newName: edited.newName !== undefined ? edited.newName : row.newName,
-                            phai: edited.phai !== undefined ? edited.phai : row.phai,
-                            thuocTinh: edited.thuocTinh !== undefined ? edited.thuocTinh : row.thuocTinh,
-                            userTc: edited.userTc !== undefined ? edited.userTc : row.userTc,
-                            passTc: edited.passTc !== undefined ? edited.passTc : row.passTc
-                        };
-                    }
-                    return row;
-                });
-
-            const groupedIndexMap = {};
-            let referenceData = [...finalData].sort((a, b) => {
-                if (colorWeight[a.color] !== colorWeight[b.color]) {
-                    return colorWeight[a.color] - colorWeight[b.color];
-                }
-                return parseInt(a.id) - parseInt(b.id);
-            });
-            referenceData.forEach((row, index) => {
-                groupedIndexMap[row.id] = index + 1; 
-            });
-            window.globalGroupedIndexMap = groupedIndexMap; 
-
-            let displayData = [...finalData];
-            if (currentUser && currentUser.allowedIndices !== 'all') {
-                displayData = displayData.filter(row => 
-                    currentUser.allowedIndices.includes(groupedIndexMap[row.id]) ||
-                    row.owner === currentUser.username // Hiển thị dòng do user này tạo
-                );
+            if (!isRestoring) {
+                localStorage.setItem('app_currentUser', JSON.stringify(userObj));
+                localStorage.setItem('app_lastActivity', Date.now().toString());
             }
-
-            if (isGrouped) {
-                displayData.sort((a, b) => {
-                    if (colorWeight[a.color] !== colorWeight[b.color]) {
-                        return colorWeight[a.color] - colorWeight[b.color];
-                    }
-                    return parseInt(a.id) - parseInt(b.id);
-                });
-            }
-
-            document.getElementById('footerInfo').innerText = `Tổng cộng: ${displayData.length} tài khoản`;
-
-            const editableCls = isAdmin ? 'editable-cell' : '';
-
-            displayData.forEach((row) => {
-                const tr = document.createElement('tr');
-                tr.className = `${colorClasses[row.color]} hover:brightness-95 transition-all duration-150`;
-
-                const safeUserTnt = (row.userTnt || '').replace(/'/g, "\\'");
-                const safePassTnt = (row.passTnt || '').replace(/'/g, "\\'");
-                const safeOldName = (row.oldName || '').replace(/'/g, "\\'");
-                const safeNewName = (row.newName || '').replace(/'/g, "\\'");
-                const safePhai = (row.phai || '');
-                const safeThuocTinh = (row.thuocTinh || '');
-                const safeUserTc  = (row.userTc || '').replace(/'/g, "\\'");
-                const safePassTc  = (row.passTc || '').replace(/'/g, "\\'");
-
-                const editAttr = (field, safeVal, label) => isAdmin ? `title="Click để sửa thông tin (Admin)" onclick="window.promptEditField('${row.id}', '${field}', '${safeVal}', '${label}')"` : '';
-
-                const displayStt = isGrouped ? groupedIndexMap[row.id] : row.id;
-                const isDone = doneItems[row.id];
-                const textOpacityClass = isDone ? 'opacity-40' : '';
-
-                let canInteract = true;
-                const isOwner = row.owner === currentUser?.username;
-                
-                if (!isLoggedIn || currentUser.isGuest) {
-                    canInteract = false;
-                } else if (currentUser.username !== 'admin' && currentUser.username !== 'admin1' && !isOwner) {
-                    if (isDone && currentUser.canUntick === false) canInteract = false;
-                    if (!isDone && currentUser.canTick === false) canInteract = false;
-                }
-
-                const disabledStatus = !canInteract ? 'disabled' : '';
-                const cursorClass = !canInteract 
-                    ? 'cursor-not-allowed opacity-50 grayscale' 
-                    : 'cursor-pointer accent-green-600 hover:scale-110 transition-transform';
-
-                // Dropdown Phái inline cho Admin
-                const phaiDropdown = isAdmin 
-                    ? `<select onchange="window.updateDropdownField('${row.id}', 'phai', this.value, '${safePhai}', 'Phái')" class="w-full bg-transparent outline-none cursor-pointer text-black ${textOpacityClass}">
-                        <option value="">--</option>
-                        ${phaiList.map(p => `<option value="${p}" ${safePhai === p ? 'selected' : ''}>${p}</option>`).join('')}
-                       </select>`
-                    : (safePhai || '');
-
-                // Dropdown Thuộc tính inline cho Admin
-                const thuocTinhDropdown = isAdmin 
-                    ? `<select onchange="window.updateDropdownField('${row.id}', 'thuocTinh', this.value, '${safeThuocTinh}', 'Thuộc tính')" class="w-full bg-transparent outline-none cursor-pointer text-black ${textOpacityClass}">
-                        <option value="">--</option>
-                        ${thuocTinhList.map(t => `<option value="${t}" ${safeThuocTinh === t ? 'selected' : ''}>${t}</option>`).join('')}
-                       </select>`
-                    : (safeThuocTinh || '');
-                    
-                // Ô nút bấm Xóa (Chỉ Admin)
-                const deleteColHtml = isAdmin 
-                    ? `<td class="border border-black px-1 py-1 text-center bg-red-50/50">
-                         <button onclick="window.deleteAccount('${row.id}', '${safeNewName || safeOldName || 'Chưa có tên'}', this)" class="p-1 hover:bg-red-200 rounded transition-colors" title="Xóa nhân vật này khỏi bảng">
-                            ${trashIcon}
-                         </button>
-                       </td>` 
-                    : '';
-
-                tr.innerHTML = `
-                    <td class="border border-black px-3 py-1 text-center font-medium">
-                        ${displayStt}
-                    </td>
-                    <td class="border border-black px-3 py-1 text-center bg-white/20">
-                        <input type="checkbox" onchange="window.toggleDone('${row.id}')" ${isDone ? 'checked' : ''} ${disabledStatus} class="w-4 h-4 ${cursorClass}">
-                    </td>
-                    <td ${editAttr('userTnt', safeUserTnt, 'Username TNT')} class="border border-black px-3 py-1 whitespace-nowrap ${!isLoggedIn ? 'text-center' : ''} ${textOpacityClass} ${editableCls}">
-                        ${isLoggedIn ? createCopyableCell(row.userTnt || '', 'left') : '<span class="text-gray-600 font-mono tracking-widest text-lg">*****</span>'}
-                    </td>
-                    <td ${editAttr('passTnt', safePassTnt, 'Password TNT')} class="border border-black px-3 py-1 text-center ${textOpacityClass} ${editableCls}">
-                        ${isLoggedIn ? createCopyableCell(row.passTnt || '', 'center') : '<span class="text-gray-600 font-mono tracking-widest text-lg">*****</span>'}
-                    </td>
-                    <td ${editAttr('oldName', safeOldName, 'Tên NV (Cũ)')} class="border border-black px-3 py-1 font-medium ${textOpacityClass} ${editableCls}">${row.oldName || ''}</td>
-                    <td ${editAttr('newName', safeNewName, 'Tên NV (Mới)')} class="border border-black px-3 py-1 font-bold text-blue-800 ${textOpacityClass} ${editableCls}">${row.newName || ''}</td>
-                    
-                    <td class="border border-black px-1 py-1 font-medium ${textOpacityClass} ${editableCls}" title="${isAdmin ? 'Chọn phái' : ''}">
-                        ${phaiDropdown}
-                    </td>
-                    <td class="border border-black px-1 py-1 font-medium ${textOpacityClass} ${editableCls}" title="${isAdmin ? 'Chọn thuộc tính' : ''}">
-                        ${thuocTinhDropdown}
-                    </td>
-                    
-                    <td ${editAttr('userTc', safeUserTc, 'Username TC')} class="border border-black px-3 py-1 whitespace-nowrap ${!isLoggedIn ? 'text-center' : ''} ${textOpacityClass} ${editableCls}">
-                        ${isLoggedIn ? createCopyableCell(row.userTc || '', 'left') : '<span class="text-gray-600 font-mono tracking-widest text-lg">*****</span>'}
-                    </td>
-                    <td ${editAttr('passTc', safePassTc, 'Password TC')} class="border border-black px-3 py-1 text-center ${textOpacityClass} ${editableCls}">
-                        ${isLoggedIn ? createCopyableCell(row.passTc || '', 'center') : '<span class="text-gray-600 font-mono tracking-widest text-lg">*****</span>'}
-                    </td>
-                    ${deleteColHtml}
-                `;
-                tableBody.appendChild(tr);
-            });
             
-            const toggleBtn = document.getElementById('toggleBtn');
-            const toggleIcon = document.getElementById('toggleIcon');
-            const toggleText = document.getElementById('toggleText');
+            document.getElementById('adminPanelBtn').classList.add('hidden'); 
+            document.getElementById('activityLogSection').classList.add('hidden'); 
+            document.getElementById('addMyAccBtn').classList.add('hidden');
+            document.getElementById('adminFilterSection').classList.add('hidden');
 
-            if (isGrouped) {
-                toggleBtn.className = "flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium transition-all shadow-sm active:scale-95 bg-blue-600 text-white hover:bg-blue-700";
-                toggleIcon.innerHTML = paintIcon;
-                toggleText.innerText = "Đang hiển thị: Gom Nhóm Màu";
+            const viewModeText = document.getElementById('viewModeText');
+
+            if (userObj.isGuest) {
+                viewModeText.innerText = "Chế độ: Khách (Đã ẩn thông tin nhạy cảm)";
+                viewModeText.className = "text-sm font-medium text-orange-600";
+            } else if (userObj.allowedIndices === 'all') {
+                viewModeText.innerText = "Chế độ: Quản trị viên (Xem tất cả)";
+                viewModeText.className = "text-sm font-medium text-green-600";
+                
+                if (userObj.username === 'admin') {
+                    document.getElementById('activityLogSection').classList.remove('hidden');
+                    document.getElementById('adminPanelBtn').classList.remove('hidden');
+                    document.getElementById('adminFilterSection').classList.remove('hidden');
+                }
+                document.getElementById('addMyAccBtn').classList.remove('hidden');
             } else {
-                toggleBtn.className = "flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium transition-all shadow-sm active:scale-95 bg-gray-200 text-gray-800 hover:bg-gray-300";
-                toggleIcon.innerHTML = sortIcon;
-                toggleText.innerText = "Đang hiển thị: Thứ Tự Gốc";
+                viewModeText.innerText = `Chế độ: Nhân viên (${userObj.username}) - Theo giới hạn`;
+                viewModeText.className = "text-sm font-medium text-blue-600";
+                document.getElementById('addMyAccBtn').classList.remove('hidden');
+            }
+
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('mainApp').classList.remove('hidden');
+            document.body.classList.remove('justify-center');
+            document.getElementById('errorMessage').classList.add('hidden');
+            
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+            
+            window.renderTable();
+            
+            if(activityLogs.length > 0) {
+                 window.renderLogs();
             }
         }
 
-        document.getElementById('toggleBtn').addEventListener('click', () => {
-            isGrouped = !isGrouped;
-            renderTable();
-        });
+        function handleLogin() {
+            const user = document.getElementById('username').value.trim().toLowerCase();
+            const pass = document.getElementById('password').value.trim();
+            
+            buildAllUsers(); 
+            const matchedUser = allUsers.find(u => u.username === user && u.password === pass);
 
-        checkSession();
+            if (matchedUser) {
+                if (matchedUser.isLocked) {
+                    alert("Tài khoản này đã bị KHÓA. Vui lòng liên hệ Quản trị viên.");
+                    return;
+                }
+                showApp(matchedUser); 
+            } else {
+                document.getElementById('errorMessage').classList.remove('hidden');
+            }
+        }
+
+        function handleLogout() {
+            currentUser = null;
+            isLoggedIn = false;
+            
+            localStorage.removeItem('app_currentUser');
+            localStorage.removeItem('app_lastActivity');
+            
+            document.getElementById('mainApp').classList.add('hidden');
+            document.getElementById('loginScreen').classList.remove('hidden');
+            document.body.classList.add('justify-center');
+            document.getElementById('errorMessage').classList.add('hidden');
+            document.getElementById('activityLogSection').classList.add('hidden');
+            document.getElementById('adminPanelBtn').classList.add('hidden');
+            document.getElementById('addMyAccBtn').classList.add('hidden');
+            document.getElementById('adminFilterSection').classList.add('hidden');
+            
+            const searchInput = document.getElementById('adminSearchInput');
+            if (searchInput) searchInput.value = '';
+        }
+
+        function checkSession() {
+            const savedUserStr = localStorage.getItem('app_currentUser');
+            if (savedUserStr) {
+                try {
+                    const savedUser = JSON.parse(savedUserStr);
+                    
+                    buildAllUsers();
+                    const updatedRealUser = allUsers.find(u => u.username === savedUser.username);
+                    const userToBoot = updatedRealUser ? updatedRealUser : savedUser;
+
+                    if (!userToBoot || (userToBoot.username !== 'admin' && !userToBoot.isGuest && (userToBoot.isDeleted || userToBoot.isLocked))) {
+                        handleLogout();
+                        return;
+                    }
+
+                    if (userToBoot.username === 'admin') {
+                        showApp(userToBoot, true); 
+                    } else {
+                        const lastActivity = parseInt(localStorage.getItem('app_lastActivity') || '0', 10);
+                        if (Date.now() - lastActivity > 5 * 60 * 1000) { 
+                            handleLogout();
+                        } else {
+                            localStorage.setItem('app_lastActivity', Date.now().toString());
+                            showApp(userToBoot, true);
+                        }
+                    }
+                } catch (e) {
+                    handleLogout();
+                }
+            }
+        }
+
+        function resetInactivityTimer() {
+            if (currentUser && currentUser.username !== 'admin') {
+                localStorage.setItem('app_lastActivity', Date.now().toString());
+            }
+        }
+
+        // =========================================================================
+        // 7. GẮN SỰ KIỆN GIAO DIỆN (LISTENERS)
+        // =========================================================================
+
+        document.getElementById('loginBtn').addEventListener('click', handleLogin);
+        document.getElementById('guestBtn').addEventListener('click', () => {
+            showApp({ username: 'Khách', allowedIndices: 'all', isGuest: true }); 
+        });
+        document.getElementById('password').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') handleLogin();
+        });
+        document.getElementById('username').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') document.getElementById('password').focus();
+        });
+        document.getElementById('logoutBtn').addEventListener('click', handleLogout);
+
+        window.addEventListener('mousemove', resetInactivityTimer);
+        window.addEventListener('keydown', resetInactivityTimer);
+        window.addEventListener('click', resetInactivityTimer);
+        window.addEventListener('scroll', resetInactivityTimer);
+
+        setInterval(() => {
+            if (currentUser && currentUser.username !== 'admin') {
+                const lastActivity = parseInt(localStorage.getItem('app_lastActivity') || '0', 10);
+                if (Date.now() - lastActivity > 5 * 60 * 1000) {
+                    alert("Phiên đăng nhập đã hết hạn do không hoạt động (5 phút). Vui lòng đăng nhập lại.");
+                    handleLogout();
+                }
+            }
+        }, 10000);
+
+        // =========================================================================
+        // 8. KHỞI TẠO FIREBASE & CHẠY ỨNG DỤNG
+        // =========================================================================
+        if (!useFirebase) {
+            checkSession();
+        }
 
     </script>
 </body>
