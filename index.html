@@ -157,7 +157,7 @@
                     <span>Quản lý Phân Quyền</span>
                 </button>
 
-                <button id="toggleBtn" class="flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium transition-all shadow-sm active:scale-95 bg-blue-600 text-white hover:bg-blue-700">
+                <button id="toggleBtn" onclick="window.toggleGroupView()" class="flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium transition-all shadow-sm active:scale-95 bg-blue-600 text-white hover:bg-blue-700">
                     <span id="toggleIcon">
                         <!-- Icon PaintBucket -->
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m19 11-8-8-8.6 8.6a2 2 0 0 0 0 2.8l5.2 5.2c.8.8 2 .8 2.8 0L19 11Z"/><path d="m5 2 5 5"/><path d="M2 13h15"/><path d="M22 20a2 2 0 1 1-4 0c0-1.6 1.7-2.4 2-4 .3 1.6 2 2.4 2 4Z"/></svg>
@@ -343,7 +343,7 @@
                             <thead class="sticky top-0 bg-gray-50 shadow-sm z-10">
                                 <tr>
                                     <th class="border-b border-r border-gray-300 px-2 py-2 font-bold text-gray-700">Tài Khoản</th>
-                                    <th class="border-b border-r border-gray-300 px-2 py-2 font-bold text-gray-700" title="Nhập danh sách số cách nhau bởi dấu phẩy, hoặc nhập 'all'">STT Được Xem</th>
+                                    <th class="border-b border-r border-gray-300 px-2 py-2 font-bold text-gray-700" title="Nhập danh sách số cách nhau bởi dấu phẩy, khoảng trắng hoặc dấu gạch ngang. Ví dụ: 1-5 7 9,10">STT Được Xem</th>
                                     <th class="border-b border-r border-gray-300 px-1 py-2 font-bold text-center text-xs text-gray-700">Sửa</th>
                                     <th class="border-b border-r border-gray-300 px-1 py-2 font-bold text-center text-xs text-gray-700">Xóa</th>
                                     <th class="border-b border-r border-gray-300 px-2 py-2 font-bold text-center text-xs text-gray-700">Mật Khẩu</th>
@@ -598,22 +598,69 @@
         window.buildAllUsers();
 
         // =========================================================================
-        // 4. KHAI BÁO CÁC HÀM GIAO DIỆN (WINDOW)
+        // 4. KHAI BÁO CÁC HÀM GIAO DIỆN TỔNG QUÁT (WINDOW)
         // =========================================================================
         
         window.formatIndices = function(arr) {
             if (arr === 'all') return 'all';
-            if (Array.isArray(arr) && arr.length === 0) return 'none'; 
-            if (Array.isArray(arr)) return arr.join(', ');
-            return 'none';
+            if (!Array.isArray(arr) || arr.length === 0) return 'none';
+            
+            let sorted = [...arr].sort((a, b) => a - b);
+            let ranges = [];
+            let start = sorted[0];
+            let prev = sorted[0];
+
+            for (let i = 1; i <= sorted.length; i++) {
+                if (i < sorted.length && sorted[i] === prev + 1) {
+                    prev = sorted[i];
+                } else {
+                    if (start === prev) {
+                        ranges.push(`${start}`);
+                    } else {
+                        ranges.push(`${start}-${prev}`);
+                    }
+                    if (i < sorted.length) {
+                        start = sorted[i];
+                        prev = sorted[i];
+                    }
+                }
+            }
+            return ranges.join(', ');
         };
 
         window.parseIndices = function(str) {
             str = str.trim().toLowerCase();
             if (str === 'all') return 'all';
             if (str === 'none' || str === '') return []; 
-            const arr = str.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
-            return arr;
+            
+            // Thay thế dấu phẩy thành khoảng trắng để đồng nhất cách cắt chuỗi
+            let normalizedStr = str.replace(/,/g, ' ');
+            let parts = normalizedStr.split(/\s+/);
+            let result = new Set(); // Dùng Set để tự động lọc trùng lặp
+
+            parts.forEach(part => {
+                if (part.includes('-')) {
+                    let bounds = part.split('-');
+                    if (bounds.length === 2) {
+                        let start = parseInt(bounds[0], 10);
+                        let end = parseInt(bounds[1], 10);
+                        if (!isNaN(start) && !isNaN(end)) {
+                            let min = Math.min(start, end);
+                            let max = Math.max(start, end);
+                            for (let i = min; i <= max; i++) {
+                                result.add(i);
+                            }
+                        }
+                    }
+                } else {
+                    let num = parseInt(part, 10);
+                    if (!isNaN(num)) {
+                        result.add(num);
+                    }
+                }
+            });
+
+            return Array.from(result).sort((a, b) => a - b);
         };
 
         window.handleCopy = function(text, buttonElement) {
@@ -2144,10 +2191,8 @@
             document.getElementById('setupFormContainer').classList.remove('hidden');
             document.getElementById('loginScreenTitle').innerText = "Cài Đặt Hệ Thống";
             document.getElementById('loginScreenDesc').innerText = "Trạng thái: Chưa có kết nối Server";
+            window.checkSession();
         }
-        
-        // Khôi phục phiên đăng nhập ngay khi tải lại trang (F5)
-        window.checkSession();
 
     </script>
 </body>
