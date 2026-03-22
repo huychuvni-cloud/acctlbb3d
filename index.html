@@ -1914,6 +1914,7 @@
             document.getElementById('activityLogSection').classList.add('hidden'); 
             document.getElementById('addMyAccBtn').classList.add('hidden');
             document.getElementById('adminFilterSection').classList.add('hidden');
+            document.getElementById('exportDataBtn').classList.add('hidden');
 
             const viewModeText = document.getElementById('viewModeText');
 
@@ -1928,6 +1929,7 @@
                     document.getElementById('activityLogSection').classList.remove('hidden');
                     document.getElementById('adminPanelBtn').classList.remove('hidden');
                     document.getElementById('adminFilterSection').classList.remove('hidden');
+                    document.getElementById('exportDataBtn').classList.remove('hidden');
                 }
                 document.getElementById('addMyAccBtn').classList.remove('hidden');
             } else {
@@ -1984,6 +1986,7 @@
             document.getElementById('adminPanelBtn').classList.add('hidden');
             document.getElementById('addMyAccBtn').classList.add('hidden');
             document.getElementById('adminFilterSection').classList.add('hidden');
+            document.getElementById('exportDataBtn').classList.add('hidden');
             
             const searchInput = document.getElementById('adminSearchInput');
             if (searchInput) searchInput.value = '';
