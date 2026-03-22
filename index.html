@@ -455,7 +455,7 @@
         import { getFirestore, collection, doc, setDoc, onSnapshot, addDoc, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // =========================================================================
-        // 1. KHAI BÁO DỮ LIỆU & HẰNG SỐ
+        // 1. KHAI BÁO DỮ LIỆU & HẰNG SỐ CỐ ĐỊNH Ở ĐẦU FILE ĐỂ TRÁNH LỖI REFERENCE
         // =========================================================================
         const MY_FIREBASE_CONFIG = {
             "apiKey": "AIzaSyDWMkqROBBA0udi_AlTe3W2-c5fRIINApc",
@@ -539,8 +539,13 @@
         const trashIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-red-500 hover:text-red-700 transition-colors"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>`;
 
         // =========================================================================
-        // 2. KHAI BÁO BIẾN TOÀN CỤC (STATE)
+        // 2. KHAI BÁO BIẾN TOÀN CỤC (STATE) & HÀM TIỆN ÍCH
         // =========================================================================
+        window.getYYYYMMDD = function(timestamp) {
+            const d = new Date(timestamp);
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        };
+
         let app, auth, db;
         let useFirebase = false;
         let isUsingCanvasConfig = false;
@@ -549,6 +554,9 @@
         window.globalGroupedIndexMap = {};
         let currentUser = null; 
         let isLoggedIn = false; 
+
+        let selectedLogDate = window.getYYYYMMDD(Date.now());
+        let selectedAdminLogDate = window.getYYYYMMDD(Date.now());
 
         let doneItems = JSON.parse(localStorage.getItem('doneAccounts')) || {};
         let deletedAccountsMap = JSON.parse(localStorage.getItem('deletedAccountsMap')) || {}; 
@@ -586,6 +594,22 @@
         // =========================================================================
         // 4. KHAI BÁO CÁC HÀM GIAO DIỆN (WINDOW)
         // =========================================================================
+        
+        window.formatIndices = function(arr) {
+            if (arr === 'all') return 'all';
+            if (Array.isArray(arr) && arr.length === 0) return 'none'; 
+            if (Array.isArray(arr)) return arr.join(', ');
+            return 'none';
+        };
+
+        window.parseIndices = function(str) {
+            str = str.trim().toLowerCase();
+            if (str === 'all') return 'all';
+            if (str === 'none' || str === '') return []; 
+            const arr = str.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+            return arr;
+        };
+
         window.handleCopy = function(text, buttonElement) {
             const textArea = document.createElement("textarea");
             textArea.value = text;
@@ -906,7 +930,7 @@
             const isError = document.getElementById('networkStatus').classList.contains('bg-red-50');
             if(!isError) container.innerHTML = '';
 
-            const filteredLogs = activityLogs.filter(log => getYYYYMMDD(log.timestamp) === selectedLogDate);
+            const filteredLogs = activityLogs.filter(log => window.getYYYYMMDD(log.timestamp) === selectedLogDate);
             
             if (filteredLogs.length === 0) {
                 if(!useFirebase || isError) return; 
@@ -959,7 +983,7 @@
             if(!container) return;
             container.innerHTML = '';
             
-            const filteredLogs = adminActivityLogs.filter(log => getYYYYMMDD(log.timestamp) === selectedAdminLogDate);
+            const filteredLogs = adminActivityLogs.filter(log => window.getYYYYMMDD(log.timestamp) === selectedAdminLogDate);
 
             if(filteredLogs.length === 0) {
                 container.innerHTML = `<div class="text-gray-500 italic">Chưa có nhật ký phân quyền & đăng ký trong ngày ${selectedAdminLogDate.split('-').reverse().join('/')}.</div>`;
@@ -1012,7 +1036,7 @@
                 const canTick = user.canTick !== false;
                 const canUntick = user.canUntick !== false;
                 const isLocked = !!user.isLocked;
-                const indicesStr = formatIndices(user.allowedIndices);
+                const indicesStr = window.formatIndices(user.allowedIndices);
                 
                 const isNewTag = user.isRegistered 
                     ? '<span class="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded ml-2 shadow-sm font-bold align-middle">[Mới]</span>' 
@@ -1285,7 +1309,7 @@
         window.updateUserPermission = async function(username, field, valueElement) {
             let newValue;
             if (field === 'allowedIndices') {
-                newValue = parseIndices(valueElement.value);
+                newValue = window.parseIndices(valueElement.value);
             } else {
                 newValue = valueElement.checked;
             }
@@ -1843,6 +1867,25 @@
         // =========================================================================
         // 8. KHỞI TẠO FIREBASE & CHẠY ỨNG DỤNG
         // =========================================================================
+        
+        const logDateFilterEl = document.getElementById('logDateFilter');
+        if (logDateFilterEl) {
+            logDateFilterEl.value = selectedLogDate;
+            logDateFilterEl.addEventListener('change', (e) => {
+                selectedLogDate = e.target.value;
+                window.renderLogs();
+            });
+        }
+
+        const adminLogDateFilterEl = document.getElementById('adminLogDateFilter');
+        if (adminLogDateFilterEl) {
+            adminLogDateFilterEl.value = selectedAdminLogDate;
+            adminLogDateFilterEl.addEventListener('change', (e) => {
+                selectedAdminLogDate = e.target.value;
+                window.renderAdminLogs();
+            });
+        }
+
         if (!useFirebase) {
             checkSession();
         }
