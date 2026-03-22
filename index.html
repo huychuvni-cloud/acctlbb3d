@@ -2191,8 +2191,10 @@
             document.getElementById('setupFormContainer').classList.remove('hidden');
             document.getElementById('loginScreenTitle').innerText = "Cài Đặt Hệ Thống";
             document.getElementById('loginScreenDesc').innerText = "Trạng thái: Chưa có kết nối Server";
-            window.checkSession();
         }
+
+        // Luôn kiểm tra session khi khởi động trang
+        window.checkSession();
 
     </script>
 </body>
