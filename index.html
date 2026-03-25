@@ -10,19 +10,18 @@
         .group:hover .copy-btn {
             opacity: 1;
         }
-        /* Tùy chỉnh thanh cuộn cho bảng nhật ký */
-        #activityLogContainer::-webkit-scrollbar, #adminLogContainer::-webkit-scrollbar {
-            width: 8px;
+        /* Tùy chỉnh thanh cuộn cho bảng nhật ký và chat */
+        #activityLogContainer::-webkit-scrollbar, #adminLogContainer::-webkit-scrollbar, #chatMessages::-webkit-scrollbar {
+            width: 6px;
         }
-        #activityLogContainer::-webkit-scrollbar-track, #adminLogContainer::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 4px;
+        #activityLogContainer::-webkit-scrollbar-track, #adminLogContainer::-webkit-scrollbar-track, #chatMessages::-webkit-scrollbar-track {
+            background: transparent;
         }
-        #activityLogContainer::-webkit-scrollbar-thumb, #adminLogContainer::-webkit-scrollbar-thumb {
+        #activityLogContainer::-webkit-scrollbar-thumb, #adminLogContainer::-webkit-scrollbar-thumb, #chatMessages::-webkit-scrollbar-thumb {
             background: #cbd5e1;
             border-radius: 4px;
         }
-        #activityLogContainer::-webkit-scrollbar-thumb:hover, #adminLogContainer::-webkit-scrollbar-thumb:hover {
+        #activityLogContainer::-webkit-scrollbar-thumb:hover, #adminLogContainer::-webkit-scrollbar-thumb:hover, #chatMessages::-webkit-scrollbar-thumb:hover {
             background: #94a3b8;
         }
         /* Tùy chỉnh modal phân quyền */
@@ -39,12 +38,36 @@
             cursor: pointer;
             box-shadow: inset 0 0 5px rgba(0,0,0,0.1);
         }
+        /* Hiệu ứng nhịp đập nhẹ cho bong bóng chat */
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-6px); }
+            100% { transform: translateY(0px); }
+        }
+        .animate-float {
+            animation: float 3s ease-in-out infinite;
+        }
+        /* Hiệu ứng xuất hiện khung chat */
+        .chat-window-enter {
+            opacity: 1 !important;
+            transform: scale(1) translateY(0) !important;
+            pointer-events: auto !important;
+        }
+        .chat-window-exit {
+            opacity: 0 !important;
+            transform: scale(0.95) translateY(20px) !important;
+            pointer-events: none !important;
+        }
+        .chat-bubble-base {
+            max-width: 80%;
+            word-wrap: break-word;
+        }
     </style>
 </head>
 <body class="min-h-screen bg-gray-100 py-8 px-4 font-sans text-black flex flex-col justify-center">
     
     <!-- Màn hình đăng nhập -->
-    <div id="loginScreen" class="max-w-md w-full mx-auto bg-white rounded-xl shadow-lg p-8">
+    <div id="loginScreen" class="max-w-md w-full mx-auto bg-white rounded-xl shadow-lg p-8 relative z-10">
         <div class="text-center mb-8">
             <h1 id="loginScreenTitle" class="text-2xl font-bold text-gray-800">Hệ Thống Quản Lý</h1>
             <p id="loginScreenDesc" class="text-gray-500 mt-2">Vui lòng đăng nhập để xem dữ liệu</p>
@@ -118,7 +141,7 @@
     </div>
 
     <!-- Bảng dữ liệu chính (Ẩn mặc định) -->
-    <div id="mainApp" class="hidden max-w-full mx-auto w-full bg-white rounded-xl shadow-lg p-6 overflow-hidden">
+    <div id="mainApp" class="hidden max-w-full mx-auto w-full bg-white rounded-xl shadow-lg p-6 overflow-hidden relative z-10">
         
         <!-- Header & Controls -->
         <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
@@ -224,6 +247,54 @@
                 <!-- Nội dung được xử lý bằng JS -->
             </div>
         </div>
+    </div>
+
+    <!-- HỆ THỐNG MESSENGER CHAT BUBBLE -->
+    <div id="messengerContainer" class="hidden fixed bottom-6 right-6 z-50 flex-col items-end">
+        
+        <!-- Khung chat (Chat Window) -->
+        <div id="chatWindow" class="chat-window-exit absolute bottom-16 right-0 w-[340px] sm:w-[400px] h-[500px] max-h-[70vh] bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden transition-all duration-300 origin-bottom-right">
+            
+            <!-- Header -->
+            <div class="bg-gradient-to-r from-blue-600 to-blue-500 text-white p-3.5 flex justify-between items-center shadow-md z-10 cursor-pointer" onclick="window.toggleChat()">
+                <div class="font-bold flex items-center gap-2.5">
+                    <div class="relative flex h-3 w-3">
+                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-300 opacity-75"></span>
+                      <span class="relative inline-flex rounded-full h-3 w-3 bg-green-400 border border-white"></span>
+                    </div>
+                    <span class="tracking-wide">Phòng Chat Nhanh</span>
+                    <span class="text-xs bg-white/20 px-2 py-0.5 rounded-full ml-1 backdrop-blur-sm"><span id="chatOnlineCount">0</span> online</span>
+                </div>
+                <button class="hover:bg-white/20 p-1.5 rounded-full transition-colors focus:outline-none">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                </button>
+            </div>
+            
+            <!-- Vùng hiển thị tin nhắn -->
+            <div id="chatMessages" class="flex-1 p-4 overflow-y-auto bg-[#f8f9fa] flex flex-col gap-3.5 scroll-smooth">
+                <!-- Nội dung chat được render tại đây -->
+            </div>
+            
+            <!-- Vùng nhập tin nhắn -->
+            <div class="p-3 bg-white border-t border-gray-200 flex gap-2.5 items-center">
+                <input type="text" id="chatInput" 
+                    class="flex-1 border border-gray-300 rounded-full px-4 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-shadow bg-gray-50 text-gray-800 placeholder-gray-400" 
+                    placeholder="Nhập tin nhắn (Enter để gửi)..." 
+                    onkeypress="if(event.key === 'Enter') window.sendChatMessage()">
+                
+                <button id="chatSendBtn" onclick="window.sendChatMessage()" class="bg-blue-600 hover:bg-blue-700 text-white rounded-full w-10 h-10 flex items-center justify-center transition-transform hover:scale-105 active:scale-95 flex-shrink-0 shadow-sm focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ml-0.5"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Nút Bong bóng Chat (Floating Bubble) -->
+        <button onclick="window.toggleChat()" id="chatBubbleBtn" class="relative mt-2 bg-gradient-to-tr from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white p-3.5 rounded-full shadow-[0_4px_14px_0_rgba(37,99,235,0.39)] hover:shadow-[0_6px_20px_rgba(37,99,235,0.23)] transition-all duration-300 focus:outline-none flex items-center justify-center animate-float">
+            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>
+            <!-- Badge đếm tin chưa đọc -->
+            <span id="chatUnreadBadge" class="hidden absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[11px] font-bold h-6 min-w-[24px] px-1.5 flex items-center justify-center rounded-full border-2 border-white shadow-sm transition-transform scale-0 duration-200">0</span>
+        </button>
+
     </div>
 
     <!-- Modal Thêm Tài Khoản (Dành cho Nhân viên) -->
@@ -557,38 +628,36 @@
         let useFirebase = false;
         let isUsingCanvasConfig = false;
 
-        let isGrouped = true;
+        window.isGrouped = true;
         window.globalGroupedIndexMap = {};
-        let currentUser = null; 
-        let isLoggedIn = false; 
+        window.currentUser = null; 
+        window.isLoggedIn = false; 
 
-        let selectedLogDate = window.getYYYYMMDD(Date.now());
-        let selectedAdminLogDate = window.getYYYYMMDD(Date.now());
+        window.selectedLogDate = window.getYYYYMMDD(Date.now());
+        window.selectedAdminLogDate = window.getYYYYMMDD(Date.now());
 
-        let doneItems = JSON.parse(localStorage.getItem('doneAccounts')) || {};
-        let deletedAccountsMap = JSON.parse(localStorage.getItem('deletedAccountsMap')) || {}; 
-        let activityLogs = JSON.parse(localStorage.getItem('activityLogs')) || [];
-        let adminActivityLogs = JSON.parse(localStorage.getItem('adminActivityLogs')) || [];
-        let customAccounts = JSON.parse(localStorage.getItem('customAccounts')) || [];
-        let editedNamesMap = JSON.parse(localStorage.getItem('editedNamesMap')) || {};
-        let localPerms = JSON.parse(localStorage.getItem('localUserPermissions')) || {};
+        window.doneItems = JSON.parse(localStorage.getItem('doneAccounts')) || {};
+        window.deletedAccountsMap = JSON.parse(localStorage.getItem('deletedAccountsMap')) || {}; 
+        window.activityLogs = JSON.parse(localStorage.getItem('activityLogs')) || [];
+        window.adminActivityLogs = JSON.parse(localStorage.getItem('adminActivityLogs')) || [];
+        window.customAccounts = JSON.parse(localStorage.getItem('customAccounts')) || [];
+        window.editedNamesMap = JSON.parse(localStorage.getItem('editedNamesMap')) || {};
+        window.localPerms = JSON.parse(localStorage.getItem('localUserPermissions')) || {};
 
-        let allUsers = []; 
-        let registeredAccounts = []; 
+        window.allUsers = []; 
+        window.registeredAccounts = []; 
 
         let firebaseUser = null;
-        let unsubStatus = null;
-        let unsubDeleted = null;
-        let unsubLogs = null;
-        let unsubAdminLogs = null;
-        let unsubPerms = null;
-        let unsubCustomAcc = null;
-        let unsubEditedNames = null;
-        let unsubPresence = null;
+        let unsubStatus, unsubDeleted, unsubLogs, unsubAdminLogs, unsubPerms, unsubCustomAcc, unsubEditedNames, unsubPresence, unsubChat;
 
         window.userPresence = {};
         window.myIpAddress = 'Không xác định';
         window.heartbeatInterval = null;
+
+        // Trạng thái của hệ thống Chat
+        window.chatMessages = [];
+        window.isChatOpen = false;
+        window.unreadChatCount = 0;
 
         // Khởi tạo IP
         window.fetchIP = async function() {
@@ -606,13 +675,13 @@
         // 3. KHỞI TẠO STATE BAN ĐẦU
         // =========================================================================
         window.buildAllUsers = function() {
-            const mergedBase = baseUserAccounts.map(u => ({ ...u, ...(localPerms[u.username] || {}) }));
-            allUsers = [...mergedBase, ...registeredAccounts].filter(u => !u.isDeleted);
+            const mergedBase = baseUserAccounts.map(u => ({ ...u, ...(window.localPerms[u.username] || {}) }));
+            window.allUsers = [...mergedBase, ...window.registeredAccounts].filter(u => !u.isDeleted);
         };
 
-        registeredAccounts = Object.keys(localPerms)
-            .filter(k => localPerms[k].isRegistered)
-            .map(k => ({ username: k, ...localPerms[k] }));
+        window.registeredAccounts = Object.keys(window.localPerms)
+            .filter(k => window.localPerms[k].isRegistered)
+            .map(k => ({ username: k, ...window.localPerms[k] }));
         window.buildAllUsers();
 
         // =========================================================================
@@ -793,12 +862,12 @@
         };
 
         window.exportRawData = function() {
-            if (!currentUser || currentUser.username !== 'admin') return;
+            if (!window.currentUser || window.currentUser.username !== 'admin') return;
 
-            let finalData = [...rawData, ...customAccounts]
-                .filter(row => !deletedAccountsMap[row.id])
+            let finalData = [...rawData, ...window.customAccounts]
+                .filter(row => !window.deletedAccountsMap[row.id])
                 .map(row => {
-                    const edited = editedNamesMap[row.id];
+                    const edited = window.editedNamesMap[row.id];
                     if (edited) {
                         return {
                             ...row,
@@ -841,7 +910,7 @@
         window.logAction = async function(type, payload) {
             const collectionName = type === 'main' ? 'activity_log' : 'admin_activity_log';
             const storageKey = type === 'main' ? 'activityLogs' : 'adminActivityLogs';
-            const logArray = type === 'main' ? activityLogs : adminActivityLogs;
+            const logArray = type === 'main' ? window.activityLogs : window.adminActivityLogs;
 
             if (useFirebase && firebaseUser) {
                 try {
@@ -864,9 +933,9 @@
             if(window.heartbeatInterval) clearInterval(window.heartbeatInterval);
             
             const update = async () => {
-                if (!useFirebase || !firebaseUser || !currentUser || currentUser.isGuest) return;
+                if (!useFirebase || !firebaseUser || !window.currentUser || window.currentUser.isGuest) return;
                 try {
-                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'presence', currentUser.username), {
+                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'presence', window.currentUser.username), {
                         isOnline: true,
                         ip: window.myIpAddress,
                         lastActive: Date.now()
@@ -880,43 +949,166 @@
 
         window.stopHeartbeat = async function() {
             if(window.heartbeatInterval) clearInterval(window.heartbeatInterval);
-            if (!useFirebase || !firebaseUser || !currentUser || currentUser.isGuest) return;
+            if (!useFirebase || !firebaseUser || !window.currentUser || window.currentUser.isGuest) return;
             try {
-                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'presence', currentUser.username), {
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'presence', window.currentUser.username), {
                     isOnline: false,
                     lastActive: Date.now()
                 }, { merge: true });
             } catch(e) {}
         };
 
+        // =========================================================================
+        // HỆ THỐNG MESSENGER CHAT
+        // =========================================================================
+        
+        window.toggleChat = function() {
+            window.isChatOpen = !window.isChatOpen;
+            const windowEl = document.getElementById('chatWindow');
+            const badgeEl = document.getElementById('chatUnreadBadge');
+            
+            if (window.isChatOpen) {
+                windowEl.classList.remove('chat-window-exit');
+                windowEl.classList.add('chat-window-enter');
+                window.unreadChatCount = 0;
+                badgeEl.classList.remove('scale-100');
+                badgeEl.classList.add('scale-0');
+                window.renderChatMessages();
+                setTimeout(() => {
+                    const input = document.getElementById('chatInput');
+                    if(input && !input.disabled) input.focus();
+                }, 300);
+            } else {
+                windowEl.classList.remove('chat-window-enter');
+                windowEl.classList.add('chat-window-exit');
+            }
+        };
+
+        window.updateUnreadBadge = function() {
+            const badgeEl = document.getElementById('chatUnreadBadge');
+            if (window.unreadChatCount > 0) {
+                badgeEl.innerText = window.unreadChatCount > 9 ? '9+' : window.unreadChatCount;
+                badgeEl.classList.remove('hidden', 'scale-0');
+                badgeEl.classList.add('scale-100');
+            } else {
+                badgeEl.classList.remove('scale-100');
+                badgeEl.classList.add('scale-0');
+            }
+        };
+
+        window.renderChatMessages = function() {
+            const container = document.getElementById('chatMessages');
+            if (!container) return;
+            
+            if (window.chatMessages.length === 0) {
+                container.innerHTML = `<div class="text-center text-gray-400 text-sm mt-10 italic">Phòng chat trống. Hãy gửi tin nhắn đầu tiên!</div>`;
+                return;
+            }
+
+            container.innerHTML = '';
+            
+            window.chatMessages.forEach(msg => {
+                const isMe = window.currentUser && msg.sender === window.currentUser.username;
+                const timeStr = new Date(msg.timestamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+                
+                const div = document.createElement('div');
+                div.className = `flex flex-col ${isMe ? 'items-end' : 'items-start'} animate-fadeIn`;
+                
+                let html = '';
+                if (!isMe) {
+                    html += `<span class="text-[10px] text-gray-500 ml-2 mb-0.5">${msg.sender}</span>`;
+                }
+                
+                html += `
+                    <div class="chat-bubble-base px-3.5 py-2 rounded-2xl shadow-sm text-sm ${isMe ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-white border border-gray-200 text-gray-800 rounded-tl-none'}">
+                        ${msg.text.replace(/</g, "&lt;").replace(/>/g, "&gt;")}
+                    </div>
+                    <span class="text-[9px] text-gray-400 mt-0.5 ${isMe ? 'mr-1' : 'ml-1'}">${timeStr}</span>
+                `;
+                
+                div.innerHTML = html;
+                container.appendChild(div);
+            });
+
+            // Scroll to bottom
+            setTimeout(() => {
+                container.scrollTop = container.scrollHeight;
+            }, 50);
+        };
+
+        window.sendChatMessage = async function() {
+            if (!useFirebase || !firebaseUser || !window.currentUser) return;
+            if (window.currentUser.isGuest) {
+                alert("Tài khoản Khách không có quyền gửi tin nhắn.");
+                return;
+            }
+
+            const input = document.getElementById('chatInput');
+            const btn = document.getElementById('chatSendBtn');
+            const text = input.value.trim();
+            
+            if (!text) return;
+            
+            input.value = '';
+            input.disabled = true;
+            btn.disabled = true;
+
+            try {
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'chat_messages', Date.now().toString()), {
+                    sender: window.currentUser.username,
+                    text: text,
+                    timestamp: Date.now()
+                });
+            } catch (e) {
+                console.error("Lỗi gửi tin nhắn:", e);
+                alert("Không thể gửi tin nhắn. Thử lại sau.");
+            } finally {
+                input.disabled = false;
+                btn.disabled = false;
+                input.focus();
+            }
+        };
+
+        // Cập nhật số người online trong Header Chat
+        window.updateChatOnlineCount = function() {
+            let count = 0;
+            const now = Date.now();
+            Object.values(window.userPresence).forEach(p => {
+                if (p.isOnline && (now - p.lastActive < 90000)) count++;
+            });
+            const el = document.getElementById('chatOnlineCount');
+            if (el) el.innerText = count;
+        };
+
+
         window.setupRealtimeListeners = function() {
             window.setNetworkStatus('online'); 
 
             unsubStatus = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'account_status'), (snapshot) => {
-                snapshot.docChanges().forEach((change) => { doneItems[change.doc.id] = change.doc.data().isDone; });
-                localStorage.setItem('doneAccounts', JSON.stringify(doneItems)); 
+                snapshot.docChanges().forEach((change) => { window.doneItems[change.doc.id] = change.doc.data().isDone; });
+                localStorage.setItem('doneAccounts', JSON.stringify(window.doneItems)); 
                 window.renderTable(); 
             }, window.handleFirestoreError);
 
             unsubDeleted = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'deleted_accounts'), (snapshot) => {
-                snapshot.docChanges().forEach((change) => { deletedAccountsMap[change.doc.id] = true; });
-                localStorage.setItem('deletedAccountsMap', JSON.stringify(deletedAccountsMap)); 
+                snapshot.docChanges().forEach((change) => { window.deletedAccountsMap[change.doc.id] = true; });
+                localStorage.setItem('deletedAccountsMap', JSON.stringify(window.deletedAccountsMap)); 
                 window.renderTable(); 
             }, window.handleFirestoreError);
 
             unsubLogs = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'activity_log'), (snapshot) => {
-                activityLogs = [];
-                snapshot.forEach(doc => { activityLogs.push({ id: doc.id, ...doc.data() }); });
-                activityLogs.sort((a, b) => b.timestamp - a.timestamp);
-                localStorage.setItem('activityLogs', JSON.stringify(activityLogs)); 
+                window.activityLogs = [];
+                snapshot.forEach(doc => { window.activityLogs.push({ id: doc.id, ...doc.data() }); });
+                window.activityLogs.sort((a, b) => b.timestamp - a.timestamp);
+                localStorage.setItem('activityLogs', JSON.stringify(window.activityLogs)); 
                 window.renderLogs();
             }, window.handleFirestoreError);
 
             unsubAdminLogs = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'admin_activity_log'), (snapshot) => {
-                adminActivityLogs = [];
-                snapshot.forEach(doc => { adminActivityLogs.push({ id: doc.id, ...doc.data() }); });
-                adminActivityLogs.sort((a, b) => b.timestamp - a.timestamp);
-                localStorage.setItem('adminActivityLogs', JSON.stringify(adminActivityLogs));
+                window.adminActivityLogs = [];
+                snapshot.forEach(doc => { window.adminActivityLogs.push({ id: doc.id, ...doc.data() }); });
+                window.adminActivityLogs.sort((a, b) => b.timestamp - a.timestamp);
+                localStorage.setItem('adminActivityLogs', JSON.stringify(window.adminActivityLogs));
                 if(!document.getElementById('adminPanelModal').classList.contains('hidden')) {
                     window.renderAdminLogs();
                 }
@@ -944,20 +1136,20 @@
                     }
                 });
                 
-                localPerms = newPerms;
-                registeredAccounts = tempRegistered;
-                localStorage.setItem('localUserPermissions', JSON.stringify(localPerms));
+                window.localPerms = newPerms;
+                window.registeredAccounts = tempRegistered;
+                localStorage.setItem('localUserPermissions', JSON.stringify(window.localPerms));
                 window.buildAllUsers();
                 
                 // AUTO LOGOUT nếu tài khoản bị khóa/xóa
-                if (currentUser && currentUser.username !== 'admin' && !currentUser.isGuest) {
-                    const updatedMe = allUsers.find(u => u.username === currentUser.username);
+                if (window.currentUser && window.currentUser.username !== 'admin' && !window.currentUser.isGuest) {
+                    const updatedMe = window.allUsers.find(u => u.username === window.currentUser.username);
                     if (!updatedMe || updatedMe.isLocked) {
                         alert("Tài khoản của bạn đã bị KHÓA hoặc XÓA bởi Quản trị viên.");
                         window.handleLogout();
                     } else {
-                        currentUser = updatedMe;
-                        localStorage.setItem('app_currentUser', JSON.stringify(currentUser));
+                        window.currentUser = updatedMe;
+                        localStorage.setItem('app_currentUser', JSON.stringify(window.currentUser));
                     }
                 }
                 
@@ -968,20 +1160,20 @@
             }, window.handleFirestoreError);
 
             unsubCustomAcc = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'custom_accounts'), (snapshot) => {
-                customAccounts = [];
+                window.customAccounts = [];
                 snapshot.forEach(doc => {
-                    customAccounts.push({ id: doc.id, ...doc.data() });
+                    window.customAccounts.push({ id: doc.id, ...doc.data() });
                 });
-                localStorage.setItem('customAccounts', JSON.stringify(customAccounts));
+                localStorage.setItem('customAccounts', JSON.stringify(window.customAccounts));
                 window.renderTable();
             }, window.handleFirestoreError);
 
             unsubEditedNames = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'edited_names'), (snapshot) => {
-                editedNamesMap = {};
+                window.editedNamesMap = {};
                 snapshot.forEach(doc => {
-                    editedNamesMap[doc.id] = doc.data();
+                    window.editedNamesMap[doc.id] = doc.data();
                 });
-                localStorage.setItem('editedNamesMap', JSON.stringify(editedNamesMap));
+                localStorage.setItem('editedNamesMap', JSON.stringify(window.editedNamesMap));
                 window.renderTable();
             }, window.handleFirestoreError);
 
@@ -993,6 +1185,30 @@
                 if(!document.getElementById('adminPanelModal').classList.contains('hidden')) {
                     window.renderAdminPanel();
                 }
+                window.updateChatOnlineCount();
+            }, window.handleFirestoreError);
+
+            // LẮNG NGHE CHAT
+            unsubChat = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'chat_messages'), (snapshot) => {
+                window.chatMessages = [];
+                snapshot.forEach(doc => window.chatMessages.push({id: doc.id, ...doc.data()}));
+                window.chatMessages.sort((a, b) => a.timestamp - b.timestamp);
+                
+                // Giới hạn bộ nhớ: Chỉ giữ 50 tin nhắn mới nhất
+                if (window.chatMessages.length > 50) {
+                    window.chatMessages = window.chatMessages.slice(window.chatMessages.length - 50);
+                }
+
+                if (window.isChatOpen) {
+                    window.renderChatMessages();
+                } else if (window.chatMessages.length > 0) {
+                    const lastMsg = window.chatMessages[window.chatMessages.length - 1];
+                    if (window.currentUser && lastMsg.sender !== window.currentUser.username) {
+                        // Tính toán unread
+                        window.unreadChatCount++;
+                        window.updateUnreadBadge();
+                    }
+                }
             }, window.handleFirestoreError);
         };
 
@@ -1000,7 +1216,7 @@
             const tableHead = document.getElementById('tableHead');
             const tableBody = document.getElementById('tableBody');
             
-            const isAdmin = currentUser && currentUser.username === 'admin';
+            const isAdmin = window.currentUser && window.currentUser.username === 'admin';
 
             if(tableHead) {
                 tableHead.innerHTML = `
@@ -1022,10 +1238,10 @@
 
             if(tableBody) tableBody.innerHTML = '';
 
-            let finalData = [...rawData, ...customAccounts]
-                .filter(row => !deletedAccountsMap[row.id])
+            let finalData = [...rawData, ...window.customAccounts]
+                .filter(row => !window.deletedAccountsMap[row.id])
                 .map(row => {
-                    const edited = editedNamesMap[row.id];
+                    const edited = window.editedNamesMap[row.id];
                     if (edited) {
                         return {
                             ...row,
@@ -1055,10 +1271,10 @@
             window.globalGroupedIndexMap = groupedIndexMap; 
 
             let displayData = [...finalData];
-            if (currentUser && currentUser.allowedIndices !== 'all') {
+            if (window.currentUser && window.currentUser.allowedIndices !== 'all') {
                 displayData = displayData.filter(row => 
-                    currentUser.allowedIndices.includes(groupedIndexMap[row.id]) ||
-                    row.owner === currentUser.username 
+                    window.currentUser.allowedIndices.includes(groupedIndexMap[row.id]) ||
+                    row.owner === window.currentUser.username 
                 );
             }
 
@@ -1108,7 +1324,7 @@
                 }
             }
 
-            if (isGrouped) {
+            if (window.isGrouped) {
                 displayData.sort((a, b) => {
                     if (colorWeight[a.color] !== colorWeight[b.color]) {
                         return colorWeight[a.color] - colorWeight[b.color];
@@ -1137,18 +1353,18 @@
 
                 const editAttr = (field, safeVal, label) => isAdmin ? `title="Click để sửa thông tin (Admin)" onclick="window.promptEditField('${row.id}', '${field}', '${safeVal}', '${label}')"` : '';
 
-                const displayStt = isGrouped ? groupedIndexMap[row.id] : row.id;
-                const isDone = doneItems[row.id];
+                const displayStt = window.isGrouped ? groupedIndexMap[row.id] : row.id;
+                const isDone = window.doneItems[row.id];
                 const textOpacityClass = isDone ? 'opacity-40' : '';
 
                 let canInteract = true;
-                const isOwner = row.owner === currentUser?.username;
+                const isOwner = row.owner === window.currentUser?.username;
                 
-                if (!isLoggedIn || currentUser.isGuest) {
+                if (!window.isLoggedIn || window.currentUser.isGuest) {
                     canInteract = false;
-                } else if (currentUser.username !== 'admin' && currentUser.username !== 'admin1' && !isOwner) {
-                    if (isDone && currentUser.canUntick === false) canInteract = false;
-                    if (!isDone && currentUser.canTick === false) canInteract = false;
+                } else if (window.currentUser.username !== 'admin' && window.currentUser.username !== 'admin1' && !isOwner) {
+                    if (isDone && window.currentUser.canUntick === false) canInteract = false;
+                    if (!isDone && window.currentUser.canTick === false) canInteract = false;
                 }
 
                 const disabledStatus = !canInteract ? 'disabled' : '';
@@ -1185,11 +1401,11 @@
                     <td class="border border-black px-3 py-1 text-center bg-white/20">
                         <input type="checkbox" onchange="window.toggleDone('${row.id}')" ${isDone ? 'checked' : ''} ${disabledStatus} class="w-4 h-4 ${cursorClass}">
                     </td>
-                    <td ${editAttr('userTnt', safeUserTnt, 'Username TNT')} class="border border-black px-3 py-1 whitespace-nowrap ${!isLoggedIn ? 'text-center' : ''} ${textOpacityClass} ${editableCls}">
-                        ${isLoggedIn ? window.createCopyableCell(row.userTnt || '', 'left') : '<span class="text-gray-600 font-mono tracking-widest text-lg">*****</span>'}
+                    <td ${editAttr('userTnt', safeUserTnt, 'Username TNT')} class="border border-black px-3 py-1 whitespace-nowrap ${!window.isLoggedIn ? 'text-center' : ''} ${textOpacityClass} ${editableCls}">
+                        ${window.isLoggedIn ? window.createCopyableCell(row.userTnt || '', 'left') : '<span class="text-gray-600 font-mono tracking-widest text-lg">*****</span>'}
                     </td>
                     <td ${editAttr('passTnt', safePassTnt, 'Password TNT')} class="border border-black px-3 py-1 text-center ${textOpacityClass} ${editableCls}">
-                        ${isLoggedIn ? window.createCopyableCell(row.passTnt || '', 'center') : '<span class="text-gray-600 font-mono tracking-widest text-lg">*****</span>'}
+                        ${window.isLoggedIn ? window.createCopyableCell(row.passTnt || '', 'center') : '<span class="text-gray-600 font-mono tracking-widest text-lg">*****</span>'}
                     </td>
                     <td ${editAttr('oldName', safeOldName, 'Tên NV (Cũ)')} class="border border-black px-3 py-1 font-medium ${textOpacityClass} ${editableCls}">${row.oldName || ''}</td>
                     <td ${editAttr('newName', safeNewName, 'Tên NV (Mới)')} class="border border-black px-3 py-1 font-bold text-blue-800 ${textOpacityClass} ${editableCls}">${row.newName || ''}</td>
@@ -1201,11 +1417,11 @@
                         ${thuocTinhDropdown}
                     </td>
                     
-                    <td ${editAttr('userTc', safeUserTc, 'Username TC')} class="border border-black px-3 py-1 whitespace-nowrap ${!isLoggedIn ? 'text-center' : ''} ${textOpacityClass} ${editableCls}">
-                        ${isLoggedIn ? window.createCopyableCell(row.userTc || '', 'left') : '<span class="text-gray-600 font-mono tracking-widest text-lg">*****</span>'}
+                    <td ${editAttr('userTc', safeUserTc, 'Username TC')} class="border border-black px-3 py-1 whitespace-nowrap ${!window.isLoggedIn ? 'text-center' : ''} ${textOpacityClass} ${editableCls}">
+                        ${window.isLoggedIn ? window.createCopyableCell(row.userTc || '', 'left') : '<span class="text-gray-600 font-mono tracking-widest text-lg">*****</span>'}
                     </td>
                     <td ${editAttr('passTc', safePassTc, 'Password TC')} class="border border-black px-3 py-1 text-center ${textOpacityClass} ${editableCls}">
-                        ${isLoggedIn ? window.createCopyableCell(row.passTc || '', 'center') : '<span class="text-gray-600 font-mono tracking-widest text-lg">*****</span>'}
+                        ${window.isLoggedIn ? window.createCopyableCell(row.passTc || '', 'center') : '<span class="text-gray-600 font-mono tracking-widest text-lg">*****</span>'}
                     </td>
                     ${deleteColHtml}
                 `;
@@ -1216,7 +1432,7 @@
             const toggleIcon = document.getElementById('toggleIcon');
             const toggleText = document.getElementById('toggleText');
 
-            if (isGrouped && toggleBtn && toggleIcon && toggleText) {
+            if (window.isGrouped && toggleBtn && toggleIcon && toggleText) {
                 toggleBtn.className = "flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium transition-all shadow-sm active:scale-95 bg-blue-600 text-white hover:bg-blue-700";
                 toggleIcon.innerHTML = paintIcon;
                 toggleText.innerText = "Đang hiển thị: Gom Nhóm Màu";
@@ -1233,11 +1449,11 @@
             const isError = document.getElementById('networkStatus').classList.contains('bg-red-50');
             if(!isError) container.innerHTML = '';
 
-            const filteredLogs = activityLogs.filter(log => window.getYYYYMMDD(log.timestamp) === selectedLogDate);
+            const filteredLogs = window.activityLogs.filter(log => window.getYYYYMMDD(log.timestamp) === window.selectedLogDate);
             
             if (filteredLogs.length === 0) {
                 if(!useFirebase || isError) return; 
-                container.innerHTML = `<div class="text-gray-500 italic p-2">Chưa có hoạt động nào được ghi lại trong ngày ${selectedLogDate.split('-').reverse().join('/')}.</div>`;
+                container.innerHTML = `<div class="text-gray-500 italic p-2">Chưa có hoạt động nào được ghi lại trong ngày ${window.selectedLogDate.split('-').reverse().join('/')}.</div>`;
                 return;
             }
             
@@ -1286,10 +1502,10 @@
             if(!container) return;
             container.innerHTML = '';
             
-            const filteredLogs = adminActivityLogs.filter(log => window.getYYYYMMDD(log.timestamp) === selectedAdminLogDate);
+            const filteredLogs = window.adminActivityLogs.filter(log => window.getYYYYMMDD(log.timestamp) === window.selectedAdminLogDate);
 
             if(filteredLogs.length === 0) {
-                container.innerHTML = `<div class="text-gray-500 italic">Chưa có nhật ký phân quyền & đăng ký trong ngày ${selectedAdminLogDate.split('-').reverse().join('/')}.</div>`;
+                container.innerHTML = `<div class="text-gray-500 italic">Chưa có nhật ký phân quyền & đăng ký trong ngày ${window.selectedAdminLogDate.split('-').reverse().join('/')}.</div>`;
                 return;
             }
 
@@ -1330,7 +1546,7 @@
             tbody.innerHTML = '';
 
             window.buildAllUsers();
-            allUsers.forEach(user => {
+            window.allUsers.forEach(user => {
                 if (user.username === 'admin') return; 
 
                 const tr = document.createElement('tr');
@@ -1399,6 +1615,11 @@
             });
         };
 
+        window.toggleGroupView = function() {
+            window.isGrouped = !window.isGrouped;
+            window.renderTable();
+        };
+
         window.forceRefresh = async function() {
             const icon = document.getElementById('refreshLogIcon');
             const adminIcon = document.getElementById('adminRefreshLogIcon');
@@ -1406,40 +1627,40 @@
             if (adminIcon) adminIcon.classList.add('animate-spin');
 
             if (!useFirebase) {
-                doneItems = JSON.parse(localStorage.getItem('doneAccounts')) || {};
-                deletedAccountsMap = JSON.parse(localStorage.getItem('deletedAccountsMap')) || {};
-                activityLogs = JSON.parse(localStorage.getItem('activityLogs')) || [];
-                adminActivityLogs = JSON.parse(localStorage.getItem('adminActivityLogs')) || [];
-                customAccounts = JSON.parse(localStorage.getItem('customAccounts')) || [];
-                editedNamesMap = JSON.parse(localStorage.getItem('editedNamesMap')) || {};
+                window.doneItems = JSON.parse(localStorage.getItem('doneAccounts')) || {};
+                window.deletedAccountsMap = JSON.parse(localStorage.getItem('deletedAccountsMap')) || {};
+                window.activityLogs = JSON.parse(localStorage.getItem('activityLogs')) || [];
+                window.adminActivityLogs = JSON.parse(localStorage.getItem('adminActivityLogs')) || [];
+                window.customAccounts = JSON.parse(localStorage.getItem('customAccounts')) || [];
+                window.editedNamesMap = JSON.parse(localStorage.getItem('editedNamesMap')) || {};
                 
-                localPerms = JSON.parse(localStorage.getItem('localUserPermissions')) || {};
-                registeredAccounts = Object.keys(localPerms)
-                    .filter(k => localPerms[k].isRegistered)
-                    .map(k => ({ username: k, ...localPerms[k] }));
+                window.localPerms = JSON.parse(localStorage.getItem('localUserPermissions')) || {};
+                window.registeredAccounts = Object.keys(window.localPerms)
+                    .filter(k => window.localPerms[k].isRegistered)
+                    .map(k => ({ username: k, ...window.localPerms[k] }));
                 window.buildAllUsers();
             } else if (firebaseUser) {
                 try {
                     const statusSnap = await getDocs(collection(db, 'artifacts', appId, 'public', 'data', 'account_status'));
-                    statusSnap.forEach(doc => { doneItems[doc.id] = doc.data().isDone; });
-                    localStorage.setItem('doneAccounts', JSON.stringify(doneItems));
+                    statusSnap.forEach(doc => { window.doneItems[doc.id] = doc.data().isDone; });
+                    localStorage.setItem('doneAccounts', JSON.stringify(window.doneItems));
 
                     const deletedSnap = await getDocs(collection(db, 'artifacts', appId, 'public', 'data', 'deleted_accounts'));
-                    deletedAccountsMap = {};
-                    deletedSnap.forEach(doc => { deletedAccountsMap[doc.id] = true; });
-                    localStorage.setItem('deletedAccountsMap', JSON.stringify(deletedAccountsMap));
+                    window.deletedAccountsMap = {};
+                    deletedSnap.forEach(doc => { window.deletedAccountsMap[doc.id] = true; });
+                    localStorage.setItem('deletedAccountsMap', JSON.stringify(window.deletedAccountsMap));
                     
                     const logSnap = await getDocs(collection(db, 'artifacts', appId, 'public', 'data', 'activity_log'));
-                    activityLogs = [];
-                    logSnap.forEach(doc => { activityLogs.push({ id: doc.id, ...doc.data() }); });
-                    activityLogs.sort((a, b) => b.timestamp - a.timestamp);
-                    localStorage.setItem('activityLogs', JSON.stringify(activityLogs));
+                    window.activityLogs = [];
+                    logSnap.forEach(doc => { window.activityLogs.push({ id: doc.id, ...doc.data() }); });
+                    window.activityLogs.sort((a, b) => b.timestamp - a.timestamp);
+                    localStorage.setItem('activityLogs', JSON.stringify(window.activityLogs));
                     
                     const adminLogSnap = await getDocs(collection(db, 'artifacts', appId, 'public', 'data', 'admin_activity_log'));
-                    adminActivityLogs = [];
-                    adminLogSnap.forEach(doc => { adminActivityLogs.push({ id: doc.id, ...doc.data() }); });
-                    adminActivityLogs.sort((a, b) => b.timestamp - a.timestamp);
-                    localStorage.setItem('adminActivityLogs', JSON.stringify(adminActivityLogs));
+                    window.adminActivityLogs = [];
+                    adminLogSnap.forEach(doc => { window.adminActivityLogs.push({ id: doc.id, ...doc.data() }); });
+                    window.adminActivityLogs.sort((a, b) => b.timestamp - a.timestamp);
+                    localStorage.setItem('adminActivityLogs', JSON.stringify(window.adminActivityLogs));
 
                     const permSnap = await getDocs(collection(db, 'artifacts', appId, 'public', 'data', 'user_permissions'));
                     let tempRegistered = [];
@@ -1457,13 +1678,13 @@
                             });
                         }
                     });
-                    localPerms = newPerms;
-                    registeredAccounts = tempRegistered;
-                    localStorage.setItem('localUserPermissions', JSON.stringify(localPerms));
+                    window.localPerms = newPerms;
+                    window.registeredAccounts = tempRegistered;
+                    localStorage.setItem('localUserPermissions', JSON.stringify(window.localPerms));
                     window.buildAllUsers();
 
-                    if (currentUser && currentUser.username !== 'admin' && !currentUser.isGuest) {
-                        const updatedMe = allUsers.find(u => u.username === currentUser.username);
+                    if (window.currentUser && window.currentUser.username !== 'admin' && !window.currentUser.isGuest) {
+                        const updatedMe = window.allUsers.find(u => u.username === window.currentUser.username);
                         if (!updatedMe || updatedMe.isLocked) {
                             alert("Tài khoản của bạn đã bị KHÓA hoặc XÓA bởi Quản trị viên.");
                             window.handleLogout();
@@ -1471,14 +1692,14 @@
                     }
 
                     const cAccSnap = await getDocs(collection(db, 'artifacts', appId, 'public', 'data', 'custom_accounts'));
-                    customAccounts = [];
-                    cAccSnap.forEach(doc => customAccounts.push({ id: doc.id, ...doc.data() }));
-                    localStorage.setItem('customAccounts', JSON.stringify(customAccounts));
+                    window.customAccounts = [];
+                    cAccSnap.forEach(doc => window.customAccounts.push({ id: doc.id, ...doc.data() }));
+                    localStorage.setItem('customAccounts', JSON.stringify(window.customAccounts));
 
                     const eNameSnap = await getDocs(collection(db, 'artifacts', appId, 'public', 'data', 'edited_names'));
-                    editedNamesMap = {};
-                    eNameSnap.forEach(doc => editedNamesMap[doc.id] = doc.data());
-                    localStorage.setItem('editedNamesMap', JSON.stringify(editedNamesMap));
+                    window.editedNamesMap = {};
+                    eNameSnap.forEach(doc => window.editedNamesMap[doc.id] = doc.data());
+                    localStorage.setItem('editedNamesMap', JSON.stringify(window.editedNamesMap));
 
                 } catch(e) {
                     console.error("Lỗi khi Refresh dữ liệu:", e);
@@ -1500,39 +1721,39 @@
         };
 
         window.toggleDone = async function(id) {
-            if (!isLoggedIn || !currentUser || currentUser.isGuest) return;
+            if (!window.isLoggedIn || !window.currentUser || window.currentUser.isGuest) return;
 
-            const isCurrentlyDone = !!doneItems[id];
-            const rowData = [...rawData, ...customAccounts].find(r => r.id.toString() === id.toString());
-            const isOwner = rowData && rowData.owner === currentUser.username;
+            const isCurrentlyDone = !!window.doneItems[id];
+            const rowData = [...rawData, ...window.customAccounts].find(r => r.id.toString() === id.toString());
+            const isOwner = rowData && rowData.owner === window.currentUser.username;
             
-            if (currentUser.username !== 'admin' && currentUser.username !== 'admin1' && !isOwner) {
-                if (isCurrentlyDone && currentUser.canUntick === false) return; 
-                if (!isCurrentlyDone && currentUser.canTick === false) return; 
+            if (window.currentUser.username !== 'admin' && window.currentUser.username !== 'admin1' && !isOwner) {
+                if (isCurrentlyDone && window.currentUser.canUntick === false) return; 
+                if (!isCurrentlyDone && window.currentUser.canTick === false) return; 
             }
 
             const newState = !isCurrentlyDone;
             let displayStt = id;
-            if(isGrouped && window.globalGroupedIndexMap) {
+            if(window.isGrouped && window.globalGroupedIndexMap) {
                  displayStt = window.globalGroupedIndexMap[id] || id;
             }
 
-            doneItems[id] = newState;
-            localStorage.setItem('doneAccounts', JSON.stringify(doneItems)); 
+            window.doneItems[id] = newState;
+            localStorage.setItem('doneAccounts', JSON.stringify(window.doneItems)); 
             window.renderTable();
 
             if (useFirebase && firebaseUser) {
                 try {
                     await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'account_status', id.toString()), {
                         isDone: newState,
-                        updatedBy: currentUser.username,
+                        updatedBy: window.currentUser.username,
                         updatedAt: Date.now()
                     });
                 } catch (error) {
                     console.error("Lỗi cập nhật server: ", error);
                     window.handleFirestoreError(error);
-                    doneItems[id] = isCurrentlyDone;
-                    localStorage.setItem('doneAccounts', JSON.stringify(doneItems));
+                    window.doneItems[id] = isCurrentlyDone;
+                    localStorage.setItem('doneAccounts', JSON.stringify(window.doneItems));
                     window.renderTable();
                     return;
                 }
@@ -1540,7 +1761,7 @@
             
             await window.logAction('main', {
                 timestamp: Date.now(),
-                username: currentUser.username,
+                username: window.currentUser.username,
                 action: newState ? 'XONG' : 'BỎ',
                 accountId: id,
                 displayStt: displayStt
@@ -1567,7 +1788,7 @@
             if (pass !== passConfirm) return alert("Mật khẩu xác nhận không khớp!");
 
             window.buildAllUsers();
-            if (allUsers.find(u => u.username === user)) {
+            if (window.allUsers.find(u => u.username === user)) {
                 return alert("Tên đăng nhập này đã tồn tại! Vui lòng chọn tên khác.");
             }
 
@@ -1592,9 +1813,9 @@
                     return;
                 }
             } else {
-                localPerms[user] = newUserPerms;
-                localStorage.setItem('localUserPermissions', JSON.stringify(localPerms));
-                registeredAccounts.push({ username: user, ...newUserPerms });
+                window.localPerms[user] = newUserPerms;
+                localStorage.setItem('localUserPermissions', JSON.stringify(window.localPerms));
+                window.registeredAccounts.push({ username: user, ...newUserPerms });
                 window.buildAllUsers();
             }
 
@@ -1629,15 +1850,15 @@
                 newValue = valueElement.checked;
             }
 
-            const uIndex = allUsers.findIndex(u => u.username === username);
+            const uIndex = window.allUsers.findIndex(u => u.username === username);
             if(uIndex > -1) {
-                allUsers[uIndex][field] = newValue;
+                window.allUsers[uIndex][field] = newValue;
             }
 
             try {
                 await window.logAction('admin', {
                     timestamp: Date.now(),
-                    actor: currentUser.username,
+                    actor: window.currentUser.username,
                     targetUser: username,
                     action: 'PHÂN QUYỀN',
                     details: { field: field, newVal: newValue }
@@ -1652,20 +1873,20 @@
                     window.handleFirestoreError(e);
                 }
             } else {
-                if(!localPerms[username]) localPerms[username] = {};
-                localPerms[username][field] = newValue;
-                localStorage.setItem('localUserPermissions', JSON.stringify(localPerms));
+                if(!window.localPerms[username]) window.localPerms[username] = {};
+                window.localPerms[username][field] = newValue;
+                localStorage.setItem('localUserPermissions', JSON.stringify(window.localPerms));
                 
-                registeredAccounts = Object.keys(localPerms)
-                    .filter(k => localPerms[k].isRegistered)
-                    .map(k => ({ username: k, ...localPerms[k] }));
+                window.registeredAccounts = Object.keys(window.localPerms)
+                    .filter(k => window.localPerms[k].isRegistered)
+                    .map(k => ({ username: k, ...window.localPerms[k] }));
                 window.buildAllUsers();
             }
             window.renderTable(); 
         }
 
         window.resetUserPassword = async function(username) {
-            if (!currentUser || currentUser.username !== 'admin') return;
+            if (!window.currentUser || window.currentUser.username !== 'admin') return;
 
             const newPass = prompt(`Nhập mật khẩu mới cho tài khoản '${username}':`);
             if (!newPass || newPass.trim() === '') return;
@@ -1673,15 +1894,15 @@
             const finalPass = newPass.trim();
 
             if (confirm(`Bạn có chắc muốn đổi mật khẩu của '${username}' thành '${finalPass}'?`)) {
-                const uIndex = allUsers.findIndex(u => u.username === username);
+                const uIndex = window.allUsers.findIndex(u => u.username === username);
                 if(uIndex > -1) {
-                    allUsers[uIndex].password = finalPass;
+                    window.allUsers[uIndex].password = finalPass;
                 }
 
                 try {
                     await window.logAction('admin', {
                         timestamp: Date.now(),
-                        actor: currentUser.username,
+                        actor: window.currentUser.username,
                         targetUser: username,
                         action: 'ĐỔI MẬT KHẨU',
                         details: { field: 'password', newVal: '***' } 
@@ -1697,13 +1918,13 @@
                         window.handleFirestoreError(e);
                     }
                 } else {
-                    if(!localPerms[username]) localPerms[username] = {};
-                    localPerms[username].password = finalPass;
-                    localStorage.setItem('localUserPermissions', JSON.stringify(localPerms));
+                    if(!window.localPerms[username]) window.localPerms[username] = {};
+                    window.localPerms[username].password = finalPass;
+                    localStorage.setItem('localUserPermissions', JSON.stringify(window.localPerms));
 
-                    registeredAccounts = Object.keys(localPerms)
-                        .filter(k => localPerms[k].isRegistered)
-                        .map(k => ({ username: k, ...localPerms[k] }));
+                    window.registeredAccounts = Object.keys(window.localPerms)
+                        .filter(k => window.localPerms[k].isRegistered)
+                        .map(k => ({ username: k, ...window.localPerms[k] }));
                     window.buildAllUsers();
                     alert(`Đã đổi mật khẩu cho '${username}' thành công (Ngoại tuyến)!`);
                 }
@@ -1711,7 +1932,7 @@
         }
         
         window.deleteSystemUser = async function(username, btnElement) {
-            if (!currentUser || currentUser.username !== 'admin') return;
+            if (!window.currentUser || window.currentUser.username !== 'admin') return;
             if (!confirm(`CẢNH BÁO: Bạn có chắc chắn muốn XÓA HOÀN TOÀN tài khoản truy cập '${username}' không?\nTài khoản này sẽ không thể đăng nhập lại được nữa.`)) return;
 
             if (btnElement) {
@@ -1724,7 +1945,7 @@
             try {
                 await window.logAction('admin', {
                     timestamp: Date.now(),
-                    actor: currentUser.username,
+                    actor: window.currentUser.username,
                     targetUser: username,
                     action: 'XÓA TÀI KHOẢN'
                 });
@@ -1748,16 +1969,16 @@
                 }
             } else {
                 if (isBaseUser) {
-                    if(!localPerms[username]) localPerms[username] = {};
-                    localPerms[username].isDeleted = true;
+                    if(!window.localPerms[username]) window.localPerms[username] = {};
+                    window.localPerms[username].isDeleted = true;
                 } else {
-                    delete localPerms[username];
+                    delete window.localPerms[username];
                 }
-                localStorage.setItem('localUserPermissions', JSON.stringify(localPerms));
+                localStorage.setItem('localUserPermissions', JSON.stringify(window.localPerms));
                 
-                registeredAccounts = Object.keys(localPerms)
-                    .filter(k => localPerms[k].isRegistered)
-                    .map(k => ({ username: k, ...localPerms[k] }));
+                window.registeredAccounts = Object.keys(window.localPerms)
+                    .filter(k => window.localPerms[k].isRegistered)
+                    .map(k => ({ username: k, ...window.localPerms[k] }));
 
                 window.buildAllUsers();
                 window.renderAdminPanel();
@@ -1793,7 +2014,7 @@
             try {
                 await window.logAction('main', {
                     timestamp: Date.now(),
-                    username: currentUser.username,
+                    username: window.currentUser.username,
                     action: 'THÊM MỚI',
                     displayStt: 'N/A', 
                     details: { newName: newName }
@@ -1817,8 +2038,8 @@
                     window.handleFirestoreError(e);
                 }
             } else {
-                customAccounts.push(newAcc);
-                localStorage.setItem('customAccounts', JSON.stringify(customAccounts));
+                window.customAccounts.push(newAcc);
+                localStorage.setItem('customAccounts', JSON.stringify(window.customAccounts));
                 window.renderTable();
                 alert("Thêm tài khoản vào bảng thành công (Ngoại tuyến)!");
             }
@@ -1832,7 +2053,7 @@
         }
 
         window.userAddNewAccount = async function() {
-            if (!currentUser) return;
+            if (!window.currentUser) return;
 
             const userTc = document.getElementById('myAcc_userTc').value.trim();
             const passTc = document.getElementById('myAcc_passTc').value.trim();
@@ -1857,13 +2078,13 @@
                 phai: phai,
                 thuocTinh: thuocTinh,
                 color: document.getElementById('myAcc_color').value,
-                owner: currentUser.username
+                owner: window.currentUser.username
             };
 
             try {
                 await window.logAction('main', {
                     timestamp: Date.now(),
-                    username: currentUser.username,
+                    username: window.currentUser.username,
                     action: 'THÊM MỚI',
                     displayStt: 'N/A', 
                     details: { newName: newName }
@@ -1888,8 +2109,8 @@
                     window.handleFirestoreError(e);
                 }
             } else {
-                customAccounts.push(newAcc);
-                localStorage.setItem('customAccounts', JSON.stringify(customAccounts));
+                window.customAccounts.push(newAcc);
+                localStorage.setItem('customAccounts', JSON.stringify(window.customAccounts));
                 window.renderTable();
                 alert("Đã thêm nhân vật thành công (Ngoại tuyến)!");
                 window.closeAddMyAccModal();
@@ -1897,7 +2118,7 @@
         }
 
         window.promptEditField = async function(id, field, oldVal, fieldLabel) {
-            if (!currentUser || currentUser.username !== 'admin') return;
+            if (!window.currentUser || window.currentUser.username !== 'admin') return;
             
             const newVal = prompt(`Chỉnh sửa ${fieldLabel} cho dòng này:`, oldVal);
             if (newVal === null || newVal.trim() === oldVal) return; 
@@ -1905,14 +2126,14 @@
             const finalVal = newVal.trim();
 
             let displayStt = id;
-            if(isGrouped && window.globalGroupedIndexMap) {
+            if(window.isGrouped && window.globalGroupedIndexMap) {
                  displayStt = window.globalGroupedIndexMap[id] || id;
             }
 
             try {
                 await window.logAction('main', {
                     timestamp: Date.now(),
-                    username: currentUser.username,
+                    username: window.currentUser.username,
                     action: 'SỬA THÔNG TIN',
                     displayStt: displayStt,
                     details: { field: fieldLabel, oldVal: oldVal, newVal: finalVal }
@@ -1929,26 +2150,26 @@
                     window.handleFirestoreError(e);
                 }
             } else {
-                if(!editedNamesMap[id]) editedNamesMap[id] = {};
-                editedNamesMap[id][field] = finalVal;
-                localStorage.setItem('editedNamesMap', JSON.stringify(editedNamesMap));
+                if(!window.editedNamesMap[id]) window.editedNamesMap[id] = {};
+                window.editedNamesMap[id][field] = finalVal;
+                localStorage.setItem('editedNamesMap', JSON.stringify(window.editedNamesMap));
                 window.renderTable();
             }
         }
 
         window.updateDropdownField = async function(id, field, newVal, oldVal, fieldLabel) {
-            if (!currentUser || currentUser.username !== 'admin') return;
+            if (!window.currentUser || window.currentUser.username !== 'admin') return;
             if (newVal === oldVal) return;
             
             let displayStt = id;
-            if(isGrouped && window.globalGroupedIndexMap) {
+            if(window.isGrouped && window.globalGroupedIndexMap) {
                  displayStt = window.globalGroupedIndexMap[id] || id;
             }
 
             try {
                 await window.logAction('main', {
                     timestamp: Date.now(),
-                    username: currentUser.username,
+                    username: window.currentUser.username,
                     action: 'SỬA THÔNG TIN',
                     displayStt: displayStt,
                     details: { field: fieldLabel, oldVal: oldVal || 'trống', newVal: newVal || 'trống' }
@@ -1965,15 +2186,15 @@
                     window.handleFirestoreError(e);
                 }
             } else {
-                if(!editedNamesMap[id]) editedNamesMap[id] = {};
-                editedNamesMap[id][field] = newVal;
-                localStorage.setItem('editedNamesMap', JSON.stringify(editedNamesMap));
+                if(!window.editedNamesMap[id]) window.editedNamesMap[id] = {};
+                window.editedNamesMap[id][field] = newVal;
+                localStorage.setItem('editedNamesMap', JSON.stringify(window.editedNamesMap));
                 window.renderTable();
             }
         }
         
         window.deleteAccount = async function(id, name, btnElement) {
-            if (!currentUser || currentUser.username !== 'admin') return;
+            if (!window.currentUser || window.currentUser.username !== 'admin') return;
             if (!confirm(`CẢNH BÁO: Bạn có chắc chắn muốn xóa hoàn toàn nhân vật "${name}" khỏi bảng không? Hành động này không thể hoàn tác.`)) return;
 
             if(btnElement) {
@@ -1982,14 +2203,14 @@
             }
 
             let displayStt = id;
-            if(isGrouped && window.globalGroupedIndexMap) {
+            if(window.isGrouped && window.globalGroupedIndexMap) {
                  displayStt = window.globalGroupedIndexMap[id] || id;
             }
 
             try {
                 await window.logAction('main', {
                     timestamp: Date.now(),
-                    username: currentUser.username,
+                    username: window.currentUser.username,
                     action: 'XÓA',
                     displayStt: displayStt,
                     details: { name: name }
@@ -2000,7 +2221,7 @@
                 try {
                     await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'deleted_accounts', id.toString()), {
                         deletedAt: Date.now(),
-                        deletedBy: currentUser.username
+                        deletedBy: window.currentUser.username
                     });
                 } catch(e) {
                     console.error("Lỗi xóa nhân vật:", e);
@@ -2012,8 +2233,8 @@
                     }
                 }
             } else {
-                deletedAccountsMap[id] = true;
-                localStorage.setItem('deletedAccountsMap', JSON.stringify(deletedAccountsMap));
+                window.deletedAccountsMap[id] = true;
+                localStorage.setItem('deletedAccountsMap', JSON.stringify(window.deletedAccountsMap));
                 window.renderTable();
             }
         }
@@ -2023,8 +2244,8 @@
         // =========================================================================
 
         window.showApp = function(userObj, isRestoring = false) {
-            currentUser = userObj;
-            isLoggedIn = !userObj.isGuest;
+            window.currentUser = userObj;
+            window.isLoggedIn = !userObj.isGuest;
             
             if (!isRestoring) {
                 localStorage.setItem('app_currentUser', JSON.stringify(userObj));
@@ -2036,12 +2257,18 @@
             document.getElementById('addMyAccBtn').classList.add('hidden');
             document.getElementById('adminFilterSection').classList.add('hidden');
             document.getElementById('exportDataBtn').classList.add('hidden');
+            document.getElementById('messengerContainer').classList.remove('hidden');
 
             const viewModeText = document.getElementById('viewModeText');
 
             if (userObj.isGuest) {
                 viewModeText.innerText = "Chế độ: Khách (Đã ẩn thông tin nhạy cảm)";
                 viewModeText.className = "text-sm font-medium text-orange-600";
+                const chatInput = document.getElementById('chatInput');
+                const chatSendBtn = document.getElementById('chatSendBtn');
+                if(chatInput) chatInput.disabled = true;
+                if(chatSendBtn) chatSendBtn.disabled = true;
+                if(chatInput) chatInput.placeholder = "Chỉ dùng để xem (Khách)";
             } else if (userObj.allowedIndices === 'all') {
                 viewModeText.innerText = "Chế độ: Quản trị viên (Xem tất cả)";
                 viewModeText.className = "text-sm font-medium text-green-600";
@@ -2070,7 +2297,7 @@
             window.renderTable();
             window.startHeartbeat();
             
-            if(activityLogs.length > 0) {
+            if(window.activityLogs.length > 0) {
                  window.renderLogs();
             }
         }
@@ -2080,7 +2307,7 @@
             const pass = document.getElementById('password').value.trim();
             
             window.buildAllUsers(); 
-            const matchedUser = allUsers.find(u => u.username === user && u.password === pass);
+            const matchedUser = window.allUsers.find(u => u.username === user && u.password === pass);
 
             if (matchedUser) {
                 if (matchedUser.isLocked) {
@@ -2095,8 +2322,8 @@
 
         window.handleLogout = function() {
             window.stopHeartbeat();
-            currentUser = null;
-            isLoggedIn = false;
+            window.currentUser = null;
+            window.isLoggedIn = false;
             
             localStorage.removeItem('app_currentUser');
             localStorage.removeItem('app_lastActivity');
@@ -2110,6 +2337,7 @@
             document.getElementById('addMyAccBtn').classList.add('hidden');
             document.getElementById('adminFilterSection').classList.add('hidden');
             document.getElementById('exportDataBtn').classList.add('hidden');
+            document.getElementById('messengerContainer').classList.add('hidden');
             
             const searchInput = document.getElementById('adminSearchInput');
             if (searchInput) searchInput.value = '';
@@ -2122,7 +2350,7 @@
                     const savedUser = JSON.parse(savedUserStr);
                     
                     window.buildAllUsers();
-                    const updatedRealUser = allUsers.find(u => u.username === savedUser.username);
+                    const updatedRealUser = window.allUsers.find(u => u.username === savedUser.username);
                     const userToBoot = updatedRealUser ? updatedRealUser : savedUser;
 
                     if (!userToBoot || (userToBoot.username !== 'admin' && !userToBoot.isGuest && (userToBoot.isDeleted || userToBoot.isLocked))) {
@@ -2148,14 +2376,14 @@
         }
 
         window.resetInactivityTimer = function() {
-            if (currentUser && currentUser.username !== 'admin') {
+            if (window.currentUser && window.currentUser.username !== 'admin') {
                 localStorage.setItem('app_lastActivity', Date.now().toString());
             }
         }
 
         // Bắt sự kiện đóng tab/trình duyệt
         window.addEventListener('beforeunload', () => {
-            if (currentUser && !currentUser.isGuest) {
+            if (window.currentUser && !window.currentUser.isGuest) {
                 window.stopHeartbeat();
             }
         });
@@ -2182,7 +2410,7 @@
         window.addEventListener('scroll', window.resetInactivityTimer);
 
         setInterval(() => {
-            if (currentUser && currentUser.username !== 'admin') {
+            if (window.currentUser && window.currentUser.username !== 'admin') {
                 const lastActivity = parseInt(localStorage.getItem('app_lastActivity') || '0', 10);
                 if (Date.now() - lastActivity > 5 * 60 * 1000) {
                     alert("Phiên đăng nhập đã hết hạn do không hoạt động (5 phút). Vui lòng đăng nhập lại.");
@@ -2197,18 +2425,18 @@
         
         const logDateFilterEl = document.getElementById('logDateFilter');
         if (logDateFilterEl) {
-            logDateFilterEl.value = selectedLogDate;
+            logDateFilterEl.value = window.selectedLogDate;
             logDateFilterEl.addEventListener('change', (e) => {
-                selectedLogDate = e.target.value;
+                window.selectedLogDate = e.target.value;
                 window.renderLogs();
             });
         }
 
         const adminLogDateFilterEl = document.getElementById('adminLogDateFilter');
         if (adminLogDateFilterEl) {
-            adminLogDateFilterEl.value = selectedAdminLogDate;
+            adminLogDateFilterEl.value = window.selectedAdminLogDate;
             adminLogDateFilterEl.addEventListener('change', (e) => {
-                selectedAdminLogDate = e.target.value;
+                window.selectedAdminLogDate = e.target.value;
                 window.renderAdminLogs();
             });
         }
@@ -2268,19 +2496,19 @@
                     if (unsubCustomAcc) unsubCustomAcc();
                     if (unsubEditedNames) unsubEditedNames();
                     if (unsubPresence) unsubPresence();
+                    if (unsubChat) unsubChat();
                 }
             });
-            
-            // Gọi hàm checkSession để khôi phục phiên đăng nhập
-            window.checkSession();
             
         } else {
             document.getElementById('loginForm').classList.add('hidden');
             document.getElementById('setupFormContainer').classList.remove('hidden');
             document.getElementById('loginScreenTitle').innerText = "Cài Đặt Hệ Thống";
             document.getElementById('loginScreenDesc').innerText = "Trạng thái: Chưa có kết nối Server";
-            window.checkSession();
         }
+
+        // Luôn kiểm tra session khi khởi động trang
+        window.checkSession();
 
     </script>
 </body>
