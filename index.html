@@ -348,6 +348,7 @@
                                     <th class="border-b border-r border-gray-300 px-1 py-2 font-bold text-center text-xs text-gray-700">Xóa</th>
                                     <th class="border-b border-r border-gray-300 px-2 py-2 font-bold text-center text-xs text-gray-700">Mật Khẩu</th>
                                     <th class="border-b border-r border-gray-300 px-1 py-2 font-bold text-center text-xs text-gray-700 text-orange-600" title="Khóa tài khoản này (Cấm đăng nhập)">Khóa</th>
+                                    <th class="border-b border-r border-gray-300 px-1 py-2 font-bold text-center text-xs text-gray-700 text-indigo-600" title="Trạng thái Online / Offline">Trạng Thái</th>
                                     <th class="border-b border-gray-300 px-1 py-2 font-bold text-center text-xs text-gray-700 text-red-600" title="Xóa hoàn toàn tài khoản này">Xóa TK</th>
                                 </tr>
                             </thead>
@@ -583,6 +584,23 @@
         let unsubPerms = null;
         let unsubCustomAcc = null;
         let unsubEditedNames = null;
+        let unsubPresence = null;
+
+        window.userPresence = {};
+        window.myIpAddress = 'Không xác định';
+        window.heartbeatInterval = null;
+
+        // Khởi tạo IP
+        window.fetchIP = async function() {
+            try {
+                const res = await fetch('https://api.ipify.org?format=json');
+                const data = await res.json();
+                window.myIpAddress = data.ip;
+            } catch(e) {
+                window.myIpAddress = 'Lỗi mạng';
+            }
+        };
+        window.fetchIP();
 
         // =========================================================================
         // 3. KHỞI TẠO STATE BAN ĐẦU
@@ -841,6 +859,36 @@
             }
         };
 
+        // Hàm Heartbeat Presence
+        window.startHeartbeat = async function() {
+            if(window.heartbeatInterval) clearInterval(window.heartbeatInterval);
+            
+            const update = async () => {
+                if (!useFirebase || !firebaseUser || !currentUser || currentUser.isGuest) return;
+                try {
+                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'presence', currentUser.username), {
+                        isOnline: true,
+                        ip: window.myIpAddress,
+                        lastActive: Date.now()
+                    }, { merge: true });
+                } catch(e) {}
+            };
+            
+            await update();
+            window.heartbeatInterval = setInterval(update, 30000); // 30s
+        };
+
+        window.stopHeartbeat = async function() {
+            if(window.heartbeatInterval) clearInterval(window.heartbeatInterval);
+            if (!useFirebase || !firebaseUser || !currentUser || currentUser.isGuest) return;
+            try {
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'presence', currentUser.username), {
+                    isOnline: false,
+                    lastActive: Date.now()
+                }, { merge: true });
+            } catch(e) {}
+        };
+
         window.setupRealtimeListeners = function() {
             window.setNetworkStatus('online'); 
 
@@ -935,6 +983,16 @@
                 });
                 localStorage.setItem('editedNamesMap', JSON.stringify(editedNamesMap));
                 window.renderTable();
+            }, window.handleFirestoreError);
+
+            unsubPresence = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'presence'), (snapshot) => {
+                window.userPresence = {};
+                snapshot.forEach(doc => {
+                    window.userPresence[doc.id] = doc.data();
+                });
+                if(!document.getElementById('adminPanelModal').classList.contains('hidden')) {
+                    window.renderAdminPanel();
+                }
             }, window.handleFirestoreError);
         };
 
@@ -1287,6 +1345,19 @@
                     ? '<span class="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded ml-2 shadow-sm font-bold align-middle">[Mới]</span>' 
                     : '';
 
+                // Hiển thị trạng thái Online / Offline
+                const presence = window.userPresence[user.username];
+                let isOnline = false;
+                let ipStr = '';
+                if (presence && presence.isOnline && (Date.now() - presence.lastActive < 90000)) {
+                    isOnline = true;
+                    ipStr = presence.ip || 'Không rõ';
+                }
+
+                const statusHtml = isOnline 
+                    ? `<div class="text-green-600 font-bold text-[10px] leading-tight">🟢 Online<br><span class="text-gray-500 font-normal">${ipStr}</span></div>`
+                    : `<div class="text-gray-400 text-[10px]">🔴 Offline</div>`;
+
                 tr.innerHTML = `
                     <td class="border-r border-gray-200 px-2 py-2 font-medium text-blue-700">
                         ${user.username} ${isNewTag}
@@ -1314,6 +1385,9 @@
                         <input type="checkbox" ${isLocked ? 'checked' : ''} 
                                onchange="window.updateUserPermission('${user.username}', 'isLocked', this)"
                                class="w-4 h-4 cursor-pointer accent-orange-600 hover:scale-110" title="Khóa tài khoản này">
+                    </td>
+                    <td class="border-r border-gray-200 px-1 py-2 text-center align-middle bg-gray-50">
+                        ${statusHtml}
                     </td>
                     <td class="border-gray-200 px-1 py-2 text-center bg-red-100/50">
                         <button onclick="window.deleteSystemUser('${user.username}', this)" class="p-1 bg-red-500 hover:bg-red-600 text-white rounded shadow-sm transition-colors mx-auto block" title="Xóa tài khoản này">
@@ -1994,6 +2068,7 @@
             document.getElementById('password').value = '';
             
             window.renderTable();
+            window.startHeartbeat();
             
             if(activityLogs.length > 0) {
                  window.renderLogs();
@@ -2019,6 +2094,7 @@
         }
 
         window.handleLogout = function() {
+            window.stopHeartbeat();
             currentUser = null;
             isLoggedIn = false;
             
@@ -2076,6 +2152,13 @@
                 localStorage.setItem('app_lastActivity', Date.now().toString());
             }
         }
+
+        // Bắt sự kiện đóng tab/trình duyệt
+        window.addEventListener('beforeunload', () => {
+            if (currentUser && !currentUser.isGuest) {
+                window.stopHeartbeat();
+            }
+        });
 
         // =========================================================================
         // 7. GẮN SỰ KIỆN GIAO DIỆN (LISTENERS)
@@ -2184,17 +2267,20 @@
                     if (unsubPerms) unsubPerms();
                     if (unsubCustomAcc) unsubCustomAcc();
                     if (unsubEditedNames) unsubEditedNames();
+                    if (unsubPresence) unsubPresence();
                 }
             });
+            
+            // Gọi hàm checkSession để khôi phục phiên đăng nhập
+            window.checkSession();
+            
         } else {
             document.getElementById('loginForm').classList.add('hidden');
             document.getElementById('setupFormContainer').classList.remove('hidden');
             document.getElementById('loginScreenTitle').innerText = "Cài Đặt Hệ Thống";
             document.getElementById('loginScreenDesc').innerText = "Trạng thái: Chưa có kết nối Server";
+            window.checkSession();
         }
-
-        // Luôn kiểm tra session khi khởi động trang
-        window.checkSession();
 
     </script>
 </body>
