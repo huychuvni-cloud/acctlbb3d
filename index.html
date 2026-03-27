@@ -667,7 +667,6 @@
             }, window.handleFirestoreError);
 
             unsubChat = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'chat_messages'), (snapshot) => {
-                const oldLength = window.chatMessages.length;
                 window.chatMessages = [];
                 snapshot.forEach(doc => window.chatMessages.push({id: doc.id, ...doc.data()}));
                 window.chatMessages.sort((a, b) => a.timestamp - b.timestamp);
@@ -893,7 +892,6 @@
                 if (presence && presence.isOnline && (Date.now() - presence.lastActive < 90000)) { isOnline = true; ipStr = presence.ip || 'Không rõ'; }
                 const statusHtml = isOnline ? `<div class="text-green-600 font-bold text-[10px] leading-tight">🟢 Online<br><span class="text-gray-500 font-normal">${ipStr}</span></div>` : `<div class="text-gray-400 text-[10px]">🔴 Offline</div>`;
 
-                // Đếm tin nhắn chưa đọc của user này cho Admin
                 const roomName = `admin_${user.username}`;
                 let unreadForThisUser = 0;
                 window.chatMessages.forEach(msg => {
@@ -1350,6 +1348,10 @@
             }
         };
 
+        // =========================================================================
+        // 6. CÁC HÀM LOGIC GIAO DIỆN CHÍNH
+        // =========================================================================
+
         window.showApp = function(userObj, isRestoring = false) {
             window.currentUser = userObj;
             window.isLoggedIn = !userObj.isGuest;
@@ -1390,7 +1392,6 @@
             document.getElementById('errorMessage').classList.add('hidden');
             document.getElementById('username').value = ''; document.getElementById('password').value = '';
             
-            // Lấy lại trạng thái đã đọc của người dùng này
             window.lastRead = JSON.parse(localStorage.getItem('chatLastRead_' + window.currentUser.username)) || {};
 
             window.renderTable(); window.startHeartbeat();
@@ -1437,7 +1438,7 @@
                     if (userToBoot.username === 'admin') { window.showApp(userToBoot, true); } 
                     else {
                         const lastActivity = parseInt(localStorage.getItem('app_lastActivity') || '0', 10);
-                        if (Date.now() - lastActivity > 5 * 60 * 1000) window.handleLogout();
+                        if (Date.now() - lastActivity > 30 * 60 * 1000) window.handleLogout();
                         else { localStorage.setItem('app_lastActivity', Date.now().toString()); window.showApp(userToBoot, true); }
                     }
                 } catch (e) { window.handleLogout(); }
@@ -1458,7 +1459,7 @@
         setInterval(() => {
             if (window.currentUser && window.currentUser.username !== 'admin') {
                 const lastActivity = parseInt(localStorage.getItem('app_lastActivity') || '0', 10);
-                if (Date.now() - lastActivity > 5 * 60 * 1000) { alert("Phiên đã hết hạn (5 phút)."); window.handleLogout(); }
+                if (Date.now() - lastActivity > 30 * 60 * 1000) { alert("Phiên đã hết hạn (30 phút)."); window.handleLogout(); }
             }
         }, 10000);
 
@@ -1496,9 +1497,9 @@
             });
         } else {
             document.getElementById('loginForm').classList.add('hidden'); document.getElementById('setupFormContainer').classList.remove('hidden'); document.getElementById('loginScreenTitle').innerText = "Cài Đặt Hệ Thống"; document.getElementById('loginScreenDesc').innerText = "Trạng thái: Chưa có kết nối Server";
-            window.checkSession();
         }
-
+        
+        window.checkSession();
     </script>
 </body>
 </html>
