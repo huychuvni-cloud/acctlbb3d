@@ -368,6 +368,21 @@
             return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
         };
 
+        window.getTimeAgo = function(timestamp) {
+            if (!timestamp) return "Chưa từng online";
+            const seconds = Math.floor((Date.now() - timestamp) / 1000);
+            if (seconds < 60) return "Vừa xong";
+            const minutes = Math.floor(seconds / 60);
+            if (minutes < 60) return `${minutes} phút trước`;
+            const hours = Math.floor(minutes / 60);
+            if (hours < 24) return `${hours} giờ trước`;
+            const days = Math.floor(hours / 24);
+            if (days < 30) return `${days} ngày trước`;
+            const months = Math.floor(days / 30);
+            if (months < 12) return `${months} tháng trước`;
+            return `${Math.floor(months / 12)} năm trước`;
+        };
+
         let app, auth, db;
         let useFirebase = false;
         let isUsingCanvasConfig = false;
@@ -888,9 +903,15 @@
                 const isNewTag = user.isRegistered ? '<span class="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded ml-2 shadow-sm font-bold align-middle">[Mới]</span>' : '';
                 
                 const presence = window.userPresence[user.username];
-                let isOnline = false, ipStr = '';
-                if (presence && presence.isOnline && (Date.now() - presence.lastActive < 90000)) { isOnline = true; ipStr = presence.ip || 'Không rõ'; }
-                const statusHtml = isOnline ? `<div class="text-green-600 font-bold text-[10px] leading-tight">🟢 Online<br><span class="text-gray-500 font-normal">${ipStr}</span></div>` : `<div class="text-gray-400 text-[10px]">🔴 Offline</div>`;
+                let isOnline = false, ipStr = '', lastActiveStr = 'Chưa từng online';
+                if (presence) {
+                    if (presence.isOnline && (Date.now() - presence.lastActive < 90000)) { 
+                        isOnline = true; 
+                        ipStr = presence.ip || 'Không rõ'; 
+                    }
+                    lastActiveStr = window.getTimeAgo(presence.lastActive);
+                }
+                const statusHtml = isOnline ? `<div class="text-green-600 font-bold text-[10px] leading-tight">🟢 Online<br><span class="text-gray-500 font-normal">${ipStr}</span></div>` : `<div class="text-gray-400 text-[10px] leading-tight">🔴 Offline<br><span class="text-gray-400 font-normal">(${lastActiveStr})</span></div>`;
 
                 const roomName = `admin_${user.username}`;
                 let unreadForThisUser = 0;
@@ -965,6 +986,7 @@
             users.forEach(u => {
                 const presence = window.userPresence[u.username];
                 const isOnline = presence && presence.isOnline && (now - presence.lastActive < 90000);
+                const lastActiveStr = presence ? window.getTimeAgo(presence.lastActive) : 'Chưa từng online';
                 const avatarLetter = u.username.charAt(0).toUpperCase();
                 const statusDot = isOnline ? '<div class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>' : '<div class="absolute bottom-0 right-0 w-3 h-3 bg-gray-400 border-2 border-white rounded-full"></div>';
 
@@ -991,7 +1013,7 @@
                     <div class="ml-3 flex-1 min-w-0 flex items-center justify-between">
                         <div>
                             <div class="font-bold text-gray-800 truncate">${u.username}</div>
-                            <div class="text-[11px] ${isOnline ? 'text-green-600 font-medium' : 'text-gray-400'}">${isOnline ? 'Đang hoạt động' : 'Ngoại tuyến'}</div>
+                            <div class="text-[11px] ${isOnline ? 'text-green-600 font-medium' : 'text-gray-400'}">${isOnline ? 'Đang hoạt động' : 'Hoạt động ' + lastActiveStr}</div>
                         </div>
                         ${badgeHtml}
                     </div>
