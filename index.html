@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bảng Quản Lý Tài Khoản</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Thư viện SheetJS hỗ trợ Nhập/Xuất file Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         .group:hover .copy-btn { opacity: 1; }
         #activityLogContainer::-webkit-scrollbar, #adminLogContainer::-webkit-scrollbar, #chatMessages::-webkit-scrollbar { width: 6px; }
@@ -19,6 +21,10 @@
         .chat-window-enter { opacity: 1 !important; transform: scale(1) translateY(0) !important; pointer-events: auto !important; }
         .chat-window-exit { opacity: 0 !important; transform: scale(0.95) translateY(20px) !important; pointer-events: none !important; }
         .chat-bubble-base { max-width: 80%; word-wrap: break-word; }
+        .typing-indicator span { animation: typing 1.4s infinite ease-in-out both; }
+        .typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
+        .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes typing { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
     </style>
 </head>
 <body class="min-h-screen bg-gray-100 py-8 px-4 font-sans text-black flex flex-col justify-center">
@@ -147,13 +153,32 @@
         </div>
     </div>
 
-    <!-- Modal Thêm Tài Khoản (Dành cho Nhân viên) -->
+    <!-- Modal Thêm Tài Khoản -->
     <div id="addMyAccModal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full p-6 border border-gray-200">
             <div class="flex justify-between items-center mb-4 border-b border-gray-100 pb-3">
                 <h3 class="text-xl font-bold text-gray-800 flex items-center gap-2">Thêm Nhân Vật Của Tôi</h3>
                 <button onclick="window.closeAddMyAccModal()" class="p-2 text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded-full transition-colors"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
             </div>
+            
+            <div class="mb-5 bg-green-50 p-4 rounded-lg border border-green-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shadow-inner">
+                <div>
+                    <h4 class="text-sm font-bold text-green-800 flex items-center gap-1"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg> Nhập Hàng Loạt Từ Excel</h4>
+                    <p class="text-xs text-green-700 mt-1">Tải file mẫu về, điền dữ liệu và upload lên để thêm nhiều tài khoản cùng lúc.</p>
+                </div>
+                <div class="flex gap-2 w-full sm:w-auto">
+                    <button onclick="window.downloadExcelTemplate()" class="flex-1 sm:flex-none px-3 py-2 bg-white border border-green-600 text-green-700 rounded shadow-sm hover:bg-green-50 text-xs font-bold transition-colors flex items-center justify-center gap-1">📥 Tải File Mẫu</button>
+                    <input type="file" id="excelImportInput" accept=".xls,.xlsx" class="hidden" onchange="window.handleExcelImport(event)">
+                    <button onclick="document.getElementById('excelImportInput').click()" class="flex-1 sm:flex-none px-3 py-2 bg-green-600 text-white rounded shadow-sm hover:bg-green-700 text-xs font-bold transition-colors flex items-center justify-center gap-1">📤 Upload</button>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2 mb-4">
+                <hr class="flex-1 border-gray-200">
+                <span class="text-xs font-bold text-gray-400 uppercase">Hoặc thêm 1 tài khoản thủ công</span>
+                <hr class="flex-1 border-gray-200">
+            </div>
+
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                 <div><label class="block text-gray-700 font-bold mb-1">User Sv Cũ</label><input type="text" id="myAcc_userTnt" class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-green-500 outline-none"></div>
                 <div><label class="block text-gray-700 font-bold mb-1">Pass Sv Cũ</label><input type="text" id="myAcc_passTnt" class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-green-500 outline-none"></div>
@@ -173,7 +198,7 @@
         </div>
     </div>
 
-    <!-- Modal Quản Lý Phân Quyền & Tài Khoản (Dành cho Admin) -->
+    <!-- Modal Quản Lý Phân Quyền -->
     <div id="adminPanelModal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-xl shadow-2xl max-w-5xl w-full p-6 border border-gray-200 flex flex-col max-h-[90vh]">
             <div class="flex justify-between items-center mb-4 border-b border-gray-100 pb-3">
@@ -212,6 +237,7 @@
                     <div id="adminLogContainer" class="p-3 overflow-y-auto font-mono text-xs space-y-2 flex-1 text-gray-700"></div>
                 </div>
             </div>
+
             <div class="mt-4 border-t border-gray-200 pt-4">
                 <h4 class="text-sm font-bold text-gray-800 mb-2">Thêm Dữ Liệu Bảng Mới</h4>
                 <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
@@ -418,6 +444,7 @@
         window.isChatOpen = false;
         window.unreadChatCount = 0;
         window.currentChatRoom = ''; 
+        window.isAITyping = false;
 
         window.fetchIP = async function() {
             try {
@@ -500,7 +527,6 @@
         window.handleFirestoreError = function(error) {
             if (error && error.code === 'permission-denied') {
                 window.setNetworkStatus('error', 'Lỗi phân quyền Database');
-                console.error("Firestore Permission Denied", error);
             } else { console.error("Firestore Error:", error); }
         };
 
@@ -542,6 +568,120 @@
             try { document.execCommand('copy'); alert("✅ ĐÃ COPY THÀNH CÔNG!\nDán thay thế mảng 'rawData' cũ trong code."); } 
             catch (err) { alert("Lỗi khi copy. Vui lòng copy thủ công từ bảng sau:\n\n" + codeString); }
             document.body.removeChild(textArea);
+        };
+
+        window.downloadExcelTemplate = function() {
+            const templateData = [{
+                "Username Cũ": "user_cu_1",
+                "Password Cũ": "pass_cu_1",
+                "Tên NV Cũ": "NhanVatCu",
+                "Nhóm Màu (Trắng/Xanh/Cam/Vàng/Hồng/Tím)": "Cam",
+                "Phái": "NGA MI",
+                "Thuộc tính (BĂNG/ĐỘC/HOẢ/HUYỀN)": "BĂNG",
+                "Username Mới (*)": "user_moi_1",
+                "Password Mới (*)": "pass_moi_1",
+                "Tên NV Mới (*)": "NhanVatMoi1"
+            }];
+            const ws = XLSX.utils.json_to_sheet(templateData);
+            ws['!cols'] = [{wch:15}, {wch:15}, {wch:15}, {wch:35}, {wch:15}, {wch:30}, {wch:15}, {wch:15}, {wch:15}];
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "MauNhapLieu");
+            XLSX.writeFile(wb, "Template_NhapLieuTaiKhoan.xlsx");
+        };
+
+        window.handleExcelImport = async function(e) {
+            if (!window.currentUser || window.currentUser.isGuest) {
+                return alert("Tài khoản Khách không được phép sử dụng tính năng này.");
+            }
+            
+            const file = e.target.files[0];
+            if (!file) return;
+            e.target.value = '';
+
+            const fileName = file.name;
+            if (!fileName.endsWith('.xls') && !fileName.endsWith('.xlsx')) {
+                return alert("❌ Sai định dạng file!\n\nVui lòng chỉ tải lên file Excel (.xls hoặc .xlsx).");
+            }
+
+            const reader = new FileReader();
+            reader.onload = async function(event) {
+                try {
+                    const data = new Uint8Array(event.target.result);
+                    const workbook = XLSX.read(data, {type: 'array'});
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+                    if (jsonData.length === 0) return alert("❌ File Excel trống (không có dữ liệu)!");
+
+                    const firstRow = jsonData[0];
+                    if (!("Username Mới (*)" in firstRow) && !("Username Mới" in firstRow)) {
+                        return alert("❌ Sai cấu trúc định dạng file!\n\nKhông tìm thấy cột bắt buộc 'Username Mới (*)'. Vui lòng dùng đúng File Mẫu được hệ thống cấp.");
+                    }
+
+                    let successCount = 0;
+                    let failCount = 0;
+                    const timestamp = Date.now();
+
+                    for (let i = 0; i < jsonData.length; i++) {
+                        const row = jsonData[i];
+                        const userTc = (row["Username Mới (*)"] || row["Username Mới"] || "").toString().trim();
+                        const passTc = (row["Password Mới (*)"] || row["Password Mới"] || "").toString().trim();
+                        const newName = (row["Tên NV Mới (*)"] || row["Tên NV Mới"] || "").toString().trim();
+
+                        if (!userTc || !passTc || !newName) {
+                            failCount++;
+                            continue;
+                        }
+
+                        let colorStr = (row["Nhóm Màu (Trắng/Xanh/Cam/Vàng/Hồng/Tím)"] || row["Nhóm Màu"] || "").toString().toLowerCase();
+                        let colorCode = 'white';
+                        if (colorStr.includes('xanh')) colorCode = 'blue';
+                        else if (colorStr.includes('cam')) colorCode = 'orange';
+                        else if (colorStr.includes('vàng') || colorStr.includes('vang')) colorCode = 'yellow';
+                        else if (colorStr.includes('hồng') || colorStr.includes('hong')) colorCode = 'pink';
+                        else if (colorStr.includes('tím') || colorStr.includes('tim')) colorCode = 'purple';
+
+                        const newAcc = {
+                            id: timestamp + i,
+                            userTnt: (row["Username Cũ"] || "").toString().trim(),
+                            passTnt: (row["Password Cũ"] || "").toString().trim(),
+                            oldName: (row["Tên NV Cũ"] || "").toString().trim(),
+                            userTc: userTc,
+                            passTc: passTc,
+                            newName: newName,
+                            phai: (row["Phái"] || "").toString().trim().toUpperCase(),
+                            thuocTinh: (row["Thuộc tính (BĂNG/ĐỘC/HOẢ/HUYỀN)"] || row["Thuộc tính"] || "").toString().trim().toUpperCase(),
+                            color: colorCode,
+                            owner: window.currentUser.username // Gán chủ sở hữu tự động
+                        };
+
+                        if (useFirebase && firebaseUser) {
+                            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'custom_accounts', newAcc.id.toString()), newAcc);
+                        } else {
+                            window.customAccounts.push(newAcc);
+                        }
+                        successCount++;
+                    }
+
+                    if (!useFirebase) {
+                        localStorage.setItem('customAccounts', JSON.stringify(window.customAccounts));
+                        window.renderTable();
+                    }
+
+                    if (successCount > 0) {
+                        await window.logAction('main', { timestamp: Date.now(), username: window.currentUser.username, action: 'THÊM MỚI', displayStt: 'N/A', details: { newName: `[Nhập Excel] ${successCount} nhân vật` } });
+                    }
+
+                    alert(`✅ Nhập dữ liệu hoàn tất!\n\nThành công: ${successCount} dòng.\nThất bại/Bỏ qua: ${failCount} dòng (do thiếu thông tin).`);
+                    window.closeAddMyAccModal();
+
+                } catch (err) {
+                    console.error("Lỗi Excel:", err);
+                    alert("❌ Lỗi đọc file Excel. Vui lòng kiểm tra lại file của bạn.");
+                }
+            };
+            reader.readAsArrayBuffer(file);
         };
 
         window.logAction = async function(type, payload) {
@@ -589,15 +729,62 @@
                 if (msg.sender !== window.currentUser.username) {
                     const isForAdmin = window.currentUser.username === 'admin' && msg.room?.startsWith('admin_');
                     const isForUser = window.currentUser.username !== 'admin' && msg.room === `admin_${window.currentUser.username}`;
-                    if (isForAdmin || isForUser) {
-                        if (msg.timestamp > (window.lastRead[msg.room] || 0)) {
-                            count++;
-                        }
+                    const isForAI = msg.room === `ai_${window.currentUser.username}`;
+                    if (isForAdmin || isForUser || isForAI) {
+                        if (msg.timestamp > (window.lastRead[msg.room] || 0)) count++;
                     }
                 }
             });
             window.unreadChatCount = count;
             window.updateUnreadBadge();
+        };
+
+        window.getUserDataForAI = function() {
+            let finalData = [...rawData, ...window.customAccounts].filter(row => !window.deletedAccountsMap[row.id]).map(row => {
+                const edited = window.editedNamesMap[row.id];
+                if (edited) return { ...row, userTnt: edited.userTnt !== undefined ? edited.userTnt : row.userTnt, passTnt: edited.passTnt !== undefined ? edited.passTnt : row.passTnt, oldName: edited.oldName !== undefined ? edited.oldName : row.oldName, newName: edited.newName !== undefined ? edited.newName : row.newName, phai: edited.phai !== undefined ? edited.phai : row.phai, thuocTinh: edited.thuocTinh !== undefined ? edited.thuocTinh : row.thuocTinh, userTc: edited.userTc !== undefined ? edited.userTc : row.userTc, passTc: edited.passTc !== undefined ? edited.passTc : row.passTc };
+                return row;
+            });
+            const groupedIndexMap = {};
+            let referenceData = [...finalData].sort((a, b) => { if (colorWeight[a.color] !== colorWeight[b.color]) return colorWeight[a.color] - colorWeight[b.color]; return parseInt(a.id) - parseInt(b.id); });
+            referenceData.forEach((row, index) => { groupedIndexMap[row.id] = index + 1; });
+
+            if (window.currentUser && window.currentUser.username !== 'admin' && window.currentUser.allowedIndices !== 'all') {
+                finalData = finalData.filter(row => window.currentUser.allowedIndices.includes(groupedIndexMap[row.id]) || row.owner === window.currentUser.username);
+            }
+            
+            return finalData.map(r => ({
+                stt: window.isGrouped ? groupedIndexMap[r.id] : r.id,
+                ten_cu: r.oldName || '',
+                ten_moi: r.newName || '',
+                phai: r.phai || 'Chưa rõ',
+                thuoc_tinh: r.thuocTinh || 'Chưa rõ',
+                trang_thai: window.doneItems[r.id] ? "Đã xong" : "Chưa xong"
+            }));
+        };
+
+        window.askAI = async function(promptText) {
+            const apiKey = "";
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+            const userDataContext = window.getUserDataForAI();
+            const fullPrompt = `Đây là dữ liệu tài khoản:\n${JSON.stringify(userDataContext)}\n\nCâu hỏi: ${promptText}`;
+
+            const payload = {
+                contents: [{ parts: [{ text: fullPrompt }] }],
+                systemInstruction: { parts: [{ text: "Bạn là trợ lý ảo CSKH hỗ trợ giải đáp thông tin tài khoản." }] }
+            };
+
+            for (let attempt = 0; attempt < 3; attempt++) {
+                try {
+                    const response = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+                    if (!response.ok) throw new Error("API Error");
+                    const result = await response.json();
+                    return result.candidates?.[0]?.content?.parts?.[0]?.text || "Xin lỗi, tôi không thể trả lời lúc này.";
+                } catch (err) {
+                    await new Promise(res => setTimeout(res, 1000 * Math.pow(2, attempt)));
+                }
+            }
+            return "Hệ thống AI đang bận. Vui lòng thử lại sau.";
         };
 
         window.setupRealtimeListeners = function() {
@@ -678,7 +865,7 @@
                 snapshot.forEach(doc => { window.userPresence[doc.id] = doc.data(); });
                 if(!document.getElementById('adminPanelModal').classList.contains('hidden')) window.renderAdminPanel();
                 window.updateChatOnlineCount();
-                if (window.isChatOpen && window.currentUser?.username === 'admin' && !window.currentChatRoom) window.renderChatContacts();
+                if (window.isChatOpen && !window.currentChatRoom) window.renderChatContacts();
             }, window.handleFirestoreError);
 
             unsubChat = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'chat_messages'), (snapshot) => {
@@ -695,11 +882,13 @@
                         window.renderChatContacts();
                     }
                 }
-                
                 window.calculateUnreadCount();
             }, window.handleFirestoreError);
         };
 
+        // =========================================================================
+        // 5. RENDER FUNCTIONS
+        // =========================================================================
         window.renderTable = function() {
             const tableHead = document.getElementById('tableHead');
             const tableBody = document.getElementById('tableBody');
@@ -947,16 +1136,11 @@
             
             if (window.isChatOpen) {
                 windowEl.classList.remove('chat-window-exit'); windowEl.classList.add('chat-window-enter');
-                
-                if (window.currentUser && window.currentUser.username === 'admin') {
-                    if (!window.currentChatRoom) window.renderChatContacts();
-                    else {
-                        window.updateLastRead(window.currentChatRoom);
-                        window.calculateUnreadCount();
-                        window.renderChatMessages();
-                    }
-                } else if (window.currentUser && !window.currentUser.isGuest) {
-                    window.openPrivateChat(window.currentUser.username, true);
+                if (!window.currentChatRoom) window.renderChatContacts();
+                else {
+                    window.updateLastRead(window.currentChatRoom);
+                    window.calculateUnreadCount();
+                    window.renderChatMessages();
                 }
             } else {
                 windowEl.classList.remove('chat-window-enter'); windowEl.classList.add('chat-window-exit');
@@ -973,63 +1157,132 @@
             titleEl.innerText = "Danh sách liên hệ";
             listEl.innerHTML = '';
             
-            const users = window.allUsers.filter(u => u.username !== 'admin');
-            const now = Date.now();
-            users.sort((a, b) => {
-                const aOnline = window.userPresence[a.username]?.isOnline && (now - window.userPresence[a.username].lastActive < 90000);
-                const bOnline = window.userPresence[b.username]?.isOnline && (now - window.userPresence[b.username].lastActive < 90000);
-                return (aOnline === bOnline) ? 0 : aOnline ? -1 : 1;
+            const aiDiv = document.createElement('div');
+            aiDiv.className = "flex items-center p-2.5 hover:bg-indigo-50 cursor-pointer rounded-xl transition-colors border border-transparent hover:border-indigo-100 mb-1";
+            aiDiv.onclick = () => window.openPrivateChat('ai', false);
+            
+            let aiUnread = 0;
+            const aiRoomName = `ai_${window.currentUser.username}`;
+            window.chatMessages.forEach(msg => {
+                if (msg.room === aiRoomName && msg.sender === 'Trợ lý AI' && msg.timestamp > (window.lastRead[aiRoomName] || 0)) aiUnread++;
             });
+            const aiBadgeHtml = aiUnread > 0 ? `<div class="bg-red-500 text-white text-[10px] font-bold min-w-[20px] h-5 flex items-center justify-center rounded-full ml-auto shadow-sm animate-pulse">${aiUnread > 9 ? '9+' : aiUnread}</div>` : '';
 
-            if (users.length === 0) { listEl.innerHTML = `<div class="text-center text-gray-500 text-sm mt-4">Chưa có nhân viên nào</div>`; return; }
+            aiDiv.innerHTML = `
+                <div class="relative flex-shrink-0">
+                    <div class="w-10 h-10 bg-gradient-to-tr from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white shadow-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4M3 5h4"/></svg>
+                    </div>
+                    <div class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
+                </div>
+                <div class="ml-3 flex-1 min-w-0 flex items-center justify-between">
+                    <div>
+                        <div class="font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 truncate">Trợ lý AI (CSKH)</div>
+                        <div class="text-[11px] text-green-600 font-medium">Luôn sẵn sàng hỗ trợ</div>
+                    </div>
+                    ${aiBadgeHtml}
+                </div>
+            `;
+            listEl.appendChild(aiDiv);
 
-            users.forEach(u => {
-                const presence = window.userPresence[u.username];
+            if (window.currentUser.username !== 'admin') {
+                const presence = window.userPresence['admin'];
+                const now = Date.now();
                 const isOnline = presence && presence.isOnline && (now - presence.lastActive < 90000);
                 const lastActiveStr = presence ? window.getTimeAgo(presence.lastActive) : 'Chưa từng online';
-                const avatarLetter = u.username.charAt(0).toUpperCase();
-                const statusDot = isOnline ? '<div class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>' : '<div class="absolute bottom-0 right-0 w-3 h-3 bg-gray-400 border-2 border-white rounded-full"></div>';
 
-                const roomName = `admin_${u.username}`;
-                let unreadForThisUser = 0;
+                const roomName = `admin_${window.currentUser.username}`;
+                let unread = 0;
                 window.chatMessages.forEach(msg => {
-                    if (msg.room === roomName && msg.sender !== 'admin' && msg.timestamp > (window.lastRead[roomName] || 0)) {
-                        unreadForThisUser++;
-                    }
+                    if (msg.room === roomName && msg.sender === 'admin' && msg.timestamp > (window.lastRead[roomName] || 0)) unread++;
                 });
 
-                const badgeHtml = unreadForThisUser > 0 
-                    ? `<div class="bg-red-500 text-white text-[10px] font-bold min-w-[20px] h-5 flex items-center justify-center rounded-full ml-auto shadow-sm animate-pulse">${unreadForThisUser > 9 ? '9+' : unreadForThisUser}</div>` 
-                    : '';
-
-                const div = document.createElement('div');
-                div.className = "flex items-center p-2.5 hover:bg-indigo-50 cursor-pointer rounded-xl transition-colors border border-transparent hover:border-indigo-100";
-                div.onclick = () => window.openPrivateChat(u.username, false);
-                div.innerHTML = `
+                const badgeHtml = unread > 0 ? `<div class="bg-red-500 text-white text-[10px] font-bold min-w-[20px] h-5 flex items-center justify-center rounded-full ml-auto shadow-sm animate-pulse">${unread > 9 ? '9+' : unread}</div>` : '';
+                
+                const adDiv = document.createElement('div');
+                adDiv.className = "flex items-center p-2.5 hover:bg-indigo-50 cursor-pointer rounded-xl transition-colors border border-transparent hover:border-indigo-100";
+                adDiv.onclick = () => window.openPrivateChat('admin', true);
+                adDiv.innerHTML = `
                     <div class="relative flex-shrink-0">
-                        <div class="w-10 h-10 bg-gradient-to-tr from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-white font-bold shadow-sm">${avatarLetter}</div>
-                        ${statusDot}
+                        <div class="w-10 h-10 bg-gradient-to-tr from-blue-600 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold shadow-sm">AD</div>
+                        <div class="absolute bottom-0 right-0 w-3 h-3 ${isOnline ? 'bg-green-500' : 'bg-gray-400'} border-2 border-white rounded-full"></div>
                     </div>
                     <div class="ml-3 flex-1 min-w-0 flex items-center justify-between">
                         <div>
-                            <div class="font-bold text-gray-800 truncate">${u.username}</div>
+                            <div class="font-bold text-gray-800 truncate">Hỗ trợ (Admin)</div>
                             <div class="text-[11px] ${isOnline ? 'text-green-600 font-medium' : 'text-gray-400'}">${isOnline ? 'Đang hoạt động' : 'Hoạt động ' + lastActiveStr}</div>
                         </div>
                         ${badgeHtml}
                     </div>
                 `;
-                listEl.appendChild(div);
-            });
+                listEl.appendChild(adDiv);
+            } else {
+                const users = window.allUsers.filter(u => u.username !== 'admin');
+                const now = Date.now();
+                users.sort((a, b) => {
+                    const aOnline = window.userPresence[a.username]?.isOnline && (now - window.userPresence[a.username].lastActive < 90000);
+                    const bOnline = window.userPresence[b.username]?.isOnline && (now - window.userPresence[b.username].lastActive < 90000);
+                    return (aOnline === bOnline) ? 0 : aOnline ? -1 : 1;
+                });
+
+                if (users.length === 0) { listEl.innerHTML += `<div class="text-center text-gray-500 text-sm mt-4">Chưa có nhân viên nào</div>`; return; }
+
+                users.forEach(u => {
+                    const presence = window.userPresence[u.username];
+                    const isOnline = presence && presence.isOnline && (now - presence.lastActive < 90000);
+                    const lastActiveStr = presence ? window.getTimeAgo(presence.lastActive) : 'Chưa từng online';
+                    const avatarLetter = u.username.charAt(0).toUpperCase();
+                    const statusDot = isOnline ? '<div class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>' : '<div class="absolute bottom-0 right-0 w-3 h-3 bg-gray-400 border-2 border-white rounded-full"></div>';
+
+                    const roomName = `admin_${u.username}`;
+                    let unreadForThisUser = 0;
+                    window.chatMessages.forEach(msg => {
+                        if (msg.room === roomName && msg.sender !== 'admin' && msg.timestamp > (window.lastRead[roomName] || 0)) {
+                            unreadForThisUser++;
+                        }
+                    });
+
+                    const badgeHtml = unreadForThisUser > 0 
+                        ? `<div class="bg-red-500 text-white text-[10px] font-bold min-w-[20px] h-5 flex items-center justify-center rounded-full ml-auto shadow-sm animate-pulse">${unreadForThisUser > 9 ? '9+' : unreadForThisUser}</div>` 
+                        : '';
+
+                    const div = document.createElement('div');
+                    div.className = "flex items-center p-2.5 hover:bg-indigo-50 cursor-pointer rounded-xl transition-colors border border-transparent hover:border-indigo-100";
+                    div.onclick = () => window.openPrivateChat(u.username, false);
+                    div.innerHTML = `
+                        <div class="relative flex-shrink-0">
+                            <div class="w-10 h-10 bg-gradient-to-tr from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-white font-bold shadow-sm">${avatarLetter}</div>
+                            ${statusDot}
+                        </div>
+                        <div class="ml-3 flex-1 min-w-0 flex items-center justify-between">
+                            <div>
+                                <div class="font-bold text-gray-800 truncate">${u.username}</div>
+                                <div class="text-[11px] ${isOnline ? 'text-green-600 font-medium' : 'text-gray-400'}">${isOnline ? 'Đang hoạt động' : 'Hoạt động ' + lastActiveStr}</div>
+                            </div>
+                            ${badgeHtml}
+                        </div>
+                    `;
+                    listEl.appendChild(div);
+                });
+            }
         };
 
         window.openPrivateChat = function(targetUser, isUser = false) {
-            window.currentChatRoom = `admin_${isUser ? window.currentUser.username : targetUser}`;
+            if (targetUser === 'ai') { window.currentChatRoom = `ai_${window.currentUser.username}`; } 
+            else if (window.currentUser.username === 'admin') { window.currentChatRoom = `admin_${targetUser}`; } 
+            else { window.currentChatRoom = `admin_${window.currentUser.username}`; }
+
             const listEl = document.getElementById('chatContactList'), roomView = document.getElementById('chatRoomView'), backBtn = document.getElementById('chatBackBtn'), titleEl = document.getElementById('chatHeaderTitle'), badgeEl = document.getElementById('chatOnlineBadge');
+            
             if(listEl) { listEl.classList.add('hidden'); listEl.classList.remove('flex'); }
             if(roomView) { roomView.classList.remove('hidden'); roomView.classList.add('flex'); }
 
-            if (!isUser) { backBtn.classList.remove('hidden'); titleEl.innerText = targetUser; badgeEl.classList.add('hidden'); } 
-            else { titleEl.innerText = "Hỗ trợ (Admin)"; backBtn.classList.add('hidden'); }
+            backBtn.classList.remove('hidden'); 
+            badgeEl.classList.add('hidden');
+            
+            if (targetUser === 'ai') titleEl.innerText = "Trợ lý AI (CSKH)";
+            else if (isUser) titleEl.innerText = "Hỗ trợ (Admin)";
+            else titleEl.innerText = targetUser;
 
             window.updateLastRead(window.currentChatRoom);
             window.calculateUnreadCount();
@@ -1054,23 +1307,34 @@
             const container = document.getElementById('chatMessages');
             if (!container) return;
             const roomMessages = window.chatMessages.filter(m => m.room === window.currentChatRoom);
-            if (roomMessages.length === 0) {
+            
+            if (roomMessages.length === 0 && !window.isAITyping) {
                 container.innerHTML = `<div class="text-center text-gray-400 text-sm mt-10 italic flex flex-col items-center"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="mb-2 opacity-50"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>Chưa có tin nhắn nào.</div>`;
                 return;
             }
             container.innerHTML = '';
+            
             roomMessages.forEach(msg => {
                 const isMe = window.currentUser && msg.sender === window.currentUser.username;
+                const isAI = msg.sender === 'Trợ lý AI';
                 const timeStr = new Date(msg.timestamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
                 const div = document.createElement('div');
-                div.className = `flex flex-col ${isMe ? 'items-end' : 'items-start'}`;
+                div.className = `flex flex-col ${isMe ? 'items-end' : 'items-start'} animate-fadeIn`;
                 
                 let contentHtml = msg.type === 'image' ? `<img src="${msg.fileData}" class="max-w-[200px] sm:max-w-[240px] rounded-lg shadow-sm cursor-pointer hover:opacity-90" onclick="window.open('${msg.fileData}', '_blank')" alt="Ảnh" />` : msg.text.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-                let html = !isMe ? `<span class="text-[10px] text-gray-500 ml-1 mb-0.5 font-medium">${msg.sender}</span>` : '';
+                let html = !isMe ? `<span class="text-[10px] ${isAI ? 'text-purple-600' : 'text-gray-500'} ml-1 mb-0.5 font-bold">${isAI ? '✨ ' : ''}${msg.sender}</span>` : '';
                 
                 html += `<div class="chat-bubble-base px-3.5 py-2.5 rounded-2xl shadow-sm text-[13.5px] leading-relaxed ${isMe ? 'bg-blue-600 text-white rounded-tr-sm' : 'bg-white border border-gray-100 text-gray-800 rounded-tl-sm'}">${contentHtml}</div><span class="text-[9px] text-gray-400 mt-1 ${isMe ? 'mr-1' : 'ml-1'}">${timeStr}</span>`;
                 div.innerHTML = html; container.appendChild(div);
             });
+
+            if (window.isAITyping && window.currentChatRoom.startsWith('ai_')) {
+                const typeDiv = document.createElement('div');
+                typeDiv.className = "flex flex-col items-start animate-fadeIn";
+                typeDiv.innerHTML = `<span class="text-[10px] text-purple-600 ml-1 mb-0.5 font-bold">✨ Trợ lý AI</span><div class="chat-bubble-base px-4 py-3.5 rounded-2xl shadow-sm bg-white border border-gray-100 rounded-tl-sm flex justify-center gap-1.5 items-center w-16 typing-indicator"><span class="w-1.5 h-1.5 bg-gray-400 rounded-full"></span><span class="w-1.5 h-1.5 bg-gray-400 rounded-full"></span><span class="w-1.5 h-1.5 bg-gray-400 rounded-full"></span></div>`;
+                container.appendChild(typeDiv);
+            }
+
             setTimeout(() => { container.scrollTop = container.scrollHeight; }, 50);
         };
 
@@ -1082,25 +1346,33 @@
             if (!text) return;
             input.value = ''; input.disabled = true; btn.disabled = true;
 
+            const isAIFlow = window.currentChatRoom.startsWith('ai_');
+
             try {
                 await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'chat_messages', Date.now().toString()), { sender: window.currentUser.username, text: text, type: 'text', room: window.currentChatRoom, timestamp: Date.now() });
-            } catch (e) { alert("Không thể gửi tin nhắn. Thử lại sau."); } 
-            finally { input.disabled = false; btn.disabled = false; input.focus(); }
+                if (isAIFlow) {
+                    window.isAITyping = true; window.renderChatMessages();
+                    const aiResponse = await window.askAI(text);
+                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'chat_messages', Date.now().toString()), { sender: 'Trợ lý AI', text: aiResponse, type: 'text', room: window.currentChatRoom, timestamp: Date.now() });
+                }
+            } catch (e) { alert("Lỗi gửi tin nhắn."); } 
+            finally { window.isAITyping = false; input.disabled = false; btn.disabled = false; input.focus(); }
         };
 
         window.handleFileAttachment = function(e) {
             const file = e.target.files[0];
             if (!file) return;
             e.target.value = '';
-            if (!file.type.startsWith('image/')) return alert("Hệ thống hiện chỉ hỗ trợ đính kèm hình ảnh!");
-            if (file.size > 800 * 1024) return alert("Ảnh quá lớn! Vui lòng chọn ảnh dưới 800KB để gửi mượt mà.");
+            if (!file.type.startsWith('image/')) return alert("Chỉ hỗ trợ đính kèm hình ảnh!");
+            if (file.size > 800 * 1024) return alert("Ảnh quá lớn! Vui lòng chọn ảnh dưới 800KB.");
             if (!useFirebase || !firebaseUser || !window.currentUser || !window.currentChatRoom) return;
+            if (window.currentChatRoom.startsWith('ai_')) return alert("Trợ lý AI hiện chưa hỗ trợ đọc hình ảnh.");
 
             const reader = new FileReader();
             reader.onload = async function(event) {
                 try {
                     await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'chat_messages', Date.now().toString()), { sender: window.currentUser.username, text: '[Đã gửi một ảnh]', type: 'image', fileData: event.target.result, room: window.currentChatRoom, timestamp: Date.now() });
-                } catch (err) { alert("Không thể gửi ảnh do dung lượng vượt quá giới hạn hoặc lỗi mạng."); }
+                } catch (err) { alert("Không thể gửi ảnh do dung lượng vượt quá giới hạn."); }
             };
             reader.readAsDataURL(file);
         };
@@ -1271,7 +1543,7 @@
         
         window.deleteSystemUser = async function(username, btnElement) {
             if (!window.currentUser || window.currentUser.username !== 'admin') return;
-            if (!confirm(`CẢNH BÁO: Bạn có chắc chắn muốn XÓA HOÀN TOÀN tài khoản truy cập '${username}' không?`)) return;
+            if (!confirm(`CẢNH BÁO: Xóa hoàn toàn nhân vật "${name}"?`)) return;
             if (btnElement) { const row = btnElement.closest('tr'); if (row) row.style.display = 'none'; }
             const isBaseUser = baseUserAccounts.some(u => u.username === username);
 
@@ -1369,10 +1641,6 @@
                 window.deletedAccountsMap[id] = true; localStorage.setItem('deletedAccountsMap', JSON.stringify(window.deletedAccountsMap)); window.renderTable();
             }
         };
-
-        // =========================================================================
-        // 6. CÁC HÀM LOGIC GIAO DIỆN CHÍNH
-        // =========================================================================
 
         window.showApp = function(userObj, isRestoring = false) {
             window.currentUser = userObj;
