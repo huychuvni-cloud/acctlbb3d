@@ -554,9 +554,9 @@
             let finalData = [...rawData, ...window.customAccounts].filter(row => !window.deletedAccountsMap[row.id]).map(row => {
                 const edited = window.editedNamesMap[row.id];
                 if (edited) {
-                    return { ...row, userTnt: edited.userTnt !== undefined ? edited.userTnt : row.userTnt, passTnt: edited.passTnt !== undefined ? edited.passTnt : row.passTnt, oldName: edited.oldName !== undefined ? edited.oldName : row.oldName, newName: edited.newName !== undefined ? edited.newName : row.newName, phai: edited.phai !== undefined ? edited.phai : (row.phai || ''), thuocTinh: edited.thuocTinh !== undefined ? edited.thuocTinh : (row.thuocTinh || ''), userTc: edited.userTc !== undefined ? edited.userTc : row.userTc, passTc: edited.passTc !== undefined ? edited.passTc : row.passTc };
+                    return { ...row, userTnt: edited.userTnt !== undefined ? edited.userTnt : row.userTnt, passTnt: edited.passTnt !== undefined ? edited.passTnt : row.passTnt, oldName: edited.oldName !== undefined ? edited.oldName : row.oldName, newName: edited.newName !== undefined ? edited.newName : row.newName, phai: edited.phai !== undefined ? edited.phai : (row.phai || ''), thuocTinh: edited.thuocTinh !== undefined ? edited.thuocTinh : (row.thuocTinh || ''), userTc: edited.userTc !== undefined ? edited.userTc : row.userTc, passTc: edited.passTc !== undefined ? edited.passTc : row.passTc, color: edited.color !== undefined ? edited.color : row.color };
                 }
-                return { ...row, phai: row.phai || '', thuocTinh: row.thuocTinh || '' };
+                return { ...row, phai: row.phai || '', thuocTinh: row.thuocTinh || '', color: row.color || 'white' };
             });
             let codeString = "const rawData = [\n";
             finalData.forEach(r => { codeString += `    { id: ${r.id}, userTnt: '${(r.userTnt || '').replace(/'/g, "\\'")}', passTnt: '${(r.passTnt || '').replace(/'/g, "\\'")}', oldName: '${(r.oldName || '').replace(/'/g, "\\'")}', newName: '${(r.newName || '').replace(/'/g, "\\'")}', phai: '${(r.phai || '').replace(/'/g, "\\'")}', thuocTinh: '${(r.thuocTinh || '').replace(/'/g, "\\'")}', userTc: '${(r.userTc || '').replace(/'/g, "\\'")}', passTc: '${(r.passTc || '').replace(/'/g, "\\'")}', color: '${r.color}' },\n`; });
@@ -742,7 +742,7 @@
         window.getUserDataForAI = function() {
             let finalData = [...rawData, ...window.customAccounts].filter(row => !window.deletedAccountsMap[row.id]).map(row => {
                 const edited = window.editedNamesMap[row.id];
-                if (edited) return { ...row, userTnt: edited.userTnt !== undefined ? edited.userTnt : row.userTnt, passTnt: edited.passTnt !== undefined ? edited.passTnt : row.passTnt, oldName: edited.oldName !== undefined ? edited.oldName : row.oldName, newName: edited.newName !== undefined ? edited.newName : row.newName, phai: edited.phai !== undefined ? edited.phai : row.phai, thuocTinh: edited.thuocTinh !== undefined ? edited.thuocTinh : row.thuocTinh, userTc: edited.userTc !== undefined ? edited.userTc : row.userTc, passTc: edited.passTc !== undefined ? edited.passTc : row.passTc };
+                if (edited) return { ...row, userTnt: edited.userTnt !== undefined ? edited.userTnt : row.userTnt, passTnt: edited.passTnt !== undefined ? edited.passTnt : row.passTnt, oldName: edited.oldName !== undefined ? edited.oldName : row.oldName, newName: edited.newName !== undefined ? edited.newName : row.newName, phai: edited.phai !== undefined ? edited.phai : row.phai, thuocTinh: edited.thuocTinh !== undefined ? edited.thuocTinh : row.thuocTinh, userTc: edited.userTc !== undefined ? edited.userTc : row.userTc, passTc: edited.passTc !== undefined ? edited.passTc : row.passTc, color: edited.color !== undefined ? edited.color : row.color };
                 return row;
             });
             const groupedIndexMap = {};
@@ -903,6 +903,7 @@
                         <th class="border border-black px-3 py-2 text-center font-bold w-48">Passwords TNT</th>
                         <th class="border border-black px-3 py-2 text-left font-bold w-32">Tên NV (Cũ)</th>
                         <th class="border border-black px-3 py-2 text-left font-bold w-40">Tên NV (Mới)</th>
+                        <th class="border border-black px-2 py-2 text-left font-bold w-28">Nhóm Màu</th>
                         <th class="border border-black px-3 py-2 text-left font-bold w-32">Phái</th>
                         <th class="border border-black px-3 py-2 text-left font-bold w-32">Thuộc tính</th>
                         <th class="border border-black px-3 py-2 text-left font-bold w-48">Username TC</th>
@@ -916,7 +917,7 @@
             let finalData = [...rawData, ...window.customAccounts].filter(row => !window.deletedAccountsMap[row.id]).map(row => {
                 const edited = window.editedNamesMap[row.id];
                 if (edited) {
-                    return { ...row, userTnt: edited.userTnt !== undefined ? edited.userTnt : row.userTnt, passTnt: edited.passTnt !== undefined ? edited.passTnt : row.passTnt, oldName: edited.oldName !== undefined ? edited.oldName : row.oldName, newName: edited.newName !== undefined ? edited.newName : row.newName, phai: edited.phai !== undefined ? edited.phai : row.phai, thuocTinh: edited.thuocTinh !== undefined ? edited.thuocTinh : row.thuocTinh, userTc: edited.userTc !== undefined ? edited.userTc : row.userTc, passTc: edited.passTc !== undefined ? edited.passTc : row.passTc };
+                    return { ...row, userTnt: edited.userTnt !== undefined ? edited.userTnt : row.userTnt, passTnt: edited.passTnt !== undefined ? edited.passTnt : row.passTnt, oldName: edited.oldName !== undefined ? edited.oldName : row.oldName, newName: edited.newName !== undefined ? edited.newName : row.newName, phai: edited.phai !== undefined ? edited.phai : row.phai, thuocTinh: edited.thuocTinh !== undefined ? edited.thuocTinh : row.thuocTinh, userTc: edited.userTc !== undefined ? edited.userTc : row.userTc, passTc: edited.passTc !== undefined ? edited.passTc : row.passTc, color: edited.color !== undefined ? edited.color : row.color };
                 }
                 return row;
             });
@@ -971,11 +972,18 @@
 
             const editableCls = isAdmin ? 'editable-cell' : '';
 
+            const colorOptionsList = [
+                {val: 'white', label: '⚪ Trắng'}, {val: 'blue', label: '🔵 Xanh'}, 
+                {val: 'orange', label: '🟠 Cam'}, {val: 'yellow', label: '🟡 Vàng'}, 
+                {val: 'pink', label: '🔴 Hồng'}, {val: 'purple', label: '🟣 Tím'}
+            ];
+
             displayData.forEach((row) => {
                 const tr = document.createElement('tr');
                 tr.className = `${colorClasses[row.color]} hover:brightness-95 transition-all duration-150`;
 
                 const safeUserTnt = (row.userTnt || '').replace(/'/g, "\\'"), safePassTnt = (row.passTnt || '').replace(/'/g, "\\'"), safeOldName = (row.oldName || '').replace(/'/g, "\\'"), safeNewName = (row.newName || '').replace(/'/g, "\\'"), safePhai = (row.phai || ''), safeThuocTinh = (row.thuocTinh || ''), safeUserTc  = (row.userTc || '').replace(/'/g, "\\'"), safePassTc  = (row.passTc || '').replace(/'/g, "\\'");
+                const safeColor = row.color || 'white';
 
                 const editAttr = (field, safeVal, label) => isAdmin ? `title="Click để sửa thông tin (Admin)" onclick="window.promptEditField('${row.id}', '${field}', '${safeVal}', '${label}')"` : '';
 
@@ -995,6 +1003,7 @@
                 const disabledStatus = !canInteract ? 'disabled' : '';
                 const cursorClass = !canInteract ? 'cursor-not-allowed opacity-50 grayscale' : 'cursor-pointer accent-green-600 hover:scale-110 transition-transform';
 
+                const colorDropdown = isAdmin ? `<select onchange="window.updateDropdownField('${row.id}', 'color', this.value, '${safeColor}', 'Nhóm Màu')" class="w-full bg-transparent outline-none cursor-pointer text-black ${textOpacityClass}"><option value="white">--</option>${colorOptionsList.map(c => `<option value="${c.val}" ${safeColor === c.val ? 'selected' : ''}>${c.label}</option>`).join('')}</select>` : (colorOptionsList.find(c => c.val === safeColor)?.label || '⚪ Trắng');
                 const phaiDropdown = isAdmin ? `<select onchange="window.updateDropdownField('${row.id}', 'phai', this.value, '${safePhai}', 'Phái')" class="w-full bg-transparent outline-none cursor-pointer text-black ${textOpacityClass}"><option value="">--</option>${phaiList.map(p => `<option value="${p}" ${safePhai === p ? 'selected' : ''}>${p}</option>`).join('')}</select>` : (safePhai || '');
                 const thuocTinhDropdown = isAdmin ? `<select onchange="window.updateDropdownField('${row.id}', 'thuocTinh', this.value, '${safeThuocTinh}', 'Thuộc tính')" class="w-full bg-transparent outline-none cursor-pointer text-black ${textOpacityClass}"><option value="">--</option>${thuocTinhList.map(t => `<option value="${t}" ${safeThuocTinh === t ? 'selected' : ''}>${t}</option>`).join('')}</select>` : (safeThuocTinh || '');
                 const deleteColHtml = isAdmin ? `<td class="border border-black px-1 py-1 text-center bg-red-50/50"><button onclick="window.deleteAccount('${row.id}', '${safeNewName || safeOldName || 'Chưa có tên'}', this)" class="p-1 hover:bg-red-200 rounded transition-colors" title="Xóa">${window.trashIcon}</button></td>` : '';
@@ -1006,6 +1015,7 @@
                     <td ${editAttr('passTnt', safePassTnt, 'Password TNT')} class="border border-black px-3 py-1 text-center ${textOpacityClass} ${editableCls}">${window.isLoggedIn ? window.createCopyableCell(row.passTnt || '', 'center') : '<span class="text-gray-600 font-mono tracking-widest text-lg">*****</span>'}</td>
                     <td ${editAttr('oldName', safeOldName, 'Tên NV (Cũ)')} class="border border-black px-3 py-1 font-medium ${textOpacityClass} ${editableCls}">${row.oldName || ''}</td>
                     <td ${editAttr('newName', safeNewName, 'Tên NV (Mới)')} class="border border-black px-3 py-1 font-bold text-blue-800 ${textOpacityClass} ${editableCls}">${row.newName || ''}</td>
+                    <td class="border border-black px-1 py-1 font-medium text-xs ${textOpacityClass} ${editableCls}">${colorDropdown}</td>
                     <td class="border border-black px-1 py-1 font-medium ${textOpacityClass} ${editableCls}">${phaiDropdown}</td>
                     <td class="border border-black px-1 py-1 font-medium ${textOpacityClass} ${editableCls}">${thuocTinhDropdown}</td>
                     <td ${editAttr('userTc', safeUserTc, 'Username TC')} class="border border-black px-3 py-1 whitespace-nowrap ${!window.isLoggedIn ? 'text-center' : ''} ${textOpacityClass} ${editableCls}">${window.isLoggedIn ? window.createCopyableCell(row.userTc || '', 'left') : '<span class="text-gray-600 font-mono tracking-widest text-lg">*****</span>'}</td>
