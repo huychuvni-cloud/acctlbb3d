@@ -126,7 +126,7 @@
             </div>
         </div>
 
-        <div class="overflow-x-auto border-2 border-black rounded-sm shadow-sm">
+        <div class="overflow-x-auto border-2 border-black rounded-sm shadow-sm pb-12">
             <table class="w-full text-sm border-collapse">
                 <thead id="tableHead"></thead>
                 <tbody id="tableBody"></tbody>
@@ -151,6 +151,15 @@
             </div>
             <div id="activityLogContainer" class="bg-gray-50 border border-gray-300 rounded-lg p-4 h-56 overflow-y-auto font-mono text-sm space-y-2 shadow-inner"></div>
         </div>
+    </div>
+
+    <!-- THẺ TOOLTIP GHI CHÚ NỔI -->
+    <div id="admin-tooltip" class="hidden fixed z-[9999] bg-[#fff9c4] border border-[#fbc02d] text-gray-800 p-3 rounded shadow-xl max-w-sm pointer-events-none transition-opacity duration-150">
+        <div class="font-bold text-[#f57f17] mb-2 border-b border-[#fbc02d] pb-1 text-xs uppercase flex items-center gap-1.5">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+            Ghi chú Nội bộ
+        </div>
+        <div id="tooltip-content" class="text-sm whitespace-pre-wrap font-medium leading-relaxed"></div>
     </div>
 
     <!-- Modal Thêm Tài Khoản -->
@@ -255,18 +264,6 @@
             </div>
             <div class="mt-4 flex justify-between items-center text-xs text-gray-500 pt-3 border-t border-gray-100">
                 <button onclick="window.closeAdminPanel()" class="px-5 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium">Đóng bảng</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal cấu hình Firebase -->
-    <div id="firebaseConfigModal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-xl shadow-2xl max-w-lg w-full p-6 border border-gray-200">
-            <h3 class="text-xl font-bold text-gray-800 flex items-center gap-2">Cài đặt Đồng bộ Đám mây</h3>
-            <textarea id="firebaseConfigInput" rows="6" class="w-full border border-gray-300 rounded-lg p-3 text-xs font-mono focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50" placeholder='{\n  "apiKey": "..."\n}'></textarea>
-            <div class="mt-5 flex justify-end gap-3">
-                <button onclick="document.getElementById('firebaseConfigModal').classList.add('hidden')" class="px-5 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg">Đóng</button>
-                <button onclick="window.saveFirebaseConfig()" class="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Lưu & Khởi động lại</button>
             </div>
         </div>
     </div>
@@ -388,6 +385,34 @@
         window.paintIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m19 11-8-8-8.6 8.6a2 2 0 0 0 0 2.8l5.2 5.2c.8.8 2 .8 2.8 0L19 11Z"/><path d="m5 2 5 5"/><path d="M2 13h15"/><path d="M22 20a2 2 0 1 1-4 0c0-1.6 1.7-2.4 2-4 .3 1.6 2 2.4 2 4Z"/></svg>`;
         window.sortIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/></svg>`;
         window.trashIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-red-500 hover:text-red-700 transition-colors"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>`;
+
+        // ==========================================
+        // CÁC HÀM XỬ LÝ TOOLTIP (GHI CHÚ ADMIN)
+        // ==========================================
+        window.showTooltip = function(e, noteText) {
+            if (!noteText || noteText.trim() === '') return;
+            const tooltip = document.getElementById('admin-tooltip');
+            const content = document.getElementById('tooltip-content');
+            
+            // Xử lý xuống dòng cho text
+            content.innerText = noteText.replace(/\\n/g, '\n');
+            tooltip.classList.remove('hidden');
+            
+            // Tính toán vị trí chuột (Lệch phải và dưới 15px để không che chuột)
+            let x = e.clientX + 15;
+            let y = e.clientY + 15;
+            
+            // Chống tràn viền màn hình
+            if (x + tooltip.offsetWidth > window.innerWidth) x = window.innerWidth - tooltip.offsetWidth - 10;
+            if (y + tooltip.offsetHeight > window.innerHeight) y = window.innerHeight - tooltip.offsetHeight - 10;
+            
+            tooltip.style.left = x + 'px';
+            tooltip.style.top = y + 'px';
+        };
+
+        window.hideTooltip = function() {
+            document.getElementById('admin-tooltip').classList.add('hidden');
+        };
 
         window.getYYYYMMDD = function(timestamp) {
             const d = new Date(timestamp);
@@ -554,12 +579,14 @@
             let finalData = [...rawData, ...window.customAccounts].filter(row => !window.deletedAccountsMap[row.id]).map(row => {
                 const edited = window.editedNamesMap[row.id];
                 if (edited) {
-                    return { ...row, userTnt: edited.userTnt !== undefined ? edited.userTnt : row.userTnt, passTnt: edited.passTnt !== undefined ? edited.passTnt : row.passTnt, oldName: edited.oldName !== undefined ? edited.oldName : row.oldName, newName: edited.newName !== undefined ? edited.newName : row.newName, phai: edited.phai !== undefined ? edited.phai : (row.phai || ''), thuocTinh: edited.thuocTinh !== undefined ? edited.thuocTinh : (row.thuocTinh || ''), userTc: edited.userTc !== undefined ? edited.userTc : row.userTc, passTc: edited.passTc !== undefined ? edited.passTc : row.passTc, color: edited.color !== undefined ? edited.color : row.color };
+                    return { ...row, userTnt: edited.userTnt !== undefined ? edited.userTnt : row.userTnt, passTnt: edited.passTnt !== undefined ? edited.passTnt : row.passTnt, oldName: edited.oldName !== undefined ? edited.oldName : row.oldName, newName: edited.newName !== undefined ? edited.newName : row.newName, phai: edited.phai !== undefined ? edited.phai : (row.phai || ''), thuocTinh: edited.thuocTinh !== undefined ? edited.thuocTinh : (row.thuocTinh || ''), userTc: edited.userTc !== undefined ? edited.userTc : row.userTc, passTc: edited.passTc !== undefined ? edited.passTc : row.passTc, color: edited.color !== undefined ? edited.color : row.color, note: edited.note !== undefined ? edited.note : row.note };
                 }
-                return { ...row, phai: row.phai || '', thuocTinh: row.thuocTinh || '', color: row.color || 'white' };
+                return { ...row, phai: row.phai || '', thuocTinh: row.thuocTinh || '', color: row.color || 'white', note: row.note || '' };
             });
             let codeString = "const rawData = [\n";
-            finalData.forEach(r => { codeString += `    { id: ${r.id}, userTnt: '${(r.userTnt || '').replace(/'/g, "\\'")}', passTnt: '${(r.passTnt || '').replace(/'/g, "\\'")}', oldName: '${(r.oldName || '').replace(/'/g, "\\'")}', newName: '${(r.newName || '').replace(/'/g, "\\'")}', phai: '${(r.phai || '').replace(/'/g, "\\'")}', thuocTinh: '${(r.thuocTinh || '').replace(/'/g, "\\'")}', userTc: '${(r.userTc || '').replace(/'/g, "\\'")}', passTc: '${(r.passTc || '').replace(/'/g, "\\'")}', color: '${r.color}' },\n`; });
+            finalData.forEach(r => { 
+                codeString += `    { id: ${r.id}, userTnt: '${(r.userTnt || '').replace(/'/g, "\\'")}', passTnt: '${(r.passTnt || '').replace(/'/g, "\\'")}', oldName: '${(r.oldName || '').replace(/'/g, "\\'")}', newName: '${(r.newName || '').replace(/'/g, "\\'")}', phai: '${(r.phai || '').replace(/'/g, "\\'")}', thuocTinh: '${(r.thuocTinh || '').replace(/'/g, "\\'")}', userTc: '${(r.userTc || '').replace(/'/g, "\\'")}', passTc: '${(r.passTc || '').replace(/'/g, "\\'")}', color: '${r.color}', note: '${(r.note || '').replace(/'/g, "\\'")}' },\n`; 
+            });
             codeString += "];";
             const textArea = document.createElement("textarea");
             textArea.value = codeString;
@@ -653,7 +680,7 @@
                             phai: (row["Phái"] || "").toString().trim().toUpperCase(),
                             thuocTinh: (row["Thuộc tính (BĂNG/ĐỘC/HOẢ/HUYỀN)"] || row["Thuộc tính"] || "").toString().trim().toUpperCase(),
                             color: colorCode,
-                            owner: window.currentUser.username // Gán chủ sở hữu tự động
+                            owner: window.currentUser.username 
                         };
 
                         if (useFirebase && firebaseUser) {
@@ -742,7 +769,7 @@
         window.getUserDataForAI = function() {
             let finalData = [...rawData, ...window.customAccounts].filter(row => !window.deletedAccountsMap[row.id]).map(row => {
                 const edited = window.editedNamesMap[row.id];
-                if (edited) return { ...row, userTnt: edited.userTnt !== undefined ? edited.userTnt : row.userTnt, passTnt: edited.passTnt !== undefined ? edited.passTnt : row.passTnt, oldName: edited.oldName !== undefined ? edited.oldName : row.oldName, newName: edited.newName !== undefined ? edited.newName : row.newName, phai: edited.phai !== undefined ? edited.phai : row.phai, thuocTinh: edited.thuocTinh !== undefined ? edited.thuocTinh : row.thuocTinh, userTc: edited.userTc !== undefined ? edited.userTc : row.userTc, passTc: edited.passTc !== undefined ? edited.passTc : row.passTc, color: edited.color !== undefined ? edited.color : row.color };
+                if (edited) return { ...row, userTnt: edited.userTnt !== undefined ? edited.userTnt : row.userTnt, passTnt: edited.passTnt !== undefined ? edited.passTnt : row.passTnt, oldName: edited.oldName !== undefined ? edited.oldName : row.oldName, newName: edited.newName !== undefined ? edited.newName : row.newName, phai: edited.phai !== undefined ? edited.phai : row.phai, thuocTinh: edited.thuocTinh !== undefined ? edited.thuocTinh : row.thuocTinh, userTc: edited.userTc !== undefined ? edited.userTc : row.userTc, passTc: edited.passTc !== undefined ? edited.passTc : row.passTc, color: edited.color !== undefined ? edited.color : row.color, note: edited.note !== undefined ? edited.note : row.note };
                 return row;
             });
             const groupedIndexMap = {};
@@ -759,7 +786,8 @@
                 ten_moi: r.newName || '',
                 phai: r.phai || 'Chưa rõ',
                 thuoc_tinh: r.thuocTinh || 'Chưa rõ',
-                trang_thai: window.doneItems[r.id] ? "Đã xong" : "Chưa xong"
+                trang_thai: window.doneItems[r.id] ? "Đã xong" : "Chưa xong",
+                ghi_chu: r.note || ''
             }));
         };
 
@@ -908,6 +936,7 @@
                         <th class="border border-black px-3 py-2 text-left font-bold w-32">Thuộc tính</th>
                         <th class="border border-black px-3 py-2 text-left font-bold w-48">Username TC</th>
                         <th class="border border-black px-3 py-2 text-center font-bold w-40">Passwords TC</th>
+                        <th class="border border-black px-2 py-2 text-center font-bold w-16 text-yellow-600">Ghi chú</th>
                         ${isAdmin ? '<th class="border border-black px-2 py-2 text-center font-bold w-10 text-red-600">Xóa</th>' : ''}
                     </tr>`;
             }
@@ -917,7 +946,19 @@
             let finalData = [...rawData, ...window.customAccounts].filter(row => !window.deletedAccountsMap[row.id]).map(row => {
                 const edited = window.editedNamesMap[row.id];
                 if (edited) {
-                    return { ...row, userTnt: edited.userTnt !== undefined ? edited.userTnt : row.userTnt, passTnt: edited.passTnt !== undefined ? edited.passTnt : row.passTnt, oldName: edited.oldName !== undefined ? edited.oldName : row.oldName, newName: edited.newName !== undefined ? edited.newName : row.newName, phai: edited.phai !== undefined ? edited.phai : row.phai, thuocTinh: edited.thuocTinh !== undefined ? edited.thuocTinh : row.thuocTinh, userTc: edited.userTc !== undefined ? edited.userTc : row.userTc, passTc: edited.passTc !== undefined ? edited.passTc : row.passTc, color: edited.color !== undefined ? edited.color : row.color };
+                    return { 
+                        ...row, 
+                        userTnt: edited.userTnt !== undefined ? edited.userTnt : row.userTnt, 
+                        passTnt: edited.passTnt !== undefined ? edited.passTnt : row.passTnt, 
+                        oldName: edited.oldName !== undefined ? edited.oldName : row.oldName, 
+                        newName: edited.newName !== undefined ? edited.newName : row.newName, 
+                        phai: edited.phai !== undefined ? edited.phai : row.phai, 
+                        thuocTinh: edited.thuocTinh !== undefined ? edited.thuocTinh : row.thuocTinh, 
+                        userTc: edited.userTc !== undefined ? edited.userTc : row.userTc, 
+                        passTc: edited.passTc !== undefined ? edited.passTc : row.passTc, 
+                        color: edited.color !== undefined ? edited.color : row.color,
+                        note: edited.note !== undefined ? edited.note : row.note 
+                    };
                 }
                 return row;
             });
@@ -982,6 +1023,16 @@
                 const tr = document.createElement('tr');
                 tr.className = `${colorClasses[row.color]} hover:brightness-95 transition-all duration-150`;
 
+                // Xử lý chuỗi Ghi chú an toàn cho HTML Attributes
+                const rawNote = row.note || '';
+                const safeNoteAttr = rawNote.replace(/'/g, "\\'").replace(/"/g, "&quot;").replace(/\n/g, "\\n");
+                
+                // Gắn sự kiện Rê chuột (Hover) cho cả dòng tr
+                if (rawNote) {
+                    tr.onmousemove = function(e) { window.showTooltip(e, rawNote); };
+                    tr.onmouseleave = function() { window.hideTooltip(); };
+                }
+
                 const safeUserTnt = (row.userTnt || '').replace(/'/g, "\\'"), safePassTnt = (row.passTnt || '').replace(/'/g, "\\'"), safeOldName = (row.oldName || '').replace(/'/g, "\\'"), safeNewName = (row.newName || '').replace(/'/g, "\\'"), safePhai = (row.phai || ''), safeThuocTinh = (row.thuocTinh || ''), safeUserTc  = (row.userTc || '').replace(/'/g, "\\'"), safePassTc  = (row.passTc || '').replace(/'/g, "\\'");
                 const safeColor = row.color || 'white';
 
@@ -1008,6 +1059,11 @@
                 const thuocTinhDropdown = isAdmin ? `<select onchange="window.updateDropdownField('${row.id}', 'thuocTinh', this.value, '${safeThuocTinh}', 'Thuộc tính')" class="w-full bg-transparent outline-none cursor-pointer text-black ${textOpacityClass}"><option value="">--</option>${thuocTinhList.map(t => `<option value="${t}" ${safeThuocTinh === t ? 'selected' : ''}>${t}</option>`).join('')}</select>` : (safeThuocTinh || '');
                 const deleteColHtml = isAdmin ? `<td class="border border-black px-1 py-1 text-center bg-red-50/50"><button onclick="window.deleteAccount('${row.id}', '${safeNewName || safeOldName || 'Chưa có tên'}', this)" class="p-1 hover:bg-red-200 rounded transition-colors" title="Xóa">${window.trashIcon}</button></td>` : '';
 
+                // HTML cho Cột Ghi chú
+                const noteIconHtml = rawNote ? `<span class="cursor-pointer text-lg hover:scale-125 transition-transform inline-block" title="Có ghi chú nội bộ">📝</span>` : `<span class="text-gray-400 italic text-[10px]">Trống</span>`;
+                const editNoteAttr = isAdmin ? `title="Click để sửa Ghi chú (Admin)" onclick="window.promptEditField('${row.id}', 'note', '${safeNoteAttr}', 'Ghi chú')"` : '';
+                const noteCellHtml = `<td ${editNoteAttr} class="border border-black px-1 py-1 text-center ${textOpacityClass} ${editableCls}">${noteIconHtml}</td>`;
+
                 tr.innerHTML = `
                     <td class="border border-black px-3 py-1 text-center font-medium">${displayStt}</td>
                     <td class="border border-black px-3 py-1 text-center bg-white/20"><input type="checkbox" onchange="window.toggleDone('${row.id}')" ${isDone ? 'checked' : ''} ${disabledStatus} class="w-4 h-4 ${cursorClass}"></td>
@@ -1020,6 +1076,7 @@
                     <td class="border border-black px-1 py-1 font-medium ${textOpacityClass} ${editableCls}">${thuocTinhDropdown}</td>
                     <td ${editAttr('userTc', safeUserTc, 'Username TC')} class="border border-black px-3 py-1 whitespace-nowrap ${!window.isLoggedIn ? 'text-center' : ''} ${textOpacityClass} ${editableCls}">${window.isLoggedIn ? window.createCopyableCell(row.userTc || '', 'left') : '<span class="text-gray-600 font-mono tracking-widest text-lg">*****</span>'}</td>
                     <td ${editAttr('passTc', safePassTc, 'Password TC')} class="border border-black px-3 py-1 text-center ${textOpacityClass} ${editableCls}">${window.isLoggedIn ? window.createCopyableCell(row.passTc || '', 'center') : '<span class="text-gray-600 font-mono tracking-widest text-lg">*****</span>'}</td>
+                    ${noteCellHtml}
                     ${deleteColHtml}
                 `;
                 if(tableBody) tableBody.appendChild(tr);
@@ -1051,7 +1108,7 @@
                     logTextHtml = `<span class="text-gray-600">đã đánh dấu</span> ${actionBadge} <span class="text-gray-700">tài khoản STT</span> <span class="font-bold text-black border-b border-black">${log.displayStt}</span>`;
                 } 
                 else if (log.action === 'SỬA THÔNG TIN') {
-                    logTextHtml = `<span class="text-gray-600">đã sửa</span> <span class="font-semibold text-gray-800">${log.details?.field}</span> <span class="text-gray-600">STT</span> <span class="font-bold text-black">${log.displayStt}</span> <span class="text-gray-600">từ</span> <span class="line-through text-gray-400">'${log.details?.oldVal}'</span> <span class="text-gray-600">thành</span> <span class="font-bold text-blue-700">'${log.details?.newVal}'</span>`;
+                    logTextHtml = `<span class="text-gray-600">đã sửa</span> <span class="font-semibold text-gray-800">${log.details?.field}</span> <span class="text-gray-600">STT</span> <span class="font-bold text-black">${log.displayStt}</span> <span class="text-gray-600">từ</span> <span class="line-through text-gray-400 truncate max-w-[100px] inline-block align-bottom">'${log.details?.oldVal}'</span> <span class="text-gray-600">thành</span> <span class="font-bold text-blue-700 truncate max-w-[150px] inline-block align-bottom">'${log.details?.newVal}'</span>`;
                 }
                 else if (log.action === 'THÊM MỚI') { logTextHtml = `<span class="text-gray-600">đã thêm nhân vật</span> <span class="font-bold text-blue-600">${log.details?.newName}</span>`; }
                 else if (log.action === 'XÓA') { logTextHtml = `<span class="text-gray-600">đã</span> <span class="font-bold text-red-600">XÓA</span> <span class="text-gray-600">nhân vật</span> <span class="font-bold text-black">${log.details?.name}</span>`; }
