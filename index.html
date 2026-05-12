@@ -823,24 +823,54 @@
             async saveTx() {
                 this.updateFormState();
                 if (!state.txForm.amount || !state.txForm.walletId) return;
-                const amt = parseInt(state.txForm.amount.replace(/,/g, ''));
                 
-                let updatedWallets = [...state.wallets];
+                // Loại bỏ dấu phẩy để lấy số nguyên
+                const amt = parseInt(state.txForm.amount.toString().replace(/,/g, ''));
+                
+                let updatedWallets = JSON.parse(JSON.stringify(state.wallets)); // Deep copy để tránh mutate state cũ
+                let updatedTxs = [...state.transactions];
+
+                // NẾU LÀ SỬA GIAO DỊCH (EDIT)
                 if (state.txForm.id) {
                     const oldTx = state.transactions.find(t => t.id === state.txForm.id);
-                    const wOld = updatedWallets.find(w => w.id === oldTx.walletId);
-                    if(wOld) wOld.balance -= (oldTx.type === 'income' ? oldTx.amount : -oldTx.amount);
+                    if (oldTx) {
+                        // 1. Hoàn tác số tiền của giao dịch cũ vào ví cũ
+                        const wOld = updatedWallets.find(w => w.id === oldTx.walletId);
+                        if(wOld) {
+                            wOld.balance -= (oldTx.type === 'income' ? oldTx.amount : -oldTx.amount);
+                        }
+                        
+                        // 2. Xóa giao dịch cũ khỏi mảng
+                        updatedTxs = updatedTxs.filter(t => t.id !== state.txForm.id);
+                    }
                 }
-                const wNew = updatedWallets.find(w => w.id === state.txForm.walletId);
-                if(wNew) wNew.balance += (state.txForm.type === 'income' ? amt : -amt);
                 
-                let updatedTxs = state.transactions.filter(t => t.id !== state.txForm.id);
-                updatedTxs.push({ ...state.txForm, id: state.txForm.id || `t${Date.now()}`, amount: amt });
+                // ÁP DỤNG THÔNG TIN MỚI (Cho cả Tạo mới và Sửa)
+                // 1. Trừ/Cộng số tiền mới vào ví mới
+                const wNew = updatedWallets.find(w => w.id === state.txForm.walletId);
+                if(wNew) {
+                    wNew.balance += (state.txForm.type === 'income' ? amt : -amt);
+                }
+                
+                // 2. Thêm giao dịch mới vào mảng
+                updatedTxs.push({ 
+                    ...state.txForm, 
+                    id: state.txForm.id || `t${Date.now()}`, 
+                    amount: amt 
+                });
 
+                // Cập nhật lên Firebase
                 try {
-                    await setDoc(doc(db, 'users', state.userId), { wallets: updatedWallets, transactions: updatedTxs }, { merge: true });
+                    await setDoc(doc(db, 'users', state.userId), { 
+                        wallets: updatedWallets, 
+                        transactions: updatedTxs 
+                    }, { merge: true });
+                    
                     this.setTab('home');
-                } catch(e) { console.error(e); }
+                } catch(e) { 
+                    console.error("Lỗi khi lưu giao dịch:", e);
+                    alert("Có lỗi xảy ra khi lưu lên đám mây. Vui lòng kiểm tra kết nối mạng.");
+                }
             },
             async deleteTx() {
                 if (!state.isConfirmingDelete) {
